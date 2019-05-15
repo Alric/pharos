@@ -8,6 +8,7 @@ describe 'institutions/show.html.erb' do
   before do
     assign(:user, user)
     assign(:institution, institution)
+    assign(:associations, {})
     controller.stub(:current_user).and_return user
   end
 

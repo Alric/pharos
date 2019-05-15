@@ -63,7 +63,7 @@ class Institution < ActiveRecord::Base
   end
 
   def active_files
-    GenericFile.with_institution(institution_id: self.id, state: 'A')
+    GenericFile.where(institution_id: self.id, state: 'A')
   end
 
   def new_deletion_items
@@ -182,20 +182,20 @@ class Institution < ActiveRecord::Base
     size
   end
 
-  def set_associations_for_show(current_user, institution)
-    associations = {}
-    if (current_user.admin? && current_user.institution.identifier == institution.identifier)  ||
-        (current_user.institutional_admin? && current_user.institution.name == 'APTrust' && current_user.institution.identifier == institution.identifier)
+  def set_associations_for_show(current_user)
+    associations = { }
+    if (current_user.admin? && current_user.institution.identifier == self.identifier)  ||
+        (current_user.institutional_admin? && current_user.institution.name == 'APTrust' && current_user.institution.identifier == self.identifier)
       associations[:items] = WorkItem.limit(10).order('date').reverse_order
       associations[:size] = Institution.total_file_size_across_repo
       associations[:item_count] = WorkItem.all.count
       associations[:object_count] = IntellectualObject.with_state('A').size
     else
-      items = WorkItem.with_institution(institution.id)
+      items = WorkItem.with_institution(self.id)
       associations[:items] = items.limit(10).order('date').reverse_order
-      associations[:size] = institution.total_file_size
+      associations[:size] = self.total_file_size
       associations[:item_count] = items.size
-      associations[:object_count] = institution.active_objects.size
+      associations[:object_count] = self.active_objects.size
     end
     associations
   end

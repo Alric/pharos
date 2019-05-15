@@ -44,7 +44,7 @@ class InstitutionsController < ApplicationController
         }
       end
     else
-      @associations = @institution.set_associations_for_show(current_user, @institution)
+      @associations = @institution.set_associations_for_show(current_user)
       respond_to do |format|
         format.json { render json: @institution }
         format.html
