@@ -14,28 +14,15 @@ class WorkItemsController < ApplicationController
     (current_user.admin? and params[:institution].present?) ? @items = WorkItem.with_institution(params[:institution]) : @items = WorkItem.readable(current_user)
     filter_count_and_sort
     page_results(@items)
-    if @items.nil? || @items.empty?
-      authorize current_user, :nil_index?
-      respond_to do |format|
-        format.json {
-          json_list = @paged_results.map { |item| item.serializable_hash(except: [:node, :pid]) }
-          render json: {count: @count, next: @next, previous: @previous, results: json_list}
-        }
-        format.html { render 'old_index' }
-      end
-    else
-      authorize @items
-      respond_to do |format|
-        format.json {
-          if current_user.admin?
-            json_list = @paged_results.map { |item| item.serializable_hash }
-          else
+    (@items.nil? || @items.empty?) ? authorize current_user, :nil_index? : authorize @items
+    respond_to do |format|
+      format.json {
+        current_user.admin? ?
+            json_list = @paged_results.map { |item| item.serializable_hash } :
             json_list = @paged_results.map { |item| item.serializable_hash(except: [:node, :pid]) }
-          end
-          render json: {count: @count, next: @next, previous: @previous, results: json_list}
-        }
-        format.html { render 'old_index' }
-      end
+        render json: {count: @count, next: @next, previous: @previous, results: json_list}
+      }
+      format.html { render 'old_index' }
     end
   end
 
@@ -55,11 +42,9 @@ class WorkItemsController < ApplicationController
       authorize @work_item
       (params[:with_state_json] == 'true' && current_user.admin?) ? @show_state = true : @show_state = false
       respond_to do |format|
-        if current_user.admin?
-          format.json { render json: @work_item.serializable_hash }
-        else
-          format.json { render json: @work_item.serializable_hash(except: [:node, :pid]) }
-        end
+        current_user.admin? ?
+            format.json { render json: @work_item.serializable_hash } :
+            format.json { render json: @work_item.serializable_hash(except: [:node, :pid]) }
         format.html
       end
     else
