@@ -12,10 +12,10 @@
     </tr>
   </thead>
     <tbody>
-  <% if @items.nil? || @items.empty? %>
+  <% if @associations[:items].nil? || @associations[:items].empty? %>
           No Work Items to display.
       <% else %>
-          <% @items.each do |item| %>
+          <% @associations[:items].each do |item| %>
                   <tr class="<%= item.status %>">
               <td><%= link_to item.name, work_item_path(id: item.id) %></td>
               <td><%= item.institution.identifier %></td>

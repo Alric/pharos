@@ -11,12 +11,12 @@ class InstitutionsController < ApplicationController
   after_action :verify_policy_scoped, only: :index
 
   def index
+    @institutions = policy_scope(Institution)
+    @institutions = @institutions.order('name')
+    @sizes = Institution.find_all_sizes unless request.url.include?("/api/")
+    @count = @institutions.count
+    page_results(@institutions)
     respond_to do |format|
-      @institutions = policy_scope(Institution)
-      @institutions = @institutions.order('name')
-      @sizes = find_all_sizes unless request.url.include?("/api/")
-      @count = @institutions.count
-      page_results(@institutions)
       format.json { render json: {count: @count, next: @next, previous: @previous, results: @institutions.map{ |item| item.serializable_hash }} }
       format.html { render 'index' }
     end
@@ -44,7 +44,7 @@ class InstitutionsController < ApplicationController
         }
       end
     else
-      set_recent_objects
+      @associations = @institution.set_associations_for_show(current_user, @institution)
       respond_to do |format|
         format.json { render json: @institution }
         format.html
@@ -291,34 +291,6 @@ class InstitutionsController < ApplicationController
   # Never trust parameters from the scary internet, only allow the white list through.
   def build_resource_params
     params[:action] == 'new' ? [] : [params.require(:institution).permit(:name, :identifier, :dpn_uuid, :type, :member_institution_id)]
-  end
-
-  def set_recent_objects
-    if (current_user.admin? && current_user.institution.identifier == @institution.identifier)  ||
-        (current_user.institutional_admin? && current_user.institution.name == 'APTrust' && current_user.institution.identifier == @institution.identifier)
-      @items = WorkItem.limit(10).order('date').reverse_order
-      @size = Institution.total_file_size_across_repo
-      @item_count = WorkItem.all.count
-      @object_count = IntellectualObject.with_state('A').size
-    else
-      items = WorkItem.with_institution(@institution.id)
-      @items = items.limit(10).order('date').reverse_order
-      @size = @institution.total_file_size
-      @item_count = items.size
-      @object_count = @institution.intellectual_objects.with_state('A').size
-    end
-  end
-
-  def find_all_sizes
-    size = {}
-    total_size = 0
-    Institution.all.each do |inst|
-      size[inst.name] = inst.total_file_size
-      size[inst.name] = 0 if size[inst.name].nil?
-      total_size += size[inst.name]
-    end
-    size['APTrust'] = total_size
-    size
   end
 
   def build_bulk_deletion_list

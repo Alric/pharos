@@ -58,8 +58,12 @@ class Institution < ActiveRecord::Base
     apt_users
   end
 
+  def active_objects
+    IntellectualObject.where(institution_id: self.id, state: 'A')
+  end
+
   def active_files
-    GenericFile.where(institution_id: self.id, state: 'A')
+    GenericFile.with_institution(institution_id: self.id, state: 'A')
   end
 
   def new_deletion_items
@@ -164,6 +168,36 @@ class Institution < ActiveRecord::Base
 
   def deactivated?
     return !self.deactivated_at.nil?
+  end
+
+  def self.find_all_sizes
+    size = {}
+    total_size = 0
+    Institution.all.each do |inst|
+      size[inst.name] = inst.total_file_size
+      size[inst.name] = 0 if size[inst.name].nil?
+      total_size += size[inst.name]
+    end
+    size['APTrust'] = total_size
+    size
+  end
+
+  def set_associations_for_show(current_user, institution)
+    associations = {}
+    if (current_user.admin? && current_user.institution.identifier == institution.identifier)  ||
+        (current_user.institutional_admin? && current_user.institution.name == 'APTrust' && current_user.institution.identifier == institution.identifier)
+      associations[:items] = WorkItem.limit(10).order('date').reverse_order
+      associations[:size] = Institution.total_file_size_across_repo
+      associations[:item_count] = WorkItem.all.count
+      associations[:object_count] = IntellectualObject.with_state('A').size
+    else
+      items = WorkItem.with_institution(institution.id)
+      associations[:items] = items.limit(10).order('date').reverse_order
+      associations[:size] = institution.total_file_size
+      associations[:item_count] = items.size
+      associations[:object_count] = institution.active_objects.size
+    end
+    associations
   end
 
   def average_file_size
