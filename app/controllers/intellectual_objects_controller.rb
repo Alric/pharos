@@ -11,12 +11,9 @@ class IntellectualObjectsController < ApplicationController
     (current_user.admin? && @institution.identifier == Pharos::Application::APTRUST_ID) ? @intellectual_objects = IntellectualObject.all : @intellectual_objects = IntellectualObject.discoverable(current_user).with_institution(@institution.id)
     filter_count_and_sort
     page_results(@intellectual_objects)
-    (params[:with_ingest_state] == 'true' && current_user.admin?) ? options_hash = {include: [:ingest_state]} : options_hash = {}
     respond_to do |format|
-      format.json { render json: { count: @count, next: @next, previous: @previous, results: @paged_results.map { |item| item.serializable_hash(options_hash) } } }
-      format.html {
-        index!
-      }
+      format.json { render json: { count: @count, next: @next, previous: @previous, results: @paged_results.map { |item| item.serializable_hash } } }
+      format.html { index! }
     end
   end
 
