@@ -11,9 +11,9 @@ RSpec.describe GenericFilesController, type: :controller do
   let(:deleted_file) { FactoryBot.create(:generic_file, state: 'D') }
 
   before(:all) do
-    User.delete_all
     IntellectualObject.delete_all
     Institution.delete_all
+    User.delete_all
     @institution = FactoryBot.create(:member_institution)
     @another_institution = FactoryBot.create(:subscription_institution)
     @intellectual_object = FactoryBot.create(:consortial_intellectual_object, institution_id: @institution.id)
@@ -54,46 +54,6 @@ RSpec.describe GenericFilesController, type: :controller do
 
   end
 
-  describe 'GET #file_summary' do
-    before do
-      sign_in user
-      file.add_event(FactoryBot.attributes_for(:premis_event_ingest, institution: @institution, intellectual_object: @intellectual_object))
-      file.add_event(FactoryBot.attributes_for(:premis_event_fixity_generation, institution: @institution, intellectual_object: @intellectual_object))
-      file.save!
-    end
-
-    it 'can index files by intellectual object identifier' do
-      get :index, params: { alt_action: 'file_summary', intellectual_object_identifier: CGI.escape(@intellectual_object.identifier) }, format: :json
-      expect(response).to be_successful
-      expect(assigns(:intellectual_object)).to eq @intellectual_object
-    end
-
-    it 'returns only active files with uri, size and identifier attributes' do
-      FactoryBot.create(:generic_file, intellectual_object: @intellectual_object, uri:'https://one', identifier: 'file_one', state: 'A')
-      FactoryBot.create(:generic_file, intellectual_object: @intellectual_object, uri:'https://two', identifier: 'file_two', state: 'D')
-      get :index, params: { alt_action: 'file_summary', intellectual_object_identifier: CGI.escape(@intellectual_object.identifier) }, format: :json
-      expect(response).to be_successful
-
-      # Reload, or the files don't appear
-      @intellectual_object.reload
-
-      active_files = {}
-      @intellectual_object.active_files.each do |f|
-        key = "#{f.uri}-#{f.size}"
-        active_files[key] = f
-      end
-      response_data = JSON.parse(response.body)
-      response_data.each do |file_summary|
-        key = "#{file_summary['uri']}-#{file_summary['size']}"
-        generic_file = active_files[key]
-        expect(generic_file).not_to be_nil
-        expect(file_summary['uri']).to eq generic_file.uri
-        expect(file_summary['size']).to eq generic_file.size
-        expect(file_summary['identifier']).to eq generic_file.identifier
-      end
-    end
-  end
-
   describe 'GET #show' do
     before do
       sign_in user
@@ -111,11 +71,6 @@ RSpec.describe GenericFilesController, type: :controller do
     it 'assigns the generic file' do
       get :show, params: { generic_file_identifier: file.identifier }, format: :html
       assigns(:generic_file).should == file
-    end
-
-    it 'assigns events' do
-      get :show, params: { generic_file_identifier: file.identifier }, format: :html
-      assigns(:events).count.should == file.premis_events.count
     end
 
     it 'should show the file by identifier for API users' do
@@ -624,11 +579,11 @@ RSpec.describe GenericFilesController, type: :controller do
 
   describe 'PUT #restore' do
     let!(:restore_parent) { FactoryBot.create(:institutional_intellectual_object, institution: @institution, state: 'A', identifier: 'college.edu/for_restore') }
-    let!(:file_for_restore) { FactoryBot.create(:generic_file, intellectual_object_id: restore_parent.id, state: 'A', identifier: 'college.edu/for_restore/data/test.pdf') }
+    let!(:file_for_restore) { FactoryBot.create(:generic_file, institution: @institution, intellectual_object_id: restore_parent.id, state: 'A', identifier: 'college.edu/for_restore/data/test.pdf') }
     let!(:deleted_parent) { FactoryBot.create(:institutional_intellectual_object, institution: @institution, state: 'D', identifier: 'college.edu/deleted') }
-    let!(:deleted_file)  { FactoryBot.create(:generic_file, intellectual_object_id: deleted_parent.id, state: 'D', identifier: 'college.edu/deleted/data/test.pdf') }
+    let!(:deleted_file)  { FactoryBot.create(:generic_file, institution: @institution, intellectual_object_id: deleted_parent.id, state: 'D', identifier: 'college.edu/deleted/data/test.pdf') }
     let!(:pending_parent) { FactoryBot.create(:institutional_intellectual_object, institution: @institution, state: 'A', identifier: 'college.edu/pending') }
-    let!(:pending_file) { FactoryBot.create(:generic_file, intellectual_object_id: pending_parent.id, state: 'A', identifier: 'college.edu/pending/data/test.pdf') }
+    let!(:pending_file) { FactoryBot.create(:generic_file, institution: @institution, intellectual_object_id: pending_parent.id, state: 'A', identifier: 'college.edu/pending/data/test.pdf') }
     let!(:ingest) { FactoryBot.create(:work_item, object_identifier: 'college.edu/for_restore', action: 'Ingest', stage: 'Cleanup', status: 'Success') }
     let!(:pending_restore) { FactoryBot.create(:work_item, object_identifier: 'college.edu/pending', generic_file_identifier: 'college.edu/pending/data/test.pdf', action: 'Restore', stage: 'Requested', status: 'Pending') }
 

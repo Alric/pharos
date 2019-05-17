@@ -54,8 +54,7 @@ class CatalogController < ApplicationController
     else
       case params[:search_field]
         when 'Object Identifier'
-          @results = objects.with_identifier(@q)
-          @results = objects.with_identifier_like(@q) if @results.count == 0
+          @results = objects.with_identifier_like(@q)
         when 'Alternate Identifier'
           @results = objects.with_alt_identifier_like(@q)
         when 'Bag Name'
@@ -76,8 +75,7 @@ class CatalogController < ApplicationController
     else
       case params[:search_field]
         when 'File Identifier'
-          @results = files.with_identifier(@q)
-          @results = files.with_identifier_like(@q) if @results.count == 0
+          @results = files.with_identifier_like(@q)
         when 'URI'
           @results = files.with_uri_like(@q)
       end

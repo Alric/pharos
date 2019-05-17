@@ -8,35 +8,35 @@ class GenericFilesController < ApplicationController
   after_action :verify_authorized
 
   def index
-    if params[:alt_action]
-      case params[:alt_action]
-        when 'file_summary'
-          load_intellectual_object
-          authorize @intellectual_object
-          file_summary
-      end
+    # Below can be removed during redesign if no problems appear.
+    # if params[:alt_action]
+    #   case params[:alt_action]
+    #     when 'file_summary'
+    #       load_intellectual_object
+    #       authorize @intellectual_object
+    #       file_summary
+    #   end
+    # else
+    if params[:not_checked_since]
+      authorize current_user, :not_checked_since?
+      @generic_files = GenericFile.not_checked_since(params[:not_checked_since])
     else
-      if params[:not_checked_since]
-        authorize current_user, :not_checked_since?
-        @generic_files = GenericFile.not_checked_since(params[:not_checked_since])
+      load_parent_object
+      if @intellectual_object
+        authorize @intellectual_object
+        @generic_files = GenericFile.where(intellectual_object_id: @intellectual_object.id)
       else
-        load_parent_object
-        if @intellectual_object
-          authorize @intellectual_object
-          @generic_files = GenericFile.where(intellectual_object_id: @intellectual_object.id)
-        else
-          authorize @institution, :index_through_institution?
-          (current_user.admin? && @institution.identifier == Pharos::Application::APTRUST_ID) ? @generic_files = GenericFile.all : @generic_files = GenericFile.with_institution(@institution.id)
-        end
-      end
-      filter_count_and_sort
-      page_results(@generic_files)
-      (params[:with_ingest_state] == 'true' && current_user.admin?) ? options_hash = {include: [:ingest_state]} : options_hash = {}
-      respond_to do |format|
-        format.json { render json: { count: @count, next: @next, previous: @previous, results: @paged_results.map { |f| f.serializable_hash(options_hash) } } }
-        format.html { }
+        authorize @institution, :index_through_institution?
+        (current_user.admin? && @institution.identifier == Pharos::Application::APTRUST_ID) ? @generic_files = GenericFile.all : @generic_files = GenericFile.with_institution(@institution.id)
       end
     end
+    filter_count_and_sort
+    page_results(@generic_files)
+    respond_to do |format|
+      format.json { render json: {count: @count, next: @next, previous: @previous, results: @paged_results.map { |f| f.serializable_hash }} }
+      format.html {}
+    end
+    # end
   end
 
   def show
@@ -44,9 +44,7 @@ class GenericFilesController < ApplicationController
       authorize @generic_file
       respond_to do |format|
         format.json { render json: object_as_json }
-        format.html {
-          @events = Kaminari.paginate_array(@generic_file.premis_events).page(params[:page]).per(10)
-        }
+        format.html { }
       end
     else
       authorize current_user, :nil_file?
@@ -196,7 +194,7 @@ class GenericFilesController < ApplicationController
 
 
   def restore
-    authorize @generic_file, :restore?
+    authorize @generic_file
     message = ""
     api_status_code = :ok
     restore_item = nil
@@ -229,22 +227,6 @@ class GenericFilesController < ApplicationController
   end
 
   protected
-
-  def file_summary
-    data = []
-    files = @intellectual_object.active_files
-    files.each do |file|
-      summary = {}
-      summary['size'] = file.size
-      summary['identifier'] = file.identifier
-      summary['uri'] = file.uri
-      data << summary
-    end
-    respond_to do |format|
-      format.json { render json: data }
-      format.html { super }
-    end
-  end
 
   def single_generic_file_params
     params[:generic_file] &&= params.require(:generic_file)

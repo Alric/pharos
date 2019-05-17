@@ -91,10 +91,6 @@ class GenericFile < ActiveRecord::Base
     identifier
   end
 
-  def institution
-    self.intellectual_object.institution
-  end
-
   def soft_delete(attributes)
     user_email = attributes[:requestor]
     attributes[:inst_app] ? inst_app = attributes[:inst_app] : inst_app = nil

@@ -15,16 +15,17 @@ class IntellectualObjectPolicy < ApplicationPolicy
     user.admin?
   end
 
-  def file_summary?
-    if user.admin?
-      true
-    elsif record.intellectual_object.access == 'consortia'
-      user.institutional_admin? || user.institutional_user?
-      # if restricted or institutional access
-    else
-      user.institution_id == record.intellectual_object.institution.id
-    end
-  end
+  # Can be removed during redesign if no problems appear.
+  # def file_summary?
+  #   if user.admin?
+  #     true
+  #   elsif record.intellectual_object.access == 'consortia'
+  #     user.institutional_admin? || user.institutional_user?
+  #     # if restricted or institutional access
+  #   else
+  #     user.institution_id == record.intellectual_object.institution.id
+  #   end
+  # end
 
   # for adding premis events - restricted to admin only so other users can't create events willy nilly
   # adding events still allowed through the soft_delete function, but only for deletion events.
