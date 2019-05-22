@@ -33,30 +33,13 @@ class AlertsController < ApplicationController
 
   def get_index_lists(datetime)
     @alerts_list = {}
-    case params[:type]
-      when 'fixity'
-        @alerts_list[:failed_fixity_checks] = PremisEvent.failed_fixity_checks(datetime, current_user)
-      when 'ingest'
-        @alerts_list[:failed_ingests] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['ingest'], current_user)
-      when 'restore'
-        @alerts_list[:failed_restorations] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['restore'], current_user)
-      when 'delete'
-        @alerts_list[:failed_deletions] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['delete'], current_user)
-      when 'dpn_ingest'
-        @alerts_list[:failed_dpn_ingests] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['dpn'], current_user)
-      when 'stalled_dpn'
-        @alerts_list[:stalled_dpn_replications] = DpnWorkItem.stalled_dpn_replications if current_user.admin?
-      when 'stalled_wi'
-        @alerts_list[:stalled_work_items] = WorkItem.stalled_items(current_user)
-      when 'all'
-        @alerts_list[:failed_fixity_checks] = PremisEvent.failed_fixity_checks(datetime, current_user)
-        @alerts_list[:failed_ingests] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['ingest'], current_user)
-        @alerts_list[:failed_restorations] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['restore'], current_user)
-        @alerts_list[:failed_deletions] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['delete'], current_user)
-        @alerts_list[:failed_dpn_ingests] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['dpn'], current_user)
-        @alerts_list[:stalled_dpn_replications] = DpnWorkItem.stalled_dpn_replications if current_user.admin?
-        @alerts_list[:stalled_work_items] = WorkItem.stalled_items(current_user)
-    end
+    @alerts_list[:failed_fixity_checks] = PremisEvent.failed_fixity_checks(datetime, current_user) if (params[:type] == 'fixity' || params[:type] == 'all')
+    @alerts_list[:failed_ingests] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['ingest'], current_user) if (params[:type] == 'ingest' || params[:type] == 'all')
+    @alerts_list[:failed_restorations] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['restore'], current_user) if (params[:type] == 'restore' || params[:type] == 'all')
+    @alerts_list[:failed_deletions] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['delete'], current_user) if (params[:type] == 'delete' || params[:type] == 'all')
+    @alerts_list[:failed_dpn_ingests] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['dpn'], current_user) if (params[:type] == 'dpn_ingest' || params[:type] == 'all')
+    @alerts_list[:stalled_dpn_replications] = DpnWorkItem.stalled_dpn_replications if current_user.admin? if (params[:type] == 'stalled_dpn' || params[:type] == 'all')
+    @alerts_list[:stalled_work_items] = WorkItem.stalled_items(current_user) if (params[:type] == 'stalled_wi' || params[:type] == 'all')
   end
 
   def get_summary_counts(datetime)

@@ -25,18 +25,15 @@ class PremisEventsController < ApplicationController
     else
       @parent = @premis_events.first.intellectual_object
     end
-    params[:file_identifier] = '' if params[:file_identifier] == 'null' || params[:file_identifier] == 'blank'
-    params[:file_identifier_like] = '' if params[:file_identifier_like] == 'null' || params[:file_identifier_like] == 'blank'
+    @institution = current_user.institution
     if @parent.nil?
       authorize current_user, :nil_index?
-      @institution = current_user.institution
       respond_to do |format|
         format.json { render nothing: true, status: :not_found }
         format.html { redirect_to root_url, alert: "A Premis Event parent (Institution/Intellectual Object/Generic File) with identifier: #{identifier} could not be found." }
       end
     else
       authorize @parent
-      @institution = current_user.institution
       filter_count_and_sort
       page_results(@premis_events)
       respond_to do |format|

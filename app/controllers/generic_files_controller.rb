@@ -100,10 +100,6 @@ class GenericFilesController < ApplicationController
   end
 
   def update
-    # A.D. Aug. 3, 2016: Deleted batch update because
-    # nested params cause new events to be created,
-    # and it would require too much logic to determine which
-    # events should not be duplicated.
     authorize @generic_file
     @generic_file.state = 'A'
     if resource.update(single_generic_file_params)
@@ -191,7 +187,6 @@ class GenericFilesController < ApplicationController
         }
     end
   end
-
 
   def restore
     authorize @generic_file
@@ -311,7 +306,6 @@ class GenericFilesController < ApplicationController
     if params[:generic_file_identifier]
       identifier = params[:generic_file_identifier]
       @generic_file = GenericFile.where(identifier: identifier).first
-      # PivotalTracker https://www.pivotaltracker.com/story/show/140235557
       if @generic_file.nil?
           if looks_like_fedora_file(identifier)
             fixed_identifier = fix_fedora_filename(identifier)
