@@ -1,5 +1,6 @@
 class GenericFilesController < ApplicationController
   include FilterCounts
+  include BulkDeletions
   respond_to :html, :json
   before_action :authenticate_user!
   before_action :load_generic_file, only: [:show, :update, :destroy, :confirm_destroy, :finished_destroy, :restore]
@@ -112,67 +113,42 @@ class GenericFilesController < ApplicationController
 
   def destroy
     authorize @generic_file, :soft_delete?
-    # Don't allow a delete request if an ingest or restore is in process
-    # for this object. OK to delete if another delete request is in process.
     result = WorkItem.can_delete_file?(@generic_file.intellectual_object.identifier, @generic_file.identifier)
     if @generic_file.state == 'D'
-      redirect_to @generic_file
-      flash[:alert] = 'This file has already been deleted.'
+      message = 'This file has already been deleted.'
+      status = set_status_error(message)
     elsif result == 'true'
-      log = Email.log_deletion_request(@generic_file)
-      ConfirmationToken.where(generic_file_id: @generic_file.id).delete_all #delete any old tokens. Only the new one should be valid
-      token = ConfirmationToken.create(generic_file: @generic_file, token: SecureRandom.hex)
-      token.save!
-      NotificationMailer.deletion_request(@generic_file, current_user, log, token).deliver!
-      respond_to do |format|
-        format.json { head :no_content }
-        format.html {
-          redirect_to @generic_file
-          flash[:notice] = 'An email has been sent to the administrators of this institution to confirm deletion of this file.'
-        }
-      end
+      object_or_file_start_destroy('file', @generic_file, current_user)
+      message = 'An email has been sent to the administrators of this institution to confirm deletion of this file.'
+      status = set_status_ok(message)
     else
-      redirect_to @generic_file
-      flash[:alert] = "Your file cannot be deleted at this time due to a pending #{result} request."
+      message = "Your file cannot be deleted at this time due to a pending #{result} request."
+      status = set_status_error(message)
+    end
+    respond_to do |format|
+      format.json { render json: { status: status[:one], message: message }, status: status[:two] }
+      format.html { redirect_to @generic_file }
     end
   end
 
   def confirm_destroy
     authorize @generic_file, :soft_delete?
     if @generic_file.confirmation_token.nil? && (WorkItem.with_action(Pharos::Application::PHAROS_ACTIONS['delete']).with_file_identifier(@generic_file.identifier).count == 1)
-      respond_to do |format|
-        message = 'This deletion request has already been confirmed and queued for deletion by someone else.'
-        format.json {
-          render :json => { status: 'ok', message: message }, :status => :ok
-        }
-        format.html {
-          redirect_to @generic_file
-          flash[:notice] = message
-        }
-      end
+      message = 'This deletion request has already been confirmed and queued for deletion by someone else.'
+      status = set_status_ok(message)
     else
       if params[:confirmation_token] == @generic_file.confirmation_token.token
-        confirmed_destroy
-        respond_to do |format|
-          format.json { head :no_content }
-          format.html {
-            flash[:notice] = "Delete job has been queued for file: #{@generic_file.uri}."
-            redirect_to @generic_file.intellectual_object
-          }
-        end
+        file_confirmed_destroy(params[:requesting_user_id], current_user)
+        message = "Delete job has been queued for file: #{@generic_file.uri}."
+        status = set_status_ok(message)
       else
-        respond_to do |format|
-          message = 'Your file cannot be deleted at this time due to an invalid confirmation token. ' +
-              'Please contact your APTrust administrator for more information.'
-          format.json {
-            render :json => { status: 'error', message: message }, :status => :conflict
-          }
-          format.html {
-            redirect_to @generic_file
-            flash[:alert] = message
-          }
-        end
+        message = 'Your file cannot be deleted at this time due to an invalid confirmation token. Please contact your APTrust administrator for more information.'
+        status = set_status_error(message)
       end
+    end
+    respond_to do |format|
+      format.json { render json: { status: status[:one], message: message }, status: status[:two] }
+      format.html { redirect_to @generic_file }
     end
   end
 
@@ -207,15 +183,9 @@ class GenericFilesController < ApplicationController
     respond_to do |format|
       status = restore_item.nil? ? 'error' : 'ok'
       item_id = restore_item.nil? ? 0 : restore_item.id
-      format.json {
-        render :json => { status: status, message: message, work_item_id: item_id }, :status => api_status_code
-      }
+      format.json { render :json => { status: status, message: message, work_item_id: item_id }, :status => api_status_code }
       format.html {
-        if restore_item.nil?
-          flash[:alert] = message
-        else
-          flash[:notice] = message
-        end
+        restore_item.nil? ? flash[:alert] = message : flash[:notice] = message
         redirect_to @generic_file
       }
     end
@@ -398,14 +368,4 @@ class GenericFilesController < ApplicationController
     request.format = 'html' unless request.format == 'json' || request.format == 'html'
   end
 
-  def confirmed_destroy
-    requesting_user = User.find(params[:requesting_user_id])
-    attributes = { requestor: requesting_user.email,
-                   inst_app: current_user.email
-    }
-    @generic_file.soft_delete(attributes)
-    log = Email.log_deletion_confirmation(@generic_file)
-    NotificationMailer.deletion_confirmation(@generic_file, requesting_user.id, current_user.id, log).deliver!
-    ConfirmationToken.where(generic_file_id: @generic_file.id).delete_all
-  end
 end

@@ -1,4 +1,5 @@
 class InstitutionsController < ApplicationController
+  include BulkDeletions
   require 'google_drive'
   inherit_resources
   skip_before_action :verify_authenticity_token, only: [:trigger_bulk_delete]
@@ -137,16 +138,8 @@ class InstitutionsController < ApplicationController
 
   def trigger_bulk_delete
     authorize @institution, :bulk_delete?
-    @bulk_job = BulkDeleteJob.create(requested_by: current_user.email, institution_id: @institution.id)
-    @bulk_job.save!
     parse_ident_list
-    build_bulk_deletion_list
-    csv = @institution.generate_confirmation_csv(@bulk_job)
-    log = Email.log_deletion_request(@institution)
-    ConfirmationToken.where(institution_id: @institution.id).delete_all # delete any old tokens. Only the new one should be valid
-    token = ConfirmationToken.create(institution: @institution, token: SecureRandom.hex)
-    token.save!
-    NotificationMailer.bulk_deletion_inst_admin_approval(@institution, @bulk_job, @forbidden_idents, log, token, csv).deliver!
+    inst_trigger_bulk_delete(current_user)
     respond_to do |format|
       format.json { head :no_content }
       format.html {
@@ -161,46 +154,20 @@ class InstitutionsController < ApplicationController
     @bulk_job = BulkDeleteJob.find(params[:bulk_delete_job_id])
     if !@institution.confirmation_token.nil? && params[:confirmation_token] == @institution.confirmation_token.token
       if @bulk_job.institutional_approver.nil?
-        @bulk_job.institutional_approver = current_user.email
-        @bulk_job.institutional_approval_at = Time.now.utc
-        @bulk_job.save!
-        log = Email.log_bulk_deletion_confirmation(@institution, 'partial')
-        csv = @institution.generate_confirmation_csv(@bulk_job)
-        ConfirmationToken.where(institution_id: @institution.id).delete_all # delete any old tokens. Only the new one should be valid
-        token = ConfirmationToken.create(institution: @institution, token: SecureRandom.hex)
-        token.save!
-        NotificationMailer.bulk_deletion_apt_admin_approval(@institution, @bulk_job, log, token, csv).deliver!
-        respond_to do |format|
-          format.json { head :no_content }
-          format.html {
-            flash[:notice] = "Bulk delete job for: #{@institution.name} has been sent forward for final approval by an APTrust administrator."
-            redirect_to root_path
-          }
-        end
+        partial_conf_bulk_delete(current_user)
+        message = "Bulk delete job for: #{@institution.name} has been sent forward for final approval by an APTrust administrator."
+        status = set_status_ok(message)
       else
-        respond_to do |format|
-          message = 'This bulk deletion request has already been confirmed and sent forward for APTrust approval by someone else.'
-          format.json {
-            render :json => { status: 'ok', message: message }, :status => :ok
-          }
-          format.html {
-            redirect_to root_path
-            flash[:notice] = message
-          }
-        end
+        message = 'This bulk deletion request has already been confirmed and sent forward for APTrust approval by someone else.'
+        status = set_status_ok(message)
       end
     else
-      respond_to do |format|
-        message = 'Your bulk deletion event cannot be queued at this time due to an invalid confirmation token. ' +
-            'Please contact your APTrust administrator for more information.'
-        format.json {
-          render :json => { status: 'error', message: message }, :status => :conflict
-        }
-        format.html {
-          redirect_to institution_url(@institution)
-          flash[:alert] = message
-        }
-      end
+      message = 'Your bulk deletion event cannot be queued at this time due to an invalid confirmation token. Please contact your APTrust administrator for more information.'
+      status = set_status_error(message)
+    end
+    respond_to do |format|
+      format.json { render :json => { status: status[:one], message: message }, status: status[:two] }
+      format.html { redirect_to institution_url(@institution) }
     end
   end
 
@@ -208,52 +175,28 @@ class InstitutionsController < ApplicationController
     authorize @institution
     @bulk_job = BulkDeleteJob.find(params[:bulk_delete_job_id])
     if @institution.confirmation_token.nil? && !@bulk_job.aptrust_approver.nil?
-      respond_to do |format|
-        message = 'This bulk deletion request has already been confirmed and queued for deletion by someone else.'
-        format.json {
-          render :json => { status: 'ok', message: message }, :status => :ok
-        }
-        format.html {
-          redirect_to root_path
-          flash[:notice] = message
-        }
-      end
+      message = 'This bulk deletion request has already been confirmed and queued for deletion by someone else.'
+      status = set_status_ok(message)
     else
       if params[:confirmation_token] == @institution.confirmation_token.token
-        @bulk_job.aptrust_approver = current_user.email
-        @bulk_job.aptrust_approval_at = Time.now.utc
-        @bulk_job.save!
-        confirmed_destroy
-        respond_to do |format|
-          format.json { head :no_content }
-          format.html {
-            flash[:notice] = "Bulk deletion request for #{@institution.name} has been queued."
-            redirect_to root_path
-          }
-        end
+        confirmed_destroy(current_user)
+        message = "Bulk deletion request for #{@institution.name} has been queued."
+        status = set_status_ok(message)
       else
-        respond_to do |format|
-          message = 'This bulk deletion request cannot be completed at this time due to an invalid confirmation token. ' +
-              'Please contact your APTrust administrator for more information.'
-          format.json {
-            render :json => { status: 'error', message: message }, :status => :conflict
-          }
-          format.html {
-            redirect_to root_path
-            flash[:alert] = message
-          }
-        end
+        message = 'This bulk deletion request cannot be completed at this time due to an invalid confirmation token. Please contact your APTrust administrator for more information.'
+        status = set_status_error(message)
       end
+    end
+    respond_to do |format|
+      format.json { render :json => { status: status[:one], message: message }, :status => status[:two] }
+      format.html { redirect_to root_path }
     end
   end
 
   def finished_bulk_delete
     authorize @institution
     @bulk_job = BulkDeleteJob.find(params[:bulk_delete_job_id])
-    bulk_mark_deleted
-    log = Email.log_deletion_finished(@institution)
-    csv = @institution.generate_confirmation_csv(@bulk_job)
-    NotificationMailer.bulk_deletion_finished(@institution, @bulk_job, log, csv).deliver!
+    finish_bulk_deletions
     respond_to do |format|
       format.json { head :no_content }
       format.html {
@@ -270,10 +213,7 @@ class InstitutionsController < ApplicationController
       unless items.nil? || items.count == 0
         csv = current_inst.generate_deletion_csv(items)
         email = NotificationMailer.deletion_notification(current_inst, csv).deliver_now
-        email_log = Email.log_daily_deletion_notification(current_inst)
-        email_log.user_list = email.to
-        email_log.email_text = email.body.encoded
-        email_log.save!
+        email_log_deletion_notifications(email, current_inst)
       end
     end
     respond_to do |format|
@@ -293,83 +233,9 @@ class InstitutionsController < ApplicationController
     params[:action] == 'new' ? [] : [params.require(:institution).permit(:name, :identifier, :dpn_uuid, :type, :member_institution_id)]
   end
 
-  def build_bulk_deletion_list
-    @forbidden_idents = { }
-    initial_identifiers = @ident_list
-    initial_identifiers.each do |identifier|
-      current = IntellectualObject.find_by_identifier(identifier)
-      current = GenericFile.find_by_identifier(identifier) if current.nil?
-      pending = WorkItem.pending_action(identifier)
-      if current.state == 'D'
-        @forbidden_idents[identifier] = 'This item has already been deleted.'
-      elsif !pending.nil?
-        @forbidden_idents[identifier] = "Your item cannot be deleted at this time due to a pending #{pending.action} request. You may delete this object after the #{pending.action} request has completed."
-      else
-        current.is_a?(IntellectualObject) ? @bulk_job.intellectual_objects.push(current) : @bulk_job.generic_files.push(current)
-      end
-    end
-  end
-
-  def confirmed_destroy
-    requesting_user = User.readable(current_user).where(email: @bulk_job.requested_by).first
-    attributes = { requestor: requesting_user.email,
-                   inst_app: @bulk_job.institutional_approver,
-                   apt_app: @bulk_job.aptrust_approver
-    }
-    @t = Thread.new do
-      ActiveRecord::Base.connection_pool.with_connection do
-        ConfirmationToken.where(institution_id: @institution.id).delete_all # delete any old tokens
-        @bulk_job.intellectual_objects.each do |obj|
-          begin
-            obj.soft_delete(attributes)
-          rescue => e
-            logger.error "Exception in Bulk Delete. Object Identifier: #{obj.identifier}"
-            logger.error e.message
-            logger.error e.backtrace.join("\n")
-          end
-        end
-        @bulk_job.generic_files.each do |file|
-          begin
-            file.soft_delete(attributes)
-          rescue => e
-            logger.error "Exception in Bulk Delete. Object Identifier: #{file.identifier}"
-            logger.error e.message
-            logger.error e.backtrace.join("\n")
-          end
-        end
-        log = Email.log_bulk_deletion_confirmation(@institution, 'final')
-        csv = @institution.generate_confirmation_csv(@bulk_job)
-        NotificationMailer.bulk_deletion_queued(@institution, @bulk_job, log, csv).deliver!
-      end
-      ActiveRecord::Base.connection_pool.release_connection
-    end
-    #t.join
-  end
-
-  def bulk_mark_deleted
-    @bulk_job.intellectual_objects.each do |obj|
-      if WorkItem.deletion_finished?(obj.identifier)
-        attributes = { event_type: Pharos::Application::PHAROS_EVENT_TYPES['delete'],
-                       date_time: "#{Time.now}",
-                       detail: 'Object deleted from S3 storage',
-                       outcome: 'Success',
-                       outcome_detail: @bulk_job.requested_by,
-                       object: 'AWS Go SDK S3 Library',
-                       agent: 'https://github.com/aws/aws-sdk-go',
-                       identifier: SecureRandom.uuid,
-                       outcome_information: "Object deleted as part of bulk deletion at the request of #{@bulk_job.requested_by}. Institutional Approver: #{@bulk_job.institutional_approver}. APTrust Approver: #{@bulk_job.aptrust_approver}"
-
-        }
-        obj.mark_deleted(attributes)
-      end
-    end
-
-    @bulk_job.generic_files.each do |file|
-      if WorkItem.deletion_finished_for_file?(file.identifier)
-        file.state = 'D'
-        file.save!
-      end
-    end
+  def set_attachment_name(name)
+    escaped = URI.encode(name)
+    response.headers['Content-Disposition'] = "attachment; filename*=UTF-8''#{escaped}"
   end
 
   def parse_ident_list
@@ -383,11 +249,6 @@ class InstitutionsController < ApplicationController
     if list
       @ident_list = list['ident_list']
     end
-  end
-
-  def set_attachment_name(name)
-    escaped = URI.encode(name)
-    response.headers['Content-Disposition'] = "attachment; filename*=UTF-8''#{escaped}"
   end
 
   def write_snapshots_to_spreadsheet

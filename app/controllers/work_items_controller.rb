@@ -74,13 +74,11 @@ class WorkItemsController < ApplicationController
         options[:work_item_state_delete] = 'true' if params[:delete_state_item] && params[:delete_state_item] == 'true'
         @work_item.requeue_item(options)
         if Rails.env.development?
-          flash[:notice] = 'The response from NSQ to the requeue request is as follows: Status: 200, Body: ok'
-          flash.keep(:notice)
           respond_to do |format|
             format.json { render json: { status: 200, body: 'ok' } }
             format.html {
-              redirect_to work_item_path(@work_item.id)
               flash[:notice] = 'The response from NSQ to the requeue request is as follows: Status: 200, Body: ok'
+              redirect_to work_item_path(@work_item.id)
             }
           end
         else
@@ -88,8 +86,8 @@ class WorkItemsController < ApplicationController
           respond_to do |format|
             format.json { render json: { status: response.code, body: response.body } }
             format.html {
-              redirect_to work_item_path(@work_item.id)
               flash[:notice] = "The response from NSQ to the requeue request is as follows: Status: #{response.code}, Body: #{response.body}"
+              redirect_to work_item_path(@work_item.id)
             }
           end
         end
@@ -303,9 +301,6 @@ class WorkItemsController < ApplicationController
   def api_search
     authorize WorkItem, :admin_api?
     current_user.admin? ? @items = WorkItem.all : @items = WorkItem.with_institution(current_user.institution_id)
-    # if  Rails.env.development?
-    #   rewrite_params_for_sqlite
-    # end
     search_fields = [:name, :etag, :bag_date, :stage, :status, :institution,
                      :retry, :object_identifier, :generic_file_identifier,
                      :node, :needs_admin_review, :process_after]
@@ -313,11 +308,6 @@ class WorkItemsController < ApplicationController
     params[:needs_admin_review] = to_boolean(params[:needs_admin_review]) if params[:needs_admin_review]
     search_fields.each do |field|
       if params[field].present?
-        # if field == :bag_date && Rails.env.development?
-        #   #@items = @items.where('datetime(bag_date) = datetime(?)', params[:bag_date])
-        #   bag_date1 = DateTime.parse(params[:bag_date]) if params[:bag_date]
-        #   bag_date2 = DateTime.parse(params[:bag_date]) + 1.seconds if params[:bag_date]
-        #   @items = @items.with_bag_date(bag_date1, bag_date2)
         if field == :node and params[field] == 'null'
           @items = @items.where('node is null')
         elsif field == :assignment_pending_since and params[field] == 'null'
@@ -329,10 +319,7 @@ class WorkItemsController < ApplicationController
         end
       end
     end
-
-    if params[:item_action].present?
-      @items = @items.with_action(params[:item_action])
-    end
+    @items = @items.with_action(params[:item_action]) if params[:item_action].present?
     respond_to do |format|
       format.json { render json: @items, status: :ok }
     end
@@ -413,13 +400,6 @@ class WorkItemsController < ApplicationController
                                     bag_date: params[:bag_date]).first
     end
   end
-
-  # def rewrite_params_for_sqlite
-  #   # SQLite wants t or f for booleans
-  #   if params[:retry].present? && params[:retry].is_a?(String)
-  #     params[:retry] = params[:retry][0]
-  #   end
-  # end
 
   def issue_requeue_http_post(stage)
     if @work_item.action == Pharos::Application::PHAROS_ACTIONS['delete']

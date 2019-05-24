@@ -545,7 +545,7 @@ RSpec.describe IntellectualObjectsController, type: :controller do
       it 'should not delete already deleted item' do
         delete :destroy, params: { intellectual_object_identifier: deleted_obj }
         expect(response).to redirect_to intellectual_object_path(deleted_obj)
-        expect(flash[:alert]).to include 'This item has already been deleted'
+        expect(flash[:alert]).to include 'This object has already been deleted'
       end
 
       it 'should not delete item with pending jobs' do
@@ -570,10 +570,11 @@ RSpec.describe IntellectualObjectsController, type: :controller do
       end
 
       # integration tests want to know this request is not honored
-      it 'should say conflict and return no content if the item was previously deleted' do
+      it 'should say conflict if the item was previously deleted' do
         delete :destroy, params: { intellectual_object_identifier: deleted_obj }, format: :json
         expect(response.status).to eq(409)
-        expect(response.body).to be_empty
+        data = JSON.parse(response.body)
+        expect(data['message']).to eq('This object has already been deleted.')
       end
 
       it 'should not delete item with pending jobs' do
@@ -640,7 +641,7 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         count_before = Email.all.count
         delete :confirm_destroy, params: { intellectual_object_identifier: deletable_obj.identifier, confirmation_token: token.token, requesting_user_id: inst_admin.id }
         assigns[:t].join
-        expect(response).to redirect_to root_url
+        expect(response).to redirect_to deletable_obj
         expect(flash[:notice]).to include 'Delete job has been queued'
         reloaded_object = IntellectualObject.find(deletable_obj.id)
         expect(reloaded_object.state).to eq 'A'
@@ -688,8 +689,10 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         count_before = Email.all.count
         delete :confirm_destroy, params: { intellectual_object_identifier: deletable_obj, confirmation_token: token.token, requesting_user_id: inst_admin.id }, format: :json
         assigns[:t].join
-        expect(response.status).to eq(204)
-        expect(response.body).to be_empty
+        expect(response.status).to eq(200)
+        data = JSON.parse(response.body)
+        expect(data['status']).to eq ('ok')
+        expect(data['message']).to eq "Delete job has been queued for object: #{deletable_obj.title}. Depending on the size of the object, it may take a few minutes for all associated files to be marked as deleted."
         reloaded_object = IntellectualObject.find(deletable_obj.id)
         expect(reloaded_object.state).to eq 'A'
         expect(reloaded_object.premis_events.count).to eq 0
