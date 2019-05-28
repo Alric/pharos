@@ -26,58 +26,6 @@ RSpec.describe ReportsController, type: :controller do
     Institution.delete_all
   end
 
-  describe 'GET #index' do
-    describe 'for admin users' do
-      before do
-        sign_in @admin_user
-      end
-
-      it 'responds successfully with an HTTP 200 status code for own institution' do
-        get :index, params: { identifier: @institution_one.identifier }
-        expect(response).to be_successful
-        expect(assigns(:overview_report)[:generic_files]).to eq(1)
-        expect(assigns(:overview_report)[:intellectual_objects]).to eq(1)
-        expect(assigns(:overview_report)[:average_file_size]).to eq(@generic_file_one.size)
-        expect(assigns(:inst_breakdown_report).keys.size).to eq(1)
-      end
-
-      it 'responds successfully with an HTTP 200 status code for another institution' do
-        get :index, params: { identifier: @institution_two.identifier }
-        expect(response).to be_successful
-        expect(assigns(:overview_report)[:generic_files]).to eq(1)
-        expect(assigns(:overview_report)[:intellectual_objects]).to eq(1)
-        expect(assigns(:overview_report)[:average_file_size]).to eq(@generic_file_two.size)
-        expect(assigns(:inst_breakdown_report).keys.size).to eq(1)
-      end
-    end
-
-    describe 'for institutional admin users' do
-      before do
-        sign_in @institutional_admin
-      end
-
-      it 'responds successfully with an HTTP 200 status code for own institution' do
-        get :index, params: { identifier: @institution_two.identifier }
-        expect(response).to be_successful
-        expect(assigns(:overview_report)[:generic_files]).to eq(1)
-        expect(assigns(:overview_report)[:intellectual_objects]).to eq(1)
-        expect(assigns(:overview_report)[:average_file_size]).to eq(@generic_file_two.size)
-      end
-
-      it 'denies access when the institution is not their own (html)' do
-        get :index, params: { identifier: @institution_one.identifier }
-        expect(response.status).to eq(302)
-        flash[:alert].should =~ /You are not authorized/
-      end
-
-      it 'denies access when the institution is not their own (json)' do
-        get :index, params: { identifier: @institution_one.identifier }, format: :json
-        expect(response.status).to eq(403)
-      end
-    end
-
-  end
-
   describe 'GET #overview' do
     describe 'for admin users' do
       before do

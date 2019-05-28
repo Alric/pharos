@@ -14,7 +14,7 @@ class WorkItemsController < ApplicationController
     (current_user.admin? and params[:institution].present?) ? @items = WorkItem.with_institution(params[:institution]) : @items = WorkItem.readable(current_user)
     filter_count_and_sort
     page_results(@items)
-    (@items.nil? || @items.empty?) ? authorize current_user, :nil_index? : authorize @items
+    (@items.nil? || @items.empty?) ? (authorize current_user, :nil_index?) : (authorize @items)
     respond_to do |format|
       format.json {
         current_user.admin? ?
