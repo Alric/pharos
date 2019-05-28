@@ -11,8 +11,8 @@ module BulkDeletions
 
   def partial_conf_bulk_delete(current_user)
     edit_bulk_delete_job('partial', current_user)
-    log = Email.log_bulk_deletion_confirmation(@institution, 'partial')
     csv = @institution.generate_confirmation_csv(@bulk_job)
+    log = Email.log_bulk_deletion_confirmation(@institution, 'partial')
     token = create_confirmation_token('institution')
     NotificationMailer.bulk_deletion_apt_admin_approval(@institution, @bulk_job, log, token, csv).deliver!
   end
@@ -49,16 +49,25 @@ module BulkDeletions
 
   def object_confirmed_destroy(user_id, current_user)
     requesting_user = User.find(user_id)
-    attributes = { requestor: requesting_user.email, inst_app: current_user.email }
     @t = Thread.new do
-      ActiveRecord::Base.connection_pool.with_connection do
-        @intellectual_object.soft_delete(attributes)
-        log = Email.log_deletion_confirmation(@intellectual_object)
-        NotificationMailer.deletion_confirmation(@intellectual_object, requesting_user.id, current_user.id, log).deliver!
-        ConfirmationToken.where(intellectual_object_id: @intellectual_object.id).delete_all
-      end
+      ActiveRecord::Base.connection_pool.with_connection { object_or_file_confirm_destroy(@intellectual_object, requesting_user, current_user) }
       ActiveRecord::Base.connection_pool.release_connection
     end
+  end
+
+  def file_confirmed_destroy(user_id, current_user)
+    requesting_user = User.find(user_id)
+    object_or_file_confirm_destroy(@generic_file, requesting_user, current_user)
+  end
+
+  def object_or_file_confirm_destroy(subject, requesting_user, current_user)
+    attributes = { requestor: requesting_user.email, inst_app: current_user.email }
+    subject.soft_delete(attributes)
+    log = Email.log_deletion_confirmation(subject)
+    NotificationMailer.deletion_confirmation(subject, requesting_user.id, current_user.id, log).deliver!
+    subject.is_a?(IntellectualObject) ?
+        ConfirmationToken.where(intellectual_object_id: subject.id).delete_all :
+        ConfirmationToken.where(generic_file_id: subject.id).delete_all
   end
 
   def object_finish_destroy
@@ -67,15 +76,6 @@ module BulkDeletions
         outcome_information = "Object deleted at the request of #{deletion_item.user}. Institutional Approver: #{deletion_item.inst_approver}." :
         outcome_information = "Object deleted as part of bulk deletion at the request of #{deletion_item.user}. Institutional Approver: #{deletion_item.inst_approver}. APTrust Approver: #{deletion_item.aptrust_approver}"
     mark_object_deleted(@intellectual_object, outcome_information, deletion_item.user)
-  end
-
-  def file_confirmed_destroy(user_id, current_user)
-    requesting_user = User.find(user_id)
-    attributes = { requestor: requesting_user.email, inst_app: current_user.email }
-    @generic_file.soft_delete(attributes)
-    log = Email.log_deletion_confirmation(@generic_file)
-    NotificationMailer.deletion_confirmation(@generic_file, requesting_user.id, current_user.id, log).deliver!
-    ConfirmationToken.where(generic_file_id: @generic_file.id).delete_all
   end
 
   def soft_delete_objects(attributes)
@@ -95,7 +95,7 @@ module BulkDeletions
       begin
         file.soft_delete(attributes)
       rescue => e
-        logger.error "Exception in Bulk Delete. Object Identifier: #{file.identifier}"
+        logger.error "Exception in Bulk Delete. File Identifier: #{file.identifier}"
         logger.error e.message
         logger.error e.backtrace.join("\n")
       end
@@ -207,7 +207,7 @@ module BulkDeletions
     status
   end
 
-  def email_log_deletion_notifications(email, institution)
+  def email_log_deletions(email, institution)
     email_log = Email.log_daily_deletion_notification(institution)
     email_log.user_list = email.to
     email_log.email_text = email.body.encoded

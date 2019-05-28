@@ -155,12 +155,11 @@ class GenericFilesController < ApplicationController
   def finished_destroy
     authorize @generic_file
     @generic_file.mark_deleted
+    message = "Delete job has been finished for file: #{@generic_file.uri}. File has been marked as deleted."
+    status = set_status_ok(message)
     respond_to do |format|
-        format.json { head :no_content }
-        format.html {
-          flash[:notice] = "Delete job has been finished for file: #{@generic_file.uri}. File has been marked as deleted."
-          redirect_to @generic_file.intellectual_object
-        }
+        format.json { render json: { status: status[:one], message: message }, status: status[:two] }
+        format.html { redirect_to @generic_file.intellectual_object }
     end
   end
 

@@ -761,7 +761,7 @@ RSpec.describe IntellectualObjectsController, type: :controller do
           reloaded_object = IntellectualObject.find(deletable_obj.id)
           expect(reloaded_object.premis_events.count).to eq 2
           expect(reloaded_object.premis_events.with_type(Pharos::Application::PHAROS_EVENT_TYPES['delete']).count).to eq 1
-          expect(response.code).to eq '204'
+          expect(response.code).to eq '200'
         end
 
         it 'should raise exception if object has undeleted files' do

@@ -116,12 +116,11 @@ class IntellectualObjectsController < ApplicationController
   def finished_destroy
     authorize @intellectual_object
     object_finish_destroy
+    message = "Delete job has been finished for object: #{@intellectual_object.title}. Object has been marked as deleted."
+    status = set_status_ok(message)
     respond_to do |format|
-        format.json { head :no_content }
-        format.html {
-          flash[:notice] = "Delete job has been finished for object: #{@intellectual_object.title}. Object has been marked as deleted."
-          redirect_to root_path
-        }
+        format.json { render json: { status: status[:one], message: message }, status: status[:two] }
+        format.html { redirect_to root_path }
     end
   end
 

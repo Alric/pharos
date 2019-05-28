@@ -140,12 +140,11 @@ class InstitutionsController < ApplicationController
     authorize @institution, :bulk_delete?
     parse_ident_list
     inst_trigger_bulk_delete(current_user)
+    message = 'An email has been sent to the administrators of this institution to confirm this bulk deletion request.'
+    status = set_status_ok(message)
     respond_to do |format|
-      format.json { head :no_content }
-      format.html {
-        redirect_to root_path
-        flash[:notice] = 'An email has been sent to the administrators of this institution to confirm this bulk deletion request.'
-      }
+      format.json { render json: { status: status[:one], message: message }, status: status[:two] }
+      format.html { redirect_to root_path }
     end
   end
 
@@ -166,7 +165,7 @@ class InstitutionsController < ApplicationController
       status = set_status_error(message)
     end
     respond_to do |format|
-      format.json { render :json => { status: status[:one], message: message }, status: status[:two] }
+      format.json { render json: { status: status[:one], message: message }, status: status[:two] }
       format.html { redirect_to institution_url(@institution) }
     end
   end
@@ -188,7 +187,7 @@ class InstitutionsController < ApplicationController
       end
     end
     respond_to do |format|
-      format.json { render :json => { status: status[:one], message: message }, :status => status[:two] }
+      format.json { render json: { status: status[:one], message: message }, :status => status[:two] }
       format.html { redirect_to root_path }
     end
   end
@@ -197,12 +196,11 @@ class InstitutionsController < ApplicationController
     authorize @institution
     @bulk_job = BulkDeleteJob.find(params[:bulk_delete_job_id])
     finish_bulk_deletions
+    message = "Bulk deletion job for #{@institution.name} has been completed."
+    status = set_status_ok(message)
     respond_to do |format|
-      format.json { head :no_content }
-      format.html {
-        flash[:notice] = "Bulk deletion job for #{@institution.name} has been completed."
-        redirect_to root_path
-      }
+      format.json { render json: { status: status[:one], message: message }, :status => status[:two] }
+      format.html { redirect_to root_path }
     end
   end
 
@@ -213,7 +211,7 @@ class InstitutionsController < ApplicationController
       unless items.nil? || items.count == 0
         csv = current_inst.generate_deletion_csv(items)
         email = NotificationMailer.deletion_notification(current_inst, csv).deliver_now
-        email_log_deletion_notifications(email, current_inst)
+        email_log_deletions(email, current_inst)
       end
     end
     respond_to do |format|

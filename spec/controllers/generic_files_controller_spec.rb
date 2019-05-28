@@ -506,7 +506,7 @@ RSpec.describe GenericFilesController, type: :controller do
           count_before = Email.all.count
           get :finished_destroy, params: { generic_file_identifier: file, requesting_user_id: user.id, inst_approver_id: inst_user.id }, format: 'json'
           expect(assigns[:generic_file].state).to eq 'D'
-          expect(response.code).to eq '204'
+          expect(response.code).to eq '200'
         end
 
         it 'should raise an exception if there is no PREMIS deletion event' do
