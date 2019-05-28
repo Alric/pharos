@@ -14,17 +14,13 @@ class WorkItemsController < ApplicationController
     (current_user.admin? and params[:institution].present?) ? @items = WorkItem.with_institution(params[:institution]) : @items = WorkItem.readable(current_user)
     filter_count_and_sort
     page_results(@items)
-    if (@items.nil? || @items.empty?)
-      authorize current_user, :nil_index?
-    else
-      authorize @items
-    end
+    (@items.nil? || @items.empty?) ? authorize current_user, :nil_index? : authorize @items
     respond_to do |format|
       format.json {
         current_user.admin? ?
             json_list = @paged_results.map { |item| item.serializable_hash } :
             json_list = @paged_results.map { |item| item.serializable_hash(except: [:node, :pid]) }
-        render json: {count: @count, next: @next, previous: @previous, results: json_list}
+        render json: { count: @count, next: @next, previous: @previous, results: json_list }
       }
       format.html { }
     end
