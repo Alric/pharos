@@ -125,7 +125,6 @@ Rails.application.routes.draw do
   get 'feed', to: 'catalog#feed', format: :rss, as: :rss_feed
 
   # REPORT ROUTES
-  get 'reports/:identifier', to: 'reports#index', format: [:json, :html], as: :reports, identifier: institution_ptrn
   get 'reports/overview/:identifier', to: 'reports#overview', format: [:json, :html, :pdf], as: :institution_overview, identifier: institution_ptrn
   get 'reports/general/:identifier', to: 'reports#general', format: [:json, :html, :pdf], as: :institution_general_report, identifier: institution_ptrn
   get 'reports/cost/:identifier', to: 'reports#cost', format: [:json, :html, :pdf], as: :institution_cost_report, identifier: institution_ptrn

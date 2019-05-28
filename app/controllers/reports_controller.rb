@@ -1,21 +1,8 @@
 class ReportsController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_institution, only: [:index, :overview, :download, :general, :subscribers, :cost, :timeline, :mimetype]
+  before_action :set_institution, only: [:overview, :download, :general, :subscribers, :cost, :timeline, :mimetype]
   before_action :set_intellectual_object, only: :object_report
   after_action :verify_authorized
-
-  def index
-    authorize @institution
-    (@institution.name == 'APTrust') ?
-        @overview_report = Institution.generate_overview_apt :
-        @overview_report = @institution.generate_overview
-    @indiv_timeline_breakdown = @institution.generate_timeline_report
-    @inst_breakdown_report = Institution.breakdown if policy(current_user).institution_breakdown?
-    respond_to do |format|
-      format.json { render json: { overview_report: @overview_report, timeline_report: @indiv_timeline_breakdown, institution_breakdown: @inst_breakdown_report } }
-      format.html { }
-    end
-  end
 
   def overview
     authorize @institution
@@ -26,15 +13,16 @@ class ReportsController < ApplicationController
       format.json { render json: { report: @overview_report } }
       format.html { }
       format.pdf do
-        html = render_to_string(action: :overview, layout: false)
-        pdf = WickedPdf.new.pdf_from_string(html)
-        send_data(pdf, filename: "Overview for #{@institution.name}.pdf", disposition: 'attachment')
+        # html = render_to_string(action: :overview, layout: false)
+        # pdf = WickedPdf.new.pdf_from_string(html)
+        # send_data(pdf, filename: "Overview for #{@institution.name}.pdf", disposition: 'attachment')
 
         # Use this block to test layouts (PDF viewed in browser), block above provides downloadable PDF
-        # render pdf: "Overview for #{@institution.name}.pdf",
-        #        disposition: 'inline',
-        #        template: 'reports/overview.pdf.erb',
-        #        layout: false
+        render pdf: "Overview for #{@institution.name}",
+               disposition: 'attachment',
+               template: 'reports/overview.pdf.erb',
+               layout: false,
+               lowquality: true
       end
     end
   end
