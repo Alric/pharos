@@ -26,7 +26,7 @@ class WorkItemsController < ApplicationController
             json_list = @paged_results.map { |item| item.serializable_hash(except: [:node, :pid]) }
         render json: {count: @count, next: @next, previous: @previous, results: json_list}
       }
-      format.html { render 'old_index' }
+      format.html { }
     end
   end
 
