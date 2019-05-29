@@ -5,7 +5,6 @@ class PremisEventsController < ApplicationController
   before_action :load_and_authorize_parent_object, only: [:create]
   before_action :load_event, only: [:show]
   before_action :set_format
-  #after_action :check_for_failed_fixity, only: :create
   after_action :verify_authorized, only: [:index, :create]
 
   def index
@@ -106,17 +105,12 @@ class PremisEventsController < ApplicationController
   protected
 
   def load_intellectual_object
-    # Param names should be consistent!
     identifier_param = params[:object_identifier]
-    if identifier_param.blank? && !params[:intellectual_object_identifier].blank?
-      identifier_param = params[:intellectual_object_identifier]
-    end
+    identifier_param = params[:intellectual_object_identifier] if identifier_param.blank? && !params[:intellectual_object_identifier].blank?
     identifier = identifier_param.gsub(/%2F/i, '/').gsub(/%3F/i, '?')
     @parent = IntellectualObject.where(identifier: identifier).first
     if @parent.nil? # This might have occurred because a '.html' or '.json' was appended to clarify the format. Try removing it.
-      5.times do
-        identifier.chop!
-      end
+      5.times { identifier.chop! }
       @parent = IntellectualObject.where(identifier: identifier).first
     end
     params[:intellectual_object_id] = @parent.id if @parent
@@ -127,9 +121,7 @@ class PremisEventsController < ApplicationController
     identifier = params[:file_identifier].gsub(/%2F/i, '/').gsub(/%3F/i, '?')
     @parent = GenericFile.where(identifier: identifier).first
     if @parent.nil? # This might have occurred because a '.html' or '.json' was appended to clarify the format. Try removing it.
-      5.times do
-        identifier.chop!
-      end
+      5.times { identifier.chop! }
       @parent = GenericFile.where(identifier: identifier).first
     end
     params[:generic_file_id] = @parent.id if @parent
@@ -216,15 +208,6 @@ class PremisEventsController < ApplicationController
 
   def set_format
     request.format = 'html' unless request.format == 'json' || request.format == 'html'
-  end
-
-  def check_for_failed_fixity
-    if @event.event_type == Pharos::Application::PHAROS_EVENT_TYPES['fixity'] && @event.outcome == 'Failure'
-      log = Email.log_fixity_fail(@event.identifier)
-      NotificationMailer.failed_fixity_notification(@event, log).deliver!
-    else
-      return
-    end
   end
 
 end

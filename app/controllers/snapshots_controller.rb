@@ -28,11 +28,7 @@ class SnapshotsController < ApplicationController
   end
 
   def set_snapshots
-    if current_user.admin?
-      @snapshots = Snapshot.all
-    else
-      @snapshots = @institution.snapshots
-    end
+    current_user.admin? ? @snapshots = Snapshot.all : @snapshots = @institution.snapshots
   end
 
   def find_snapshot
