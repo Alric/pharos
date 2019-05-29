@@ -1,5 +1,6 @@
 class WorkItemsController < ApplicationController
   include FilterCounts
+  include RequeueHelper
   require 'uri'
   require 'net/http'
   respond_to :html, :json
@@ -7,7 +8,6 @@ class WorkItemsController < ApplicationController
   before_action :set_item, only: [:show, :requeue, :spot_test_restoration]
   before_action :init_from_params, only: :create
   before_action :load_institution, only: :index
-  #after_action :check_for_completed_restoration, only: :update
   after_action :verify_authorized
 
   def index
@@ -65,27 +65,13 @@ class WorkItemsController < ApplicationController
           format.html { }
         end
       else
-        options = {}
-        options[:stage] = params[:item_stage] if params[:item_stage]
-        options[:work_item_state_delete] = 'true' if params[:delete_state_item] && params[:delete_state_item] == 'true'
+        options = set_options(params)
         @work_item.requeue_item(options)
-        if Rails.env.development?
-          respond_to do |format|
-            format.json { render json: { status: 200, body: 'ok' } }
-            format.html {
-              flash[:notice] = 'The response from NSQ to the requeue request is as follows: Status: 200, Body: ok'
-              redirect_to work_item_path(@work_item.id)
-            }
-          end
-        else
-          options[:stage] ? response = issue_requeue_http_post(options[:stage]) : response = issue_requeue_http_post('')
-          respond_to do |format|
-            format.json { render json: { status: response.code, body: response.body } }
-            format.html {
-              flash[:notice] = "The response from NSQ to the requeue request is as follows: Status: #{response.code}, Body: #{response.body}"
-              redirect_to work_item_path(@work_item.id)
-            }
-          end
+        Rails.env.development? ? status = set_requeue_response_dev : status = set_requeue_response(response)
+        (options[:stage] ? response = issue_requeue_http_post(options[:stage]) : response = issue_requeue_http_post('')) unless Rails.env.development?
+        respond_to do |format|
+          format.json { render json: { status: status[:status], body: status[:body] } }
+          format.html { redirect_to work_item_path(@work_item.id) }
         end
       end
     else
@@ -110,9 +96,7 @@ class WorkItemsController < ApplicationController
           wi = WorkItem.find(current['id'])
           wi.update(current)
           # Only admin can explicitly set user.
-          if !current_user.admin? || wi.user.blank?
-            wi.user = current_user.email
-          end
+          wi.user = current_user.email if (!current_user.admin? || wi.user.blank?)
           @work_items.push(wi)
           unless wi.save
             @incomplete = true
@@ -133,11 +117,9 @@ class WorkItemsController < ApplicationController
       find_and_update
       authorize @work_item
       respond_to do |format|
-        if @work_item.save
-          format.json { render json: @work_item, status: :ok }
-        else
-          format.json { render json: @work_item.errors, status: :unprocessable_entity }
-        end
+        @work_item.save ?
+            format.json { render json: @work_item, status: :ok } :
+            format.json { render json: @work_item.errors, status: :unprocessable_entity }
       end
     end
   end
@@ -174,20 +156,14 @@ class WorkItemsController < ApplicationController
       render body: nil, status: :not_found and return
     else
       authorize @item
-    end
-    if @item
       succeeded = @item.update_attributes(params_for_status_update)
-    end
-    respond_to do |format|
-      if @item.nil?
-        error = { error: "No items for object identifier #{params[:object_identifier]}" }
-        format.json { render json: error, status: :not_found }
-      end
-      if succeeded == false
-        errors = @item.errors.full_messages
-        format.json { render json: errors, status: :bad_request }
-      else
-        format.json { render json: {result: 'OK'}, status: :ok }
+      respond_to do |format|
+        if succeeded == false
+          errors = @item.errors.full_messages
+          format.json { render json: errors, status: :bad_request }
+        else
+          format.json { render json: {result: 'OK'}, status: :ok }
+        end
       end
     end
   end
@@ -199,14 +175,9 @@ class WorkItemsController < ApplicationController
     @items = WorkItem.with_action(restore)
     @items = @items.with_institution(current_user.institution_id) unless current_user.admin?
     authorize @items
-    # Get items for a single object, which may consist of multiple bags.
-    # Return anything for that object identifier with action=Restore and retry=true
-    if !request[:object_identifier].blank?
-      @items = @items.with_object_identifier(request[:object_identifier])
-    else
-      # If user is not looking for a single bag, return all requested/pending items.
-      @items = @items.where(stage: requested, status: pending, retry: true)
-    end
+    !request[:object_identifier].blank? ?
+        @items = @items.with_object_identifier(request[:object_identifier]) :
+        @items = @items.where(stage: requested, status: pending, retry: true)
     respond_to do |format|
       format.json { render json: @items, status: :ok }
     end
@@ -219,14 +190,9 @@ class WorkItemsController < ApplicationController
     @items = WorkItem.with_action(dpn)
     @items = @items.with_institution(current_user.institution_id) unless current_user.admin?
     authorize @items
-    # Get items for a single object, which may consist of multiple bags.
-    # Return anything for that object identifier with action=DPN and retry=true
-    if !request[:object_identifier].blank?
-      @items = @items.with_object_identifier(request[:object_identifier])
-    else
-       # If user is not looking for a single bag, return all requested/pending items.
-       @items = @items.where(stage: requested, status: pending, retry: true)
-    end
+    !request[:object_identifier].blank? ?
+        @items = @items.with_object_identifier(request[:object_identifier]) :
+        @items = @items.where(stage: requested, status: pending, retry: true)
     respond_to do |format|
       format.json { render json: @items, status: :ok }
     end
@@ -240,14 +206,9 @@ class WorkItemsController < ApplicationController
     @items = WorkItem.with_action(delete)
     @items = @items.with_institution(current_user.institution_id) unless current_user.admin?
     authorize @items
-    # Return a record for a single file?
-    if !request[:generic_file_identifier].blank?
-      @items = @items.with_file_identifier(request[:generic_file_identifier])
-    else
-      # If user is not looking for a single bag, return all requested items
-      # where retry is true and status is pending or failed.
-      @items = @items.where(stage: requested, status: [pending, failed], retry: true)
-    end
+    !request[:generic_file_identifier].blank? ?
+        @items = @items.with_file_identifier(request[:generic_file_identifier]) :
+        @items = @items.where(stage: requested, status: [pending, failed], retry: true)
     respond_to do |format|
       format.json { render json: @items, status: :ok }
     end
@@ -268,7 +229,7 @@ class WorkItemsController < ApplicationController
       institution = Institution.find(inst)
       log = Email.log_multiple_restoration(inst_items)
       NotificationMailer.multiple_restoration_notification(@items, log, institution).deliver!
-      number_of_emails = number_of_emails + 1
+      number_of_emails += 1
       inst_list.push(institution.name)
     end
     if number_of_emails == 0
@@ -397,46 +358,8 @@ class WorkItemsController < ApplicationController
     end
   end
 
-  def issue_requeue_http_post(stage)
-    if @work_item.action == Pharos::Application::PHAROS_ACTIONS['delete']
-      uri = URI("#{Pharos::Application::NSQ_BASE_URL}/pub?topic=apt_file_delete_topic")
-    elsif @work_item.action == Pharos::Application::PHAROS_ACTIONS['restore']
-      if @work_item.generic_file_identifier.blank?
-        # Restore full bag
-        uri = URI("#{Pharos::Application::NSQ_BASE_URL}/pub?topic=apt_restore_topic")
-      else
-        # Restore individual file. If it's in Glacier, we'll have to run
-        # GlacierRestore first.
-        gf = GenericFile.find_by_identifier(@work_item.generic_file_identifier)
-        if gf && gf.storage_option == 'Standard'
-          uri = URI("#{Pharos::Application::NSQ_BASE_URL}/pub?topic=apt_file_restore_topic")
-        else
-          uri = URI("#{Pharos::Application::NSQ_BASE_URL}/pub?topic=apt_glacier_restore_init_topic")
-        end
-      end
-    elsif @work_item.action == Pharos::Application::PHAROS_ACTIONS['ingest']
-      if stage == Pharos::Application::PHAROS_STAGES['fetch']
-        uri = URI("#{Pharos::Application::NSQ_BASE_URL}/pub?topic=apt_fetch_topic")
-      elsif stage == Pharos::Application::PHAROS_STAGES['store']
-        uri = URI("#{Pharos::Application::NSQ_BASE_URL}/pub?topic=apt_store_topic")
-      elsif stage == Pharos::Application::PHAROS_STAGES['record']
-        uri = URI("#{Pharos::Application::NSQ_BASE_URL}/pub?topic=apt_record_topic")
-      end
-    elsif @work_item.action == Pharos::Application::PHAROS_ACTIONS['dpn']
-      if stage == Pharos::Application::PHAROS_STAGES['package']
-        uri = URI("#{Pharos::Application::NSQ_BASE_URL}/pub?topic=dpn_package_topic")
-      elsif stage == Pharos::Application::PHAROS_STAGES['store']
-        uri = URI("#{Pharos::Application::NSQ_BASE_URL}/pub?topic=dpn_ingest_store_topic")
-      elsif stage == Pharos::Application::PHAROS_STAGES['record']
-        uri = URI("#{Pharos::Application::NSQ_BASE_URL}/pub?topic=dpn_record_topic")
-      end
-    elsif @work_item.action == Pharos::Application::PHAROS_ACTIONS['glacier_restore']
-      uri = URI("#{Pharos::Application::NSQ_BASE_URL}/pub?topic=apt_glacier_restore_init_topic")
-    end
-    http = Net::HTTP.new(uri.host, uri.port)
-    request = Net::HTTP::Post.new(uri)
-    request.body = @work_item.id.to_s
-    http.request(request)
+  def deletion_uri
+
   end
 
   def filter_count_and_sort
@@ -492,14 +415,4 @@ class WorkItemsController < ApplicationController
     params[:etag] = params[:etag_contains] if params[:etag_contains]
   end
 
-  def check_for_completed_restoration
-    if @work_item && @work_item.action == Pharos::Application::PHAROS_ACTIONS['restore'] &&
-        @work_item.stage == Pharos::Application::PHAROS_STAGES['record'] &&
-        @work_item.status == Pharos::Application::PHAROS_STATUSES['success']
-      log = Email.log_restoration(@work_item.id)
-      NotificationMailer.restoration_notification(@work_item, log).deliver!
-    else
-      return
-    end
-  end
 end
