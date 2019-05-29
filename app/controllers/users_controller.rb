@@ -60,7 +60,6 @@ class UsersController < ApplicationController
   def generate_api_key
     authorize @user
     @user.generate_api_key
-
     if @user.save
       msg = ['Please record this key.  If you lose it, you will have to generate a new key.',
              "Your API secret key is: #{@user.api_secret_key}"]
@@ -69,7 +68,6 @@ class UsersController < ApplicationController
     else
       flash[:alert] = 'ERROR: Unable to create API key.'
     end
-
     redirect_to user_path(@user)
   end
 
@@ -102,15 +100,11 @@ class UsersController < ApplicationController
     if params[:vacuum_target]
       query = set_query(params[:vacuum_target])
       ActiveRecord::Base.connection.exec_query(query)
-      vacuum_associated_tables(params[:vacuum_target]) if params[:vacuum_target] == 'emails' || params[:vacuum_target] == 'roles'
       respond_to do |format|
-        if params[:vacuum_target] == 'entire_database'
-          msg = 'The whole database'
-        else
-          msg = "#{params[:vacuum_target].gsub('_', ' ').capitalize.chop!} table"
-        end
-        format.json { render json: { status: 'success', message: "#{msg} has been vacuumed."  } }
-        format.html { flash[:notice] = "#{msg} has been vacuumed." }
+        (params[:vacuum_target] == 'entire_database') ? msg = 'The whole database' : msg = "#{params[:vacuum_target].gsub('_', ' ').capitalize.chop!} table"
+        message = "#{msg} has been vacuumed."
+        format.json { render json: { status: 'success', message: message  } }
+        format.html { flash[:notice] = message }
       end
     else
       respond_to do |format|
@@ -136,11 +130,7 @@ class UsersController < ApplicationController
 
   def build_institution_id
     if params[:user][:institution_id].empty?
-      if @user.nil?
-        instituion = ''
-      else
-        institution = Institution.find(@user.institution_id)
-      end
+      @user.nil? ? instituion = '' : institution = Institution.find(@user.institution_id)
     else
       institution = Institution.find(params[:user][:institution_id])
     end
@@ -154,10 +144,8 @@ class UsersController < ApplicationController
     [].tap do |role_ids|
       unless params[:user][:role_ids].empty?
         roles = Role.find(params[:user][:role_ids])
-
         authorize roles, :add_user?
         role_ids << roles.id
-
       end
     end
   end
@@ -178,6 +166,7 @@ class UsersController < ApplicationController
         query = 'VACUUM (VERBOSE, ANALYZE) dpn_work_items'
       when 'emails'
         query = 'VACUUM (VERBOSE, ANALYZE) emails'
+        vacuum_associated_tables(target)
       when 'generic_files'
         query = 'VACUUM (VERBOSE, ANALYZE) generic_files'
       when 'institutions'
@@ -188,6 +177,7 @@ class UsersController < ApplicationController
         query = 'VACUUM (VERBOSE, ANALYZE) premis_events'
       when 'roles'
         query = 'VACUUM (VERBOSE, ANALYZE) roles'
+        vacuum_associated_tables(target)
       when 'snapshots'
         query = 'VACUUM (VERBOSE, ANALYZE) snapshots'
       when 'usage_samples'
