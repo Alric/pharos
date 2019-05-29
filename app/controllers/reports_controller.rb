@@ -5,6 +5,7 @@ class ReportsController < ApplicationController
   after_action :verify_authorized
 
   def overview
+    #TODO: make this an actual full report for the PDF version, with a comprehensive breakdown - one stop shopping.
     authorize @institution
     (@institution.name == 'APTrust') ?
         @overview_report = Institution.generate_overview_apt :
@@ -35,9 +36,11 @@ class ReportsController < ApplicationController
       format.json { render json: { report: @basic_report } }
       format.html { }
       # format.pdf do
-      #   html = render_to_string(action: :general, layout: false)
-      #   pdf = WickedPdf.new.pdf_from_string(html)
-      #   send_data(pdf, filename: "Basic Overview for #{@institution.name}.pdf", disposition: 'attachment')
+      #   render pdf: "Basic Overview for #{@institution.name}",
+      #          disposition: 'attachment',
+      #          template: 'reports/general.pdf.erb',
+      #          layout: false,
+      #          lowquality: true
       # end
     end
   end
@@ -50,9 +53,11 @@ class ReportsController < ApplicationController
       format.json { render json: { report: @subscriber_report } }
       format.html { }
       # format.pdf do
-      #   html = render_to_string(action: :subscribers, layout: false)
-      #   pdf = WickedPdf.new.pdf_from_string(html)
-      #   send_data(pdf, filename: "Subscriber Breakdown for #{@institution.name}.pdf", disposition: 'attachment')
+      #   render pdf: "Subscriber Breakdown for #{@institution.name}",
+      #          disposition: 'attachment',
+      #          template: 'reports/subscribers.pdf.erb',
+      #          layout: false,
+      #          lowquality: true
       # end
     end
   end
@@ -65,9 +70,11 @@ class ReportsController < ApplicationController
       format.json { render json: { report: @cost_report } }
       format.html { }
       # format.pdf do
-      #   html = render_to_string(action: :cost, layout: false)
-      #   pdf = WickedPdf.new.pdf_from_string(html)
-      #   send_data(pdf, filename: "Cost Breakdown for #{@institution.name}.pdf", disposition: 'attachment')
+      #   render pdf: "Cost Breakdown for #{@institution.name}",
+      #          disposition: 'attachment',
+      #          template: 'reports/cost.pdf.erb',
+      #          layout: false,
+      #          lowquality: true
       # end
     end
   end
@@ -80,9 +87,11 @@ class ReportsController < ApplicationController
       format.json { render json: { report: @timeline_report } }
       format.html { }
       # format.pdf do
-      #   html = render_to_string(action: :timeline, layout: false)
-      #   pdf = WickedPdf.new.pdf_from_string(html)
-      #   send_data(pdf, filename: "Timeline for #{@institution.name}.pdf", disposition: 'attachment')
+      #   render pdf: "Timeline for #{@institution.name}",
+      #          disposition: 'attachment',
+      #          template: 'reports/timeline.pdf.erb',
+      #          layout: false,
+      #          lowquality: true
       # end
     end
   end
@@ -97,9 +106,11 @@ class ReportsController < ApplicationController
       format.json { render json: { report: @mimetype_report } }
       format.html { }
       # format.pdf do
-      #   html = render_to_string(action: :mimetype, layout: false)
-      #   pdf = WickedPdf.new.pdf_from_string(html)
-      #   send_data(pdf, filename: "Mimetype Breakdown for #{@institution.name}.pdf", disposition: 'attachment')
+      #   render pdf: "Mimetype Breakdown for #{@institution.name}",
+      #          disposition: 'attachment',
+      #          template: 'reports/mimetype.pdf.erb',
+      #          layout: false,
+      #          lowquality: true
       # end
     end
   end
@@ -114,15 +125,11 @@ class ReportsController < ApplicationController
       format.json { render json: { report: @inst_breakdown_report } }
       format.html { }
       format.pdf do
-        html = render_to_string(action: :institution_breakdown, layout: false)
-        pdf = WickedPdf.new.pdf_from_string(html)
-        send_data(pdf, filename: 'Institution Breakdown.pdf', disposition: 'attachment')
-
-        # Use this block to test layouts (PDF viewed in browser), block above provides downloadable PDF
-        # render pdf: "Institution Breakdown.pdf",
-        #        disposition: 'inline',
-        #        template: 'reports/institution_breakdown.pdf.erb',
-        #        layout: false
+        render pdf: 'Institution Breakdown',
+               disposition: 'attachment',
+               template: 'reports/institution_breakdown.pdf.erb',
+               layout: false,
+               lowquality: true
       end
     end
   end
