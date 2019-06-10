@@ -1,6 +1,7 @@
 class WorkItemsController < ApplicationController
   include FilterCounts
   include RequeueHelper
+  include SelectItems
   require 'uri'
   require 'net/http'
   respond_to :html, :json
@@ -67,8 +68,8 @@ class WorkItemsController < ApplicationController
       else
         options = set_options(params)
         @work_item.requeue_item(options)
-        Rails.env.development? ? status = set_requeue_response_dev : status = set_requeue_response(response)
         (options[:stage] ? response = issue_requeue_http_post(options[:stage]) : response = issue_requeue_http_post('')) unless Rails.env.development?
+        Rails.env.development? ? status = set_requeue_response_dev : status = set_requeue_response(response)
         respond_to do |format|
           format.json { render json: { status: status[:status], body: status[:body] } }
           format.html { redirect_to work_item_path(@work_item.id) }
@@ -89,22 +90,7 @@ class WorkItemsController < ApplicationController
   def update
     if params[:save_batch]
       authorize current_user, :work_item_batch_update?
-      WorkItem.transaction do
-        batch_work_item_update_params
-        @work_items = []
-        params[:work_items][:items].each do |current|
-          wi = WorkItem.find(current['id'])
-          wi.update(current)
-          # Only admin can explicitly set user.
-          wi.user = current_user.email if (!current_user.admin? || wi.user.blank?)
-          @work_items.push(wi)
-          unless wi.save
-            @incomplete = true
-            break
-          end
-        end
-        raise ActiveRecord::Rollback
-      end
+      batch_update
       respond_to do |format|
         if @incomplete
           errors = @work_items.map(&:errors)
@@ -169,46 +155,27 @@ class WorkItemsController < ApplicationController
   end
 
   def items_for_restore
-    restore = Pharos::Application::PHAROS_ACTIONS['restore']
-    requested = Pharos::Application::PHAROS_STAGES['requested']
-    pending = Pharos::Application::PHAROS_STATUSES['pend']
-    @items = WorkItem.with_action(restore)
-    @items = @items.with_institution(current_user.institution_id) unless current_user.admin?
+    @items = WorkItem.readable(current_user)
+    select_items('restore', request)
     authorize @items
-    !request[:object_identifier].blank? ?
-        @items = @items.with_object_identifier(request[:object_identifier]) :
-        @items = @items.where(stage: requested, status: pending, retry: true)
     respond_to do |format|
       format.json { render json: @items, status: :ok }
     end
   end
 
   def items_for_dpn
-    dpn = Pharos::Application::PHAROS_ACTIONS['dpn']
-    requested = Pharos::Application::PHAROS_STAGES['requested']
-    pending = Pharos::Application::PHAROS_STATUSES['pend']
-    @items = WorkItem.with_action(dpn)
-    @items = @items.with_institution(current_user.institution_id) unless current_user.admin?
+    @items = WorkItem.readable(current_user)
+    select_items('dpn', request)
     authorize @items
-    !request[:object_identifier].blank? ?
-        @items = @items.with_object_identifier(request[:object_identifier]) :
-        @items = @items.where(stage: requested, status: pending, retry: true)
     respond_to do |format|
       format.json { render json: @items, status: :ok }
     end
   end
 
   def items_for_delete
-    delete = Pharos::Application::PHAROS_ACTIONS['delete']
-    requested = Pharos::Application::PHAROS_STAGES['requested']
-    pending = Pharos::Application::PHAROS_STATUSES['pend']
-    failed = Pharos::Application::PHAROS_STATUSES['fail']
-    @items = WorkItem.with_action(delete)
-    @items = @items.with_institution(current_user.institution_id) unless current_user.admin?
+    @items = WorkItem.readable(current_user)
+    select_items('delete', request)
     authorize @items
-    !request[:generic_file_identifier].blank? ?
-        @items = @items.with_file_identifier(request[:generic_file_identifier]) :
-        @items = @items.where(stage: requested, status: [pending, failed], retry: true)
     respond_to do |format|
       format.json { render json: @items, status: :ok }
     end
@@ -314,6 +281,25 @@ class WorkItemsController < ApplicationController
       if !current_user.admin? || @work_item.user.blank?
         @work_item.user = current_user.email
       end
+    end
+  end
+
+  def batch_update
+    WorkItem.transaction do
+      batch_work_item_update_params
+      @work_items = []
+      params[:work_items][:items].each do |current|
+        wi = WorkItem.find(current['id'])
+        wi.update(current)
+        # Only admin can explicitly set user.
+        wi.user = current_user.email if (!current_user.admin? || wi.user.blank?)
+        @work_items.push(wi)
+        unless wi.save
+          @incomplete = true
+          break
+        end
+      end
+      raise ActiveRecord::Rollback
     end
   end
 
