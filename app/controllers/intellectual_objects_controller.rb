@@ -1,5 +1,6 @@
 class IntellectualObjectsController < ApplicationController
   include FilterCounts
+  include SearchAssist
   include BulkDeletions
   inherit_resources
   before_action :authenticate_user!
@@ -264,39 +265,17 @@ class IntellectualObjectsController < ApplicationController
   end
 
   def filter_count_and_sort
-    params[:state] = 'A' if params[:state].nil?
-    parameter_deprecation
-    @intellectual_objects = @intellectual_objects
-                                .with_institution(params[:institution])
-                                .with_description_like(params[:description])
-                                .with_identifier_like(params[:identifier])
-                                .with_bag_group_identifier_like(params[:bag_group_identifier])
-                                .with_alt_identifier_like(params[:alt_identifier])
-                                .with_bag_name_like(params[:bag_name])
-                                .with_etag_like(params[:etag])
-                                .created_before(params[:created_before])
-                                .created_after(params[:created_after])
-                                .updated_before(params[:updated_before])
-                                .updated_after(params[:updated_after])
-                                .with_access(params[:access])
-                                .with_file_format(params[:file_format])
-                                .with_state(params[:state])
     @selected = {}
+    parameter_deprecation
+    @intellectual_objects = object_filter(@intellectual_objects, params)
     get_object_format_counts(@intellectual_objects)
     get_institution_counts(@intellectual_objects)
     get_object_access_counts(@intellectual_objects)
     get_state_counts(@intellectual_objects)
+    params[:sort] = 'name' if params[:sort].nil?
+    case_sort(@intellectual_objects, params, 'object')
     count = @intellectual_objects.count
     set_page_counts(count)
-    params[:sort] = 'name' if params[:sort].nil?
-    case params[:sort]
-      when 'date'
-        @intellectual_objects = @intellectual_objects.order('updated_at DESC')
-      when 'name'
-        @intellectual_objects = @intellectual_objects.order('bag_name').reverse_order
-      when 'institution'
-        @intellectual_objects = @intellectual_objects.joins(:institution).order('institutions.name')
-    end
   end
 
   def parameter_deprecation

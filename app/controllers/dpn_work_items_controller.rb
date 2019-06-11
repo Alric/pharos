@@ -1,5 +1,6 @@
 class DpnWorkItemsController < ApplicationController
   include FilterCounts
+  include SearchAssist
   require 'uri'
   require 'net/http'
   respond_to :html, :json
@@ -150,34 +151,17 @@ class DpnWorkItemsController < ApplicationController
   end
 
   def filter_sort_and_count
-    params[:status] = nil if params[:status] == 'Null Status'
-    params[:stage] = nil if params[:stage] == 'Null Stage'
-    @dpn_items = @dpn_items
-                     .with_task(params[:task])
-                     .with_identifier(params[:identifier])
-                     .with_state(params[:state])
-                     .with_stage(params[:stage])
-                     .with_status(params[:status])
-                     .with_retry(params[:retry])
-                     .with_pid(params[:pid])
-                     .queued_before(params[:queued_before])
-                     .queued_after(params[:queued_after])
-                     .completed_before(params[:completed_before])
-                     .completed_after(params[:completed_after])
-                     .is_completed(params[:is_completed])
-                     .is_not_completed(params[:is_not_completed])
-                     .with_remote_node(params[:remote_node])
-                     .queued(params[:queued])
     @selected = {}
+    @dpn_items = dpn_item_filter(@dpn_items, params)
     get_node_counts(@dpn_items)
     get_queued_counts(@dpn_items)
     get_status_counts(@dpn_items)
     get_stage_counts(@dpn_items)
     get_retry_counts(@dpn_items)
-    count = @dpn_items.count
-    set_page_counts(count)
     params[:sort] = 'queued_at DESC' unless params[:sort]
     @dpn_items = @dpn_items.order(params[:sort])
+    count = @dpn_items.count
+    set_page_counts(count)
   end
 
 end

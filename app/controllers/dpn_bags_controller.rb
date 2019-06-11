@@ -1,4 +1,5 @@
 class DpnBagsController < ApplicationController
+  include SearchAssist
   respond_to :html, :json
   before_action :authenticate_user!
   before_action :set_bag, only: [:show, :update]
@@ -95,24 +96,18 @@ class DpnBagsController < ApplicationController
   end
 
   def filter_sort_and_count
+    @selected = {}
     if current_user.admin? && @inst_param
       @dpn_bags = @dpn_bags.with_institution(@inst_param)
     elsif !current_user.admin?
       @dpn_bags = @dpn_bags.with_institution(current_user.institution_id)
     end
-    @dpn_bags = @dpn_bags
-                    .with_object_identifier(params[:object_identifier])
-                    .with_dpn_identifier(params[:dpn_identifier])
-                    .created_before(params[:created_before])
-                    .created_after(params[:created_after])
-                    .updated_before(params[:updated_before])
-                    .updated_after(params[:updated_after])
-    @selected = {}
+    @dpn_bags = dpn_bag_filter(@dpn_bags, params)
     # set_filter_values
-    count = @dpn_bags.count
-    set_page_counts(count)
     params[:sort] = 'dpn_created_at DESC' unless params[:sort]
     @dpn_bags = @dpn_bags.order(params[:sort])
+    count = @dpn_bags.count
+    set_page_counts(count)
   end
 
   def set_filter_values

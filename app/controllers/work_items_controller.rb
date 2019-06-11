@@ -1,5 +1,6 @@
 class WorkItemsController < ApplicationController
   include FilterCounts
+  include SearchAssist
   include RequeueHelper
   include SelectItems
   require 'uri'
@@ -154,32 +155,37 @@ class WorkItemsController < ApplicationController
     end
   end
 
-  def items_for_restore
-    @items = WorkItem.readable(current_user)
-    select_items('restore', request)
-    authorize @items
-    respond_to do |format|
-      format.json { render json: @items, status: :ok }
-    end
-  end
+  # These three methods were commented out on June 11, 2019 as they are legacy methods that were
+  # used in bagman's 1.0 services but are no longer used. They will be deleted in due time if no
+  # requests are made by depositors to bring them back. They were never advertised so the hope is
+  # there will be no trouble removing them.
 
-  def items_for_dpn
-    @items = WorkItem.readable(current_user)
-    select_items('dpn', request)
-    authorize @items
-    respond_to do |format|
-      format.json { render json: @items, status: :ok }
-    end
-  end
-
-  def items_for_delete
-    @items = WorkItem.readable(current_user)
-    select_items('delete', request)
-    authorize @items
-    respond_to do |format|
-      format.json { render json: @items, status: :ok }
-    end
-  end
+  # def items_for_restore
+  #   @items = WorkItem.readable(current_user)
+  #   select_items('restore', request)
+  #   authorize @items
+  #   respond_to do |format|
+  #     format.json { render json: @items, status: :ok }
+  #   end
+  # end
+  #
+  # def items_for_dpn
+  #   @items = WorkItem.readable(current_user)
+  #   select_items('dpn', request)
+  #   authorize @items
+  #   respond_to do |format|
+  #     format.json { render json: @items, status: :ok }
+  #   end
+  # end
+  #
+  # def items_for_delete
+  #   @items = WorkItem.readable(current_user)
+  #   select_items('delete', request)
+  #   authorize @items
+  #   respond_to do |format|
+  #     format.json { render json: @items, status: :ok }
+  #   end
+  # end
 
   def notify_of_successful_restoration
     authorize current_user
@@ -349,48 +355,17 @@ class WorkItemsController < ApplicationController
   end
 
   def filter_count_and_sort
-    bag_date1 = DateTime.parse(params[:bag_date]) if params[:bag_date]
-    bag_date2 = DateTime.parse(params[:bag_date]) + 1.seconds if params[:bag_date]
-    date = format_date if params[:updated_since].present?
-    parameter_deprecation
-    @items = @items
-                 .created_before(params[:created_before])
-                 .created_after(params[:created_after])
-                 .updated_before(params[:updated_before])
-                 .updated_after(params[:updated_after])
-                 .updated_after(date)
-                 .with_bag_date(bag_date1, bag_date2)
-                 .with_name_like(params[:name])
-                 .with_etag(params[:etag])
-                 .with_object_identifier_like(params[:object_identifier])
-                 .with_file_identifier_like(params[:file_identifier])
-                 .with_status(params[:status])
-                 .with_stage(params[:stage])
-                 .with_action(params[:item_action])
-                 .queued(params[:queued])
-                 .with_node(params[:node])
-                 .with_pid(params[:pid])
-                 .with_unempty_node(params[:node_not_empty])
-                 .with_empty_node(params[:node_empty])
-                 .with_unempty_pid(params[:pid_not_empty])
-                 .with_empty_pid(params[:pid_empty])
-                 .with_retry(params[:retry])
     @selected = {}
+    parameter_deprecation
+    @items = item_filter(@items, params)
     get_status_counts(@items)
     get_stage_counts(@items)
     get_action_counts(@items)
     get_institution_counts(@items)
+    params[:sort] = 'date' if params[:sort].nil?
+    case_sort(@items, params, 'item')
     count = @items.count
     set_page_counts(count)
-    params[:sort] = 'date' if params[:sort].nil?
-    case params[:sort]
-      when 'date'
-        @items = @items.order('date DESC')
-      when 'name'
-        @items = @items.order('name')
-      when 'institution'
-        @items = @items.joins(:institution).order('institutions.name')
-    end
   end
 
   def parameter_deprecation

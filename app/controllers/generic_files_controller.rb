@@ -1,5 +1,6 @@
 class GenericFilesController < ApplicationController
   include FilterCounts
+  include SearchAssist
   include BulkDeletions
   respond_to :html, :json
   before_action :authenticate_user!
@@ -327,33 +328,16 @@ class GenericFilesController < ApplicationController
   end
 
   def filter_count_and_sort
-    params[:state] = 'A' if params[:state].nil?
-    parameter_deprecation
-    @generic_files = @generic_files
-                         .with_identifier_like(params[:identifier])
-                         .with_uri_like(params[:uri])
-                         .created_before(params[:created_before])
-                         .created_after(params[:created_after])
-                         .updated_before(params[:updated_before])
-                         .updated_after(params[:updated_after])
-                         .with_institution(params[:institution])
-                         .with_file_format(params[:file_format])
-                         .with_state(params[:state])
     @selected = {}
+    parameter_deprecation
+    @generic_files = file_filter(@generic_files, params)
     get_format_counts(@generic_files)
     get_institution_counts(@generic_files)
     get_state_counts(@generic_files)
+    params[:sort] = 'name' if params[:sort].nil?
+    case_sort(@generic_files, params, 'file')
     count = @generic_files.count
     set_page_counts(count)
-    params[:sort] = 'name' if params[:sort].nil?
-    case params[:sort]
-      when 'date'
-        @generic_files = @generic_files.order('updated_at DESC')
-      when 'name'
-        @generic_files = @generic_files.order('identifier').reverse_order
-      when 'institution'
-        @generic_files = @generic_files.joins(:institution).order('institutions.name')
-    end
   end
 
   def parameter_deprecation

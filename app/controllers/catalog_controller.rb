@@ -1,5 +1,6 @@
 class CatalogController < ApplicationController
   include FilterCounts
+  include SearchAssist
   before_action :authenticate_user!
   after_action :verify_authorized
 
@@ -133,111 +134,46 @@ class CatalogController < ApplicationController
 
   def filter_sort_and_count
     @selected = {}
-    params[:state] = 'A' if params[:state].nil?
+    params[:sort] = 'date' unless params[:sort]
     case @result_type
       when 'object'
-        @results = @results
-                       .with_institution(params[:institution])
-                       .with_access(params[:access])
-                       .with_state(params[:state])
+        @results = object_filter(@results, params)
         get_institution_counts(@results)
         get_object_access_counts(@results)
         get_state_counts(@results)
+        @results = case_sort(@results, params, 'object')
       when 'file'
-        @results = @results
-                       .with_institution(params[:institution])
-                       .with_access(params[:access])
-                       .with_file_format(params[:file_format])
-                       .with_state(params[:state])
+        @results = file_filter(@results, params)
         get_institution_counts(@results)
         get_format_counts(@results)
         get_non_object_access_counts(@results)
         get_state_counts(@results)
+        @results = case_sort(@results, params, 'file')
       when 'item'
-        @results = @results
-                       .with_institution(params[:institution])
-                       .with_status(params[:status])
-                       .with_stage(params[:stage])
-                       .with_action(params[:item_action])
-                       .with_access(params[:access])
+        @results = item_filter(@results, params)
         get_status_counts(@results)
         get_stage_counts(@results)
         get_action_counts(@results)
         get_institution_counts(@results)
         get_non_object_access_counts(@results)
+        @results = case_sort(@results, params, 'item')
       when 'event'
-        @results = @results
-                       .with_institution(params[:institution])
-                       .with_type(params[:event_type])
-                       .with_outcome(params[:outcome])
-                       .with_access(params[:access])
+        @results = events_filter(@results, params)
         get_event_institution_counts(@results)
         get_event_type_counts(@results)
         get_outcome_counts(@results)
+        @results = case_sort(@results, params, 'event')
       when 'dpn_item'
-        params[:status] = nil if params[:status] == 'Null Status'
-        params[:stage] = nil if params[:stage] == 'Null Stage'
-        @results = @results
-                       .with_remote_node(params[:remote_node])
-                       .queued(params[:queued])
-                       .with_stage(params[:stage])
-                       .with_status(params[:status])
-                       .with_retry(params[:retry])
+        @results = dpn_item_filter(@results, params)
         get_node_counts(@results)
         get_queued_counts(@results)
         get_status_counts(@results)
         get_stage_counts(@results)
         get_retry_counts(@results)
-    end
-    params[:sort] = 'date' unless params[:sort]
-    case params[:sort]
-      when 'date'
-        sort_by_date
-      when 'name'
-        sort_by_name
-      when 'institution'
-        sort_by_institution
+        @results = case_sort(@results, params, 'dpn_item')
     end
     count = @results.count
     set_page_counts(count)
-  end
-
-  def sort_by_date
-    if @result_type
-      case @result_type
-        when 'object'
-          @results = @results.order('intellectual_objects.updated_at DESC') unless @results.nil?
-        when 'file'
-          @results = @results.order('generic_files.updated_at DESC') unless @results.nil?
-        when 'event'
-          @results = @results.order('premis_events.date_time DESC') unless @results.nil?
-        when 'item'
-          @results = @results.order('work_items.date DESC') unless @results.nil?
-        when 'dpn_item'
-          @results = @results.order('dpn_work_items.queued_at DESC') unless @results.nil?
-      end
-    end
-  end
-
-  def sort_by_name
-    if @result_type
-      case @result_type
-        when 'object'
-          @results = @results.order('title') unless @results.nil?
-        when 'file'
-          @results = @results.order('identifier') unless @results.nil?
-        when 'event'
-          @results = @results.order('identifier').reverse_order unless @results.nil?
-        when 'item'
-          @results = @results.order('name') unless @results.nil?
-        when 'dpn_item'
-          @results = @results.order ('identifier') unless @results.nil?
-      end
-    end
-  end
-
-  def sort_by_institution
-    @results = @results.joins(:institution).order('institutions.name') unless @results.nil?
   end
 
 end

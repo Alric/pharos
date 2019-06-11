@@ -1,5 +1,6 @@
 class PremisEventsController < ApplicationController
   include FilterCounts
+  include SearchAssist
   respond_to :html, :json
   before_action :authenticate_user!
   before_action :load_and_authorize_parent_object, only: [:create]
@@ -165,22 +166,10 @@ class PremisEventsController < ApplicationController
   end
 
   def filter_count_and_sort
-    parameter_deprecation
-    @premis_events = @premis_events
-                         .with_institution(params[:institution])
-                         .with_type(params[:event_type])
-                         .with_outcome(params[:outcome])
-                         .with_create_date(params[:created_at])
-                         .created_before(params[:created_before])
-                         .created_after(params[:created_after])
-                         .with_event_identifier(params[:event_identifier])
-    if @parent.is_a?(Institution)
-      @premis_events = @premis_events
-                          .with_object_identifier_like(params[:object_identifier])
-                          .with_file_identifier_like(params[:file_identifier])
-    end
-    @premis_events = @premis_events.with_file_identifier_like(params[:file_identifier]) if @parent.is_a?(IntellectualObject)
     @selected = {}
+    parameter_deprecation
+    @premis_events = events_filter(@premis_events, params)
+    @premis_events = @premis_events.with_file_identifier_like(params[:file_identifier]) if @parent.is_a?(IntellectualObject)
     get_event_institution_counts(@premis_events)
     get_event_type_counts(@premis_events)
     get_outcome_counts(@premis_events)
@@ -189,14 +178,7 @@ class PremisEventsController < ApplicationController
     count = result[0]['count']
     set_page_counts(count)
     params[:sort] = 'date' if params[:sort].nil?
-    case params[:sort]
-      when 'date'
-        @premis_events = @premis_events.order('date_time DESC')
-      when 'name'
-        @premis_events = @premis_events.order('identifier').reverse_order
-      when 'institution'
-        @premis_events = @premis_events.joins(:institution).order('institutions.name')
-    end
+    case_sort(@premis_events, params, 'event')
   end
 
   def parameter_deprecation

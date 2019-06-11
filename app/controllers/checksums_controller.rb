@@ -1,4 +1,5 @@
 class ChecksumsController < ApplicationController
+  include SearchAssist
   before_action :authenticate_user!
   before_action :load_generic_file, only: :create
   after_action :verify_authorized
@@ -44,13 +45,10 @@ class ChecksumsController < ApplicationController
   end
 
   def filter_sort_and_count
-    @checksums = @checksums
-      .with_generic_file_identifier(params[:generic_file_identifier])
-      .with_algorithm(params[:algorithm])
-      .with_digest(params[:digest])
+    @checksums = checksums_filter(@checksums, params)
+    @checksums = @checksums.order('datetime DESC')
     count = @checksums.count
     set_page_counts(count)
-    @checksums = @checksums.order('datetime DESC')
   end
 
 end

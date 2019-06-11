@@ -1,5 +1,6 @@
 class BulkDeleteJobsController < ApplicationController
   include FilterCounts
+  include SearchAssist
   before_action :authenticate_user!
   before_action :load_institution, only: :index
   before_action :load_job, only: :show
@@ -56,20 +57,12 @@ class BulkDeleteJobsController < ApplicationController
   end
 
   def filter_sort_and_count
-    @bulk_delete_jobs = @bulk_delete_jobs
-                                .with_institution(params[:institution])
     @selected = {}
+    @bulk_delete_jobs = bulk_job_filter(@bulk_delete_jobs, params)
     get_institution_counts(@bulk_delete_jobs)
+    case_sort(@bulk_delete_jobs, params, 'bulk_job')
     count = @bulk_delete_jobs.count
     set_page_counts(count)
-    case params[:sort]
-      when 'date'
-        @bulk_delete_jobs = @bulk_delete_jobs.order('updated_at DESC')
-      when 'name'
-        @bulk_delete_jobs = @bulk_delete_jobs.order('id').reverse_order
-      when 'institution'
-        @bulk_delete_jobs = @bulk_delete_jobs.joins(:institution).order('institutions.name')
-    end
   end
 
 end
