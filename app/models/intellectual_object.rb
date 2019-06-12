@@ -42,7 +42,7 @@ class IntellectualObject < ActiveRecord::Base
   scope :with_storage_option, ->(param) { where(storage_option: param) unless param.blank? }
   scope :with_file_format, ->(param) {
     joins(:generic_files)
-        .where('generic_files.file_format = ?', param) unless param.blank?
+        .where('generic_files.file_format = ?', param).distinct unless param.blank?
   }
   scope :discoverable, ->(current_user) {
     # Any user can discover any item at their institution,
