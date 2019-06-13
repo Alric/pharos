@@ -58,13 +58,7 @@ class GenericFile < ActiveRecord::Base
   def self.find_by_identifier(identifier)
     return nil if identifier.blank?
     unescaped_identifier = identifier.gsub(/%2F/i, '/')
-    file = GenericFile.where(identifier: unescaped_identifier).first
-    # if file.nil?
-    #   #check to see if there's a %3A that got turned into a colon by overeager rails
-    #   no_colon_identifier = unescaped_identifier.gsub(/:/, '%3A')
-    #   file = GenericFile.where(identifier: no_colon_identifier).first
-    # end
-    file
+    GenericFile.where(identifier: unescaped_identifier).first
   end
 
   def to_param
@@ -147,6 +141,12 @@ class GenericFile < ActiveRecord::Base
     end
   end
 
+  def serialize_events
+    premis_events.map do |event|
+      event.serializable_hash
+    end
+  end
+
   def add_event(attributes)
     event = self.premis_events.build(attributes)
     event.generic_file = self
@@ -154,12 +154,6 @@ class GenericFile < ActiveRecord::Base
     event.institution = self.intellectual_object.institution
     event.save!
     event
-  end
-
-  def serialize_events
-    premis_events.map do |event|
-      event.serializable_hash
-    end
   end
 
   # Returns the checksum with the specified digest, or nil.

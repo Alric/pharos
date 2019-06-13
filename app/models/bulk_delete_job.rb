@@ -42,16 +42,8 @@ class BulkDeleteJob < ActiveRecord::Base
   def self.create_job(institution, user, objects=[], files=[])
     job = BulkDeleteJob.create(requested_by: user.email)
     job.institution_id = institution.id
-    if objects
-      objects.each do |obj|
-        job.intellectual_objects.push(obj)
-      end
-    end
-    if files
-      files.each do |file|
-        job.generic_files.push(file)
-      end
-    end
+    objects.each { |obj| job.intellectual_objects.push(obj) } if objects
+    files.each { |file| job.generic_files.push(file) } if files
     job.save!
     job
   end

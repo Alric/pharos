@@ -134,45 +134,65 @@ class WorkItem < ActiveRecord::Base
     self.pid = 0
     self.queued_at = nil
     if self.action == Pharos::Application::PHAROS_ACTIONS['delete']
-      self.stage = Pharos::Application::PHAROS_STAGES['requested']
-      self.note = 'Delete requested'
-      self.outcome = 'Not started'
+       delete_requeue_finish(options)
     elsif self.action == Pharos::Application::PHAROS_ACTIONS['restore']
-      self.stage = Pharos::Application::PHAROS_STAGES['requested']
-      self.note = 'Restore requested'
-      self.work_item_state.delete if self.work_item_state && options[:work_item_state_delete]
+       restore_requeue_finish(options)
     elsif self.action == Pharos::Application::PHAROS_ACTIONS['glacier_restore']
-      self.stage = Pharos::Application::PHAROS_STAGES['requested']
-      self.note = 'Restore requested'
-      self.work_item_state.delete if self.work_item_state && options[:work_item_state_delete]
+       glacier_requeue_finish(options)
     elsif self.action == Pharos::Application::PHAROS_ACTIONS['ingest']
-      if options[:stage]
-        if options[:stage] == Pharos::Application::PHAROS_STAGES['fetch']
-          self.stage = Pharos::Application::PHAROS_STAGES['receive']
-          self.note = 'Item is pending ingest'
-          self.work_item_state.delete if self.work_item_state
-        elsif options[:stage] == Pharos::Application::PHAROS_STAGES['store']
-          self.stage = Pharos::Application::PHAROS_STAGES['store']
-          self.note = 'Item is pending storage'
-        elsif options[:stage] == Pharos::Application::PHAROS_STAGES['record']
-          self.stage = Pharos::Application::PHAROS_STAGES['record']
-          self.note = 'Item is pending record'
-        end
-      end
+      ingest_requeue_finish(options)
     elsif self.action == Pharos::Application::PHAROS_ACTIONS['dpn']
-      if options[:stage] == Pharos::Application::PHAROS_STAGES['package']
-        self.stage = Pharos::Application::PHAROS_STAGES['requested']
-        self.note = 'Requested item be sent to DPN'
+      dpn_requeue_finish(options)
+    end
+    self.save!
+  end
+
+  def delete_requeue_finish(options={})
+    self.stage = Pharos::Application::PHAROS_STAGES['requested']
+    self.note = 'Delete requested'
+    self.outcome = 'Not started'
+  end
+
+  def restore_requeue_finish(options={})
+    self.stage = Pharos::Application::PHAROS_STAGES['requested']
+    self.note = 'Restore requested'
+    self.work_item_state.delete if self.work_item_state && options[:work_item_state_delete]
+  end
+
+  def glacier_requeue_finish(options={})
+    self.stage = Pharos::Application::PHAROS_STAGES['requested']
+    self.note = 'Restore requested'
+    self.work_item_state.delete if self.work_item_state && options[:work_item_state_delete]
+  end
+
+  def ingest_requeue_finish(options={})
+    if options[:stage]
+      if options[:stage] == Pharos::Application::PHAROS_STAGES['fetch']
+        self.stage = Pharos::Application::PHAROS_STAGES['receive']
+        self.note = 'Item is pending ingest'
         self.work_item_state.delete if self.work_item_state
       elsif options[:stage] == Pharos::Application::PHAROS_STAGES['store']
         self.stage = Pharos::Application::PHAROS_STAGES['store']
-        self.note = 'Packaging completed, awaiting storage'
+        self.note = 'Item is pending storage'
       elsif options[:stage] == Pharos::Application::PHAROS_STAGES['record']
         self.stage = Pharos::Application::PHAROS_STAGES['record']
-        self.note = 'Bag copied to long-term storage'
+        self.note = 'Item is pending record'
       end
     end
-    self.save!
+  end
+
+  def dpn_requeue_finish(options={})
+    if options[:stage] == Pharos::Application::PHAROS_STAGES['package']
+      self.stage = Pharos::Application::PHAROS_STAGES['requested']
+      self.note = 'Requested item be sent to DPN'
+      self.work_item_state.delete if self.work_item_state
+    elsif options[:stage] == Pharos::Application::PHAROS_STAGES['store']
+      self.stage = Pharos::Application::PHAROS_STAGES['store']
+      self.note = 'Packaging completed, awaiting storage'
+    elsif options[:stage] == Pharos::Application::PHAROS_STAGES['record']
+      self.stage = Pharos::Application::PHAROS_STAGES['record']
+      self.note = 'Bag copied to long-term storage'
+    end
   end
 
   def self.can_delete_file?(intellectual_object_identifier, generic_file_identifier)
@@ -275,21 +295,7 @@ class WorkItem < ActiveRecord::Base
     restore_item = item.dup
     restore_item.generic_file_identifier = generic_file.identifier
     restore_item.action = action
-    restore_item.stage = Pharos::Application::PHAROS_STAGES['requested']
-    restore_item.status = Pharos::Application::PHAROS_STATUSES['pend']
-    restore_item.note = 'Restore requested'
-    restore_item.outcome = 'Not started'
-    restore_item.user = requested_by
-    restore_item.retry = true
-    restore_item.date = Time.now
-    restore_item.work_item_state.state = nil unless restore_item.work_item_state.nil?
-    restore_item.node = nil
-    restore_item.pid = 0
-    restore_item.needs_admin_review = false
-    restore_item.size = item.size
-    restore_item.stage_started_at = nil
-    restore_item.queued_at = nil
-    restore_item.save!
+    restore_item = finish_restore_request(restore_item, requested_by, item)
     restore_item
   end
 
@@ -401,18 +407,6 @@ class WorkItem < ActiveRecord::Base
     WorkItem.stalled_items(user).count
   end
 
-  def status_is_allowed
-    errors.add(:status, 'Status is not one of the allowed options') unless Pharos::Application::PHAROS_STATUSES.values.include?(self.status)
-  end
-
-  def stage_is_allowed
-    errors.add(:stage, 'Stage is not one of the allowed options') unless Pharos::Application::PHAROS_STAGES.values.include?(self.stage)
-  end
-
-  def action_is_allowed
-    errors.add(:action, 'Action is not one of the allowed options') unless Pharos::Application::PHAROS_ACTIONS.values.include?(self.action)
-  end
-
   # :state may contain a blob of JSON text from our micorservices.
   # If it does, it's stored without extra whitespace, but we want
   # to display it in a readable format.
@@ -445,6 +439,18 @@ class WorkItem < ActiveRecord::Base
   end
 
   private
+
+  def status_is_allowed
+    errors.add(:status, 'Status is not one of the allowed options') unless Pharos::Application::PHAROS_STATUSES.values.include?(self.status)
+  end
+
+  def stage_is_allowed
+    errors.add(:stage, 'Stage is not one of the allowed options') unless Pharos::Application::PHAROS_STAGES.values.include?(self.stage)
+  end
+
+  def action_is_allowed
+    errors.add(:action, 'Action is not one of the allowed options') unless Pharos::Application::PHAROS_ACTIONS.values.include?(self.action)
+  end
 
   # WorkItem will not have an object identifier until
   # it has been ingested.

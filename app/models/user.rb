@@ -75,11 +75,11 @@ class User < ActiveRecord::Base
   end
 
   def role_id
-    if(admin?)
+    if admin?
       Role.where(name: 'admin').first_or_create.id
-    elsif(institutional_admin?)
+    elsif institutional_admin?
       Role.where(name: 'institutional_admin').first_or_create.id
-    elsif(institutional_user?)
+    elsif institutional_user?
       Role.where(name: 'institutional_user').first_or_create.id
     end
   end
@@ -99,7 +99,7 @@ class User < ActiveRecord::Base
   end
 
   def deactivated?
-    return !self.deactivated_at.nil?
+    !self.deactivated_at.nil?
   end
 
   # ensure user account is active
@@ -162,7 +162,7 @@ class User < ActiveRecord::Base
   end
 
   def email_is_valid
-    errors.add(:email, 'is invalid') if !EmailValidator.valid?(email)
+    errors.add(:email, 'is invalid') unless EmailValidator.valid?(email)
   end
 
   def phone_number_length

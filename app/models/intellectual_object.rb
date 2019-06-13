@@ -140,8 +140,7 @@ class IntellectualObject < ActiveRecord::Base
   end
 
   def dpn_bag
-    bag = DpnBag.where(object_identifier: self.identifier).first
-    bag
+    DpnBag.where(object_identifier: self.identifier).first
   end
 
   def gf_count
@@ -262,7 +261,7 @@ class IntellectualObject < ActiveRecord::Base
     else
       algorithms = Array.new
       checksum_list.each do |cs|
-        if (algorithms.include? cs)
+        if algorithms.include?(cs)
           checksums_okay = false
         else
           algorithms.push(cs)

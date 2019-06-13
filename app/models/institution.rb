@@ -28,11 +28,7 @@ class Institution < ActiveRecord::Base
   end
 
   def is_in_dpn
-    status = false
-    if self.dpn_uuid != '' || self.dpn_uuid != nil
-      status = true
-    end
-    status
+    (self.dpn_uuid != '' && self.dpn_uuid != nil)
   end
 
   def self.find_by_identifier(identifier)
@@ -69,20 +65,14 @@ class Institution < ActiveRecord::Base
 
   def new_deletion_items
     latest_email = Email.where(institution_id: self.id, email_type: 'deletion_notifications').order(id: :asc).limit(1).first
-    if latest_email.nil?
-      time = Time.now - 48.hours
-      deletion_items = WorkItem.with_institution(self.id)
-                           .created_after(time)
-                           .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
-                           .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
-                           .with_status(Pharos::Application::PHAROS_STATUSES['success'])
-    else
-      deletion_items = WorkItem.with_institution(self.id)
-                           .created_after(latest_email.created_at)
-                           .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
-                           .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
-                           .with_status(Pharos::Application::PHAROS_STATUSES['success'])
-    end
+    time = Time.now - 48.hours
+    deletion_items = WorkItem.with_institution(self.id)
+                         .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
+                         .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
+                         .with_status(Pharos::Application::PHAROS_STATUSES['success'])
+    latest_email.nil? ?
+        deletion_items = deletion_items.created_after(time) :
+        deletion_items = WorkItem.created_after(latest_email.created_at)
     deletion_items
   end
 
@@ -119,6 +109,11 @@ class Institution < ActiveRecord::Base
         csv << row
       end
     end
+  end
+
+  def generate_confirmation_zipped_csv(bulk_job)
+    csv = generate_confirmation_csv(bulk_job)
+    Zlib::Deflate.deflate(csv)
   end
 
   def deletion_admin_user(requesting_user)
@@ -173,7 +168,7 @@ class Institution < ActiveRecord::Base
   end
 
   def deactivated?
-    return !self.deactivated_at.nil?
+    !self.deactivated_at.nil?
   end
 
   def self.find_all_sizes
@@ -310,11 +305,9 @@ class Institution < ActiveRecord::Base
     while iterative_date.to_s > earliest_date do
       before_date = iterative_date - 1.month
       monthly_labels.push(convert_datetime_to_label(before_date))
-      if self.name == 'APTrust'
-        monthly_data.push(GenericFile.created_before(iterative_date.to_s).created_after(before_date.to_s).sum(:size))
-      else
-        monthly_data.push(self.generic_files.created_before(iterative_date.to_s).created_after(before_date.to_s).sum(:size))
-      end
+      (self.name == 'APTrust') ?
+          monthly_data.push(GenericFile.created_before(iterative_date.to_s).created_after(before_date.to_s).sum(:size)) :
+          monthly_data.push(self.generic_files.created_before(iterative_date.to_s).created_after(before_date.to_s).sum(:size))
       iterative_date = before_date
     end
     monthly_hash.push(monthly_labels)

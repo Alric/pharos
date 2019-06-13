@@ -229,8 +229,12 @@ RSpec.describe GenericFile, :type => :model do
       expect(gf1).to eq subject
       gf2 = GenericFile.find_by_identifier('xyz/789')
       expect(gf2).to eq subject_two
-      gf2 = GenericFile.find_by_identifier('i_dont_exist')
-      expect(gf2).to be_nil
+      gf3 = GenericFile.find_by_identifier('')
+      expect(gf3).to be_nil
+      gf4 = GenericFile.find_by_identifier('i_dont_exist')
+      #puts gf2.identifier
+      expect(gf4).to be_nil
+
     end
   end
 
