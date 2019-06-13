@@ -138,8 +138,6 @@ module ApplicationHelper
     else
       new_path = "#{old_path}?#{param}=#{encoded_val}"
     end
-    # params[param] = encoded_val
-    # new_path = url_for(params.permit(Pharos::Application::PARAMS_HASH))
     new_path
   end
 

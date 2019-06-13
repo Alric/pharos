@@ -18,19 +18,8 @@ module ReportsHelper
   end
 
   def mimetype_analysis
-    @application_report = {}
-    @audio_report = {}
-    @image_report = {}
-    @video_report = {}
-    @text_report = {}
-    @other_report = {}
-    application_total = 0
-    audio_total = 0
-    image_total = 0
-    video_total = 0
-    text_total = 0
-    other_total = 0
-    @base_report = {}
+    @application_report, @audio_report, @image_report, @video_report, @text_report, @other_report, @base_report = {}, {}, {}, {}, {}, {}, {}
+    application_total, audio_total, image_total, video_total, text_total, other_total = 0, 0, 0, 0, 0, 0
     @mimetype_report = Hash[@mimetype_report.sort]
     @mimetype_report.each do |mimetype, count|
       base_type = mimetype.split('/')[0]
