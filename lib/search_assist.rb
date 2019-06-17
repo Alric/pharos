@@ -97,8 +97,6 @@ module SearchAssist
   end
 
   def dpn_item_filter(results, params)
-    params[:status] = nil if params[:status] == 'Null Status'
-    params[:stage] = nil if params[:stage] == 'Null Stage'
     results = results
                   .with_task(params[:task])
                   .with_identifier(params[:identifier])

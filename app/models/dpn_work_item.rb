@@ -18,8 +18,20 @@ class DpnWorkItem < ActiveRecord::Base
   scope :completed_after, ->(param) { where('dpn_work_items.completed_at > ?', param) unless param.blank? }
   scope :is_completed, ->(param) { where("completed_at is NOT NULL") if param == 'true' }
   scope :is_not_completed, ->(param) { where("completed_at is NULL") if param == 'true' }
-  scope :with_stage, ->(param) { where(stage: param) unless param.blank? }
-  scope :with_status, ->(param) { where(status: param) unless param.blank? }
+  scope :with_stage, ->(param) {
+    if param == 'Null Stage'
+      where("stage is NULL")
+    else
+      where(stage: param) unless param.blank?
+    end
+  }
+  scope :with_status, ->(param) {
+    if param == 'Null Status'
+      where("status is NULL")
+    else
+      where(status: param) unless param.blank?
+    end
+  }
   scope :with_retry, ->(param) {
     unless param.blank?
       if param == 'true'

@@ -4,9 +4,9 @@
   <div class="facets sidenav">
     <h3> Limit your search </h3>
     <%= render 'shared/filters/institution_filter' %>
-    <%= render 'shared/filters/action_filter' %>
-    <%= render 'shared/filters/stage_filter' %>
-    <%= render 'shared/filters/status_filter' %>
+    <%= render 'shared/filters/generic_filter', filter_counts: @action_counts, filter: 'action', filter_sym: :item_action %>
+    <%= render 'shared/filters/generic_filter', filter_counts: @stage_counts, filter: 'stage', filter_sym: :stage %>
+    <%= render 'shared/filters/generic_filter', filter_counts: @status_counts, filter: 'status', filter_sym: :status %>
   </div>
 </div>
 

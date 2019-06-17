@@ -1,0 +1,43 @@
+<% case filter %>
+  <% when 'action' %>
+    <% path_filter = 'item_action' %>
+  <% when 'format' %>
+    <% path_filter = 'file_format' %>
+    <% title_filt = 'File Format' %>
+  <% when 'node' %>
+    <% path_filter = 'remote_node' %>
+    <% title_filt = 'Remote Node' %>
+  <% else %>
+    <% path_filter = filter %>
+<% end %>
+
+<% if filter_counts %>
+    <div id="<%= filter %>-parent" class="panel panel-default">
+      <div id="filter-title-<%= filter %>" class="collapse-toggle panel-heading collapsed" data-toggle="collapse" data-target="#filter-<%= filter %>">
+        <h5 class="panel-title">
+          <% if filter.include?('_') %>
+              <% title_filter = filter.split('_').join(' ') %>
+          <% else %>
+              <% title_filt ? title_filter = title_filt : title_filter = filter %>
+          <% end %>
+          <%= title_filter.titleize %> <span class="<%= filter %>-carat glyphicon glyphicon-chevron-right"></span>
+        </h5>
+      </div>
+      <div id="filter-<%= filter %>" class="panel-collapse facet-content collapse" style="height: 0px">
+        <div class="panel-body">
+          <ul class="facet-values list-unstyled">
+            <% if @selected[filter_sym] %>
+                <script>selected("<%= filter %>", "<%= @selected[filter_sym].capitalize %>", "<%=url_for(params.permit(Pharos::Application::PARAMS_HASH).except filter_sym)%>")</script>
+            <% else %>
+                <% filter_counts.each do |filt, count| %>
+                    <li>
+                      <span class="facet-label"><a href="<%= current_path(path_filter, filt) %>"><%= filt.capitalize %></a></span>
+                      <span class="facet-count">(<%= count %>)</span>
+                    </li>
+                <% end %>
+            <% end %>
+          </ul>
+        </div>
+      </div>
+    </div>
+<% end %>
