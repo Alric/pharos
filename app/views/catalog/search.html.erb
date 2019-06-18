@@ -14,9 +14,9 @@
         <%= render 'shared/filters/institution_filter' %>
     <% end %>
     <%= render 'shared/filters/generic_without_counts_filter', filters: @outcomes, filter: 'outcome', filter_sym: :outcome %>
-    <%= render 'shared/filters/queued_filter' %>
+    <%= render 'shared/filters/generic_filter', filter_counts: @queued_counts, filter: 'queued', filter_sym: :queued %>
     <%= render 'shared/filters/generic_filter', filter_counts: @node_counts, filter: 'node', filter_sym: :remote_node %>
-    <%= render 'shared/filters/retry_filter' %>
+    <%= render 'shared/filters/generic_filter', filter_counts: @retry_counts, filter: 'retry', filter_sym: :retry %>
     <%= render 'shared/filters/generic_filter', filter_counts: @stage_counts, filter: 'stage', filter_sym: :stage %>
     <%= render 'shared/filters/state_filter' %>
     <%= render 'shared/filters/generic_filter', filter_counts: @status_counts, filter: 'status', filter_sym: :status %>

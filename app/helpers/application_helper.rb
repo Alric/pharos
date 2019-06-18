@@ -204,4 +204,26 @@ module ApplicationHelper
     end
   end
 
+  def filter_variables(filter)
+    case filter
+      when 'action'
+        path_filter = 'item_action'
+      when 'format'
+        path_filter = 'file_format'
+        title_filt = 'File Format'
+      when 'node'
+        path_filter = 'remote_node'
+        title_filt = 'Remote Node'
+      when 'retry'
+        path_filter = filter
+        title_filt = 'Retry Option'
+      when 'queued'
+        path_filter = filter
+        title_filt = 'Queued Status'
+      else
+        path_filter = filter
+    end
+    [path_filter, title_filt]
+  end
+
 end

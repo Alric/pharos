@@ -1,25 +1,9 @@
-<% case filter %>
-<% when 'action' %>
-    <% path_filter = 'item_action' %>
-<% when 'format' %>
-    <% path_filter = 'file_format' %>
-    <% title_filt = 'File Format' %>
-<% when 'node' %>
-    <% path_filter = 'remote_node' %>
-    <% title_filt = 'Remote Node' %>
-<% else %>
-    <% path_filter = filter %>
-<% end %>
-
+<% helper_variables = filter_variables(filter) %>
 <% if filters %>
     <div id="<%= filter %>-parent" class="panel panel-default">
       <div id="filter-title-<%= filter %>" class="collapse-toggle panel-heading collapsed" data-toggle="collapse" data-target="#filter-<%= filter %>">
         <h5 class="panel-title">
-          <% if filter.include?('_') %>
-              <% title_filter = filter.split('_').join(' ') %>
-          <% else %>
-              <% title_filter = filter %>
-          <% end %>
+          <% helper_variables[1] ? title_filter = helper_variables[1] : title_filter = filter %>
           <%= title_filter.titleize %> <span class="<%= filter %>-carat glyphicon glyphicon-chevron-right"></span>
         </h5>
       </div>
@@ -30,7 +14,7 @@
                 <script>selected("<%= filter %>", "<%= @selected[filter_sym].capitalize %>", "<%=url_for(params.permit(Pharos::Application::PARAMS_HASH).except filter_sym)%>")</script>
             <% else %>
                 <% filters.each do |filt| %>
-                    <li><span class="facet-label"><a href="<%= current_path(filter, filt) %>"><%= filt.capitalize %></a></span></li>
+                    <li><span class="facet-label"><a href="<%= current_path(helper_variables[0], filt) %>"><%= filt.titleize %></a></span></li>
                 <% end %>
             <% end %>
           </ul>

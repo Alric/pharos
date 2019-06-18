@@ -83,8 +83,8 @@ module FilterCounts
   def get_retry_counts(results)
     @selected[:retry] = params[:retry] if params[:retry]
     @retry_counts = {}
-    @retry_counts['t'] = results.with_retry('true').count
-    @retry_counts['f'] = results.with_retry('false').count
+    @retry_counts['true'] = results.with_retry('true').count
+    @retry_counts['false'] = results.with_retry('false').count
   end
 
   def get_event_type_counts(results)
@@ -117,8 +117,8 @@ module FilterCounts
     end
     @queued_filter = true
     @queued_counts = {}
-    @queued_counts[:is_not_queued] = results.queued('is_not_queued').count
-    @queued_counts[:is_queued] = results.queued('is_queued').count
+    @queued_counts['is_not_queued'] = results.queued('is_not_queued').count
+    @queued_counts['is_queued'] = results.queued('is_queued').count
   end
 
 end

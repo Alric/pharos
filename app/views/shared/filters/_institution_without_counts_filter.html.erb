@@ -14,8 +14,7 @@
             <% else %>
                 <% @sorted_institutions.each do |key, value| %>
                     <li>
-                      <span class="facet-label"><a href="<%= current_path('institution', value) %>">
-                        <%= key %></a></span>
+                      <span class="facet-label"><a href="<%= current_path('institution', value) %>"><%= key %></a></span>
                     </li>
                 <% end %>
             <% end %>
