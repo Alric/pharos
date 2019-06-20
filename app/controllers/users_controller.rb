@@ -156,6 +156,9 @@ class UsersController < ApplicationController
 
   def set_query(target)
     case target
+      when 'bulk_delete_jobs'
+        query = 'VACUUM (VERBOSE, ANALYZE) bulk_delete_jobs'
+        vacuum_associated_tables(target)
       when 'checksums'
         query = 'VACUUM (VERBOSE, ANALYZE) checksums'
       when 'confirmation_tokens'
@@ -173,6 +176,8 @@ class UsersController < ApplicationController
         query = 'VACUUM (VERBOSE, ANALYZE) institutions'
       when 'intellectual_objects'
         query = 'VACUUM (VERBOSE, ANALYZE) intellectual_objects'
+      when 'old_passwords'
+        query = 'VACUUM (VERBOSE, ANALYZE) old_passwords'
       when 'premis_events'
         query = 'VACUUM (VERBOSE, ANALYZE) premis_events'
       when 'roles'
@@ -196,7 +201,20 @@ class UsersController < ApplicationController
 
   def vacuum_associated_tables(target)
     case target
+      when 'bulk_delete_jobs'
+        query = 'VACUUM (VERBOSE, ANALYZE) bulk_delete_jobs_emails'
+        ActiveRecord::Base.connection.exec_query(query)
+        query = 'VACUUM (VERBOSE, ANALYZE) bulk_delete_jobs_generic_files'
+        ActiveRecord::Base.connection.exec_query(query)
+        query = 'VACUUM (VERBOSE, ANALYZE) bulk_delete_jobs_institutions'
+        ActiveRecord::Base.connection.exec_query(query)
+        query = 'VACUUM (VERBOSE, ANALYZE) bulk_delete_jobs_intellectual_objects'
+        ActiveRecord::Base.connection.exec_query(query)
       when 'emails'
+        query = 'VACUUM (VERBOSE, ANALYZE) emails_generic_files'
+        ActiveRecord::Base.connection.exec_query(query)
+        query = 'VACUUM (VERBOSE, ANALYZE) emails_intellectual_objects'
+        ActiveRecord::Base.connection.exec_query(query)
         query = 'VACUUM (VERBOSE, ANALYZE) emails_premis_events'
         ActiveRecord::Base.connection.exec_query(query)
         query = 'VACUUM (VERBOSE, ANALYZE) emails_work_items'

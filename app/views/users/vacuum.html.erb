@@ -6,6 +6,9 @@
       <li><%= link_to vacuum_path(vacuum_target: 'entire_database'), {class: 'btn doc-action-btn btn-normal'} do %>
             <i class="glyphicon glyphicon-hourglass"></i> Vacuum Entire Database
         <% end %></li><br>
+      <li><%= link_to vacuum_path(vacuum_target: 'bulk_delete_jobs'), {class: 'btn doc-action-btn btn-normal'} do %>
+            <i class="glyphicon glyphicon-hourglass"></i> Vacuum Bulk Delete Job Table
+        <% end %></li><br>
       <li><%= link_to vacuum_path(vacuum_target: 'checksums'), {class: 'btn doc-action-btn btn-normal'} do %>
             <i class="glyphicon glyphicon-hourglass"></i> Vacuum Checksum Table
         <% end %></li><br>
@@ -31,6 +34,9 @@
     <td><ul>
       <li><%= link_to vacuum_path(vacuum_target: 'intellectual_objects'), {class: 'btn doc-action-btn btn-normal'} do %>
             <i class="glyphicon glyphicon-hourglass"></i> Vacuum Intellectual Object Table
+        <% end %></li><br>
+      <li><%= link_to vacuum_path(vacuum_target: 'old_passwords'), {class: 'btn doc-action-btn btn-normal'} do %>
+            <i class="glyphicon glyphicon-hourglass"></i> Vacuum Old Password Table
         <% end %></li><br>
       <li><%= link_to vacuum_path(vacuum_target: 'premis_events'), {class: 'btn doc-action-btn btn-normal'} do %>
             <i class="glyphicon glyphicon-hourglass"></i> Vacuum Premis Event Table
