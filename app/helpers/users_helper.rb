@@ -16,10 +16,18 @@ module UsersHelper
   end
 
   def generate_key_confirmation_msg(user)
-    if user.encrypted_api_secret_key
-      'Are you sure?  Your current API secret key will be destroyed and replaced with the new one.'
-    else
+    if user.encrypted_api_secret_key.nil? || user.encrypted_api_secret_key == ''
       ''
+    else
+      'Are you sure?  Your current API secret key will be destroyed and replaced with the new one.'
+    end
+  end
+
+  def generate_aws_key_confirmation_msg(user)
+    if user.aws_access_key.nil? || user.aws_access_key == ''
+      ''
+    else
+      'Are you sure?  Your current AWS access key will be destroyed and replaced with the new one.'
     end
   end
 end

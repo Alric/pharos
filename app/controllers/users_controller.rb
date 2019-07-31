@@ -279,39 +279,40 @@ class UsersController < ApplicationController
 
   def issue_aws_credentials
     authorize current_user
-    post_params = current_user.split(' ').join('.')
-    uri = URI()
-    response = issue_http_post(uri, post_params)
-    if response.status == '200' #This will need to change to whatever a successful creation of creds is
-      current_user.aws_access_key = respsonse.body['access_key_id']
-      current_user.save!
-      @acc_key_id = respsonse.body['access_key_id']
-      @secret_key = response.body['secret_access_key']
-      flash[:notice] = 'Your AWS credentials have been successfully created.'
-    else
-      flash[:error] = 'Something went wrong while trying to create your credentials. Please contact an APTrust administrator.'
+    user_name = current_user.name.split(' ').join('.')
+    client = setup_aws_client
+    unless current_user.aws_access_key.nil? || current_user.aws_access_key == ''
+      client.delete_access_key({ access_key_id: current_user.aws_access_key, user_name: user_name })
     end
+    response = client.create_access_key({ user_name: user_name })
+    current_user.aws_access_key = response.access_key.access_key_id
+    current_user.save!
+    @acc_key_id = response.access_key.access_key_id
+    @secret_key = response.access_key.secret_access_key
     respond_to do |format|
-      format.html { render 'show' }
+      format.html {
+        render 'show'
+        flash[:notice] = 'Your AWS credentials have been successfully created.'
+      }
       format.json { render json: { status: response.code, body: response.body } }
     end
   end
 
   def revoke_aws_credentials
-    authorize current_user
-    post_params = current_user.split(' ').join('.')
-    uri = URI()
-    response = issue_http_post(uri, post_params)
-    if response.status == '200' #This will need to change to whatever a revocation creation of creds is
-      current_user.aws_access_key = ''
-      current_user.save!
-      flash[:notice] = "This user's AWS credentials have been revoked."
-    else
-      flash[:error] = 'Something went wrong while trying revoke these credentials. Please contact an APTrust administrator.'
+    authorize @user
+    user_name = @user.name.split(' ').join('.')
+    client = setup_aws_client
+    unless @user.aws_access_key.nil? || @user.aws_access_key == ''
+      client.delete_access_key({ access_key_id: current_user.aws_access_key, user_name: user_name })
     end
+    @user.aws_access_key = ''
+    @user.save!
     respond_to do |format|
       format.json { render json: { status: response.code, body: response.body } }
-      format.html { render 'show' }
+      format.html {
+        render 'show'
+        flash[:notice] = "This user's AWS credentials have been successfully revoked."
+      }
     end
   end
 
@@ -431,11 +432,12 @@ class UsersController < ApplicationController
     params.required(:user).permit(:password, :password_confirmation, :current_password, :name, :email, :phone_number, :institution_id, :role_ids, :two_factor_enabled)
   end
 
-  def issue_http_post(uri, name)
-    http = Net::HTTP.new(uri.host, uri.port)
-    request = Net::HTTP::Post.new(uri)
-    request.body = { name: name }
-    http.request(request)
+  def setup_aws_client
+    #creds = Aws::Credentials.initialize(ENV['AWS_SES_USER'], ENV['AWS_SES_PWD'])
+
+    creds = Aws::Credentials.new(ENV['AWS_SES_USER'], ENV['AWS_SES_PWD'])
+    client = Aws::IAM::Client.new(region: ENV['AWS_DEFAULT_REGION'], credentials: creds)
+    client
   end
 
   def set_query(target)
