@@ -5,7 +5,7 @@ class UsersController < ApplicationController
   before_action :set_user, only: [:show, :edit, :update, :destroy, :generate_api_key, :admin_password_reset, :deactivate, :reactivate,
                                   :vacuum, :enable_otp, :disable_otp, :register_authy_user, :verify_twofa, :generate_backup_codes,
                                   :verify_email, :email_confirmation, :forced_password_update, :indiv_confirmation_email, :confirm_account,
-                                  :change_authy_phone_number]
+                                  :change_authy_phone_number, :issue_aws_credentials, :revoke_aws_credentials]
   after_action :verify_authorized, :except => :index
   after_action :verify_policy_scoped, :only => :index
 
@@ -279,21 +279,39 @@ class UsersController < ApplicationController
 
   def issue_aws_credentials
     authorize current_user
-    usr_email = params[:email]
+    post_params = current_user.split(' ').join('.')
     uri = URI()
-    response = issue_http_post(uri, usr_email)
+    response = issue_http_post(uri, post_params)
+    if response.status == '200' #This will need to change to whatever a successful creation of creds is
+      current_user.aws_access_key = respsonse.body['access_key_id']
+      current_user.save!
+      @acc_key_id = respsonse.body['access_key_id']
+      @secret_key = response.body['secret_access_key']
+      flash[:notice] = 'Your AWS credentials have been successfully created.'
+    else
+      flash[:error] = 'Something went wrong while trying to create your credentials. Please contact an APTrust administrator.'
+    end
     respond_to do |format|
+      format.html { render 'show' }
       format.json { render json: { status: response.code, body: response.body } }
     end
   end
 
   def revoke_aws_credentials
     authorize current_user
-    usr_email = params[:email]
+    post_params = current_user.split(' ').join('.')
     uri = URI()
-    response = issue_http_post(uri, usr_email)
+    response = issue_http_post(uri, post_params)
+    if response.status == '200' #This will need to change to whatever a revocation creation of creds is
+      current_user.aws_access_key = ''
+      current_user.save!
+      flash[:notice] = "This user's AWS credentials have been revoked."
+    else
+      flash[:error] = 'Something went wrong while trying revoke these credentials. Please contact an APTrust administrator.'
+    end
     respond_to do |format|
       format.json { render json: { status: response.code, body: response.body } }
+      format.html { render 'show' }
     end
   end
 
@@ -413,10 +431,10 @@ class UsersController < ApplicationController
     params.required(:user).permit(:password, :password_confirmation, :current_password, :name, :email, :phone_number, :institution_id, :role_ids, :two_factor_enabled)
   end
 
-  def issue_http_post(uri, email)
+  def issue_http_post(uri, name)
     http = Net::HTTP.new(uri.host, uri.port)
     request = Net::HTTP::Post.new(uri)
-    request.body = { api_user: request.headers['X-Pharos-API-User'], api_key: request.headers['X-Pharos-API-Key'], email: email }
+    request.body = { name: name }
     http.request(request)
   end
 

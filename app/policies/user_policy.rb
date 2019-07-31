@@ -213,11 +213,11 @@ class UserPolicy < ApplicationPolicy
   end
 
   def issue_aws_credentials?
-    user.admin?
+    user.id == record.id
   end
 
   def revoke_aws_credentials?
-    user.admin?
+    user.admin? || (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
   def work_item_batch_update?

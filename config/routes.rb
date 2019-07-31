@@ -178,8 +178,8 @@ Rails.application.routes.draw do
   get 'users/:id/forced_password_update', to: 'users#forced_password_update', as: :user_forced_password_update
   get 'users/:id/deactivate', to: 'users#deactivate', as: :deactivate_user
   get 'users/:id/reactivate', to: 'users#reactivate', as: :reactivate_user
-  get 'api/v2/issue_creds', to: 'users#issue_aws_credentials', format: :json, as: :issue_aws_creds_for_user
-  get 'api/v2/revoke_creds', to: 'users#revoke_aws_credentials', format: :json, as: :revoke_aws_creds_for_user
+  get 'api/v2/:id/issue_creds', to: 'users#issue_aws_credentials', format: [:json, :html], as: :issue_aws_creds_for_user
+  get 'api/v2/:id/revoke_creds', to: 'users#revoke_aws_credentials', format: [:json, :html], as: :revoke_aws_creds_for_user
   get '/vacuum', to: 'users#vacuum', format: [:json, :html], as: :vacuum
   get '/api/v2/vacuum', to: 'users#vacuum', format: [:json, :html], as: :api_vacuum
   get '/account_confirmations', to: 'users#account_confirmations', format: [:json, :html], as: :account_confirmations
