@@ -277,6 +277,26 @@ class UsersController < ApplicationController
     flash[:notice] = "#{@user.name}'s account has been reactivated."
   end
 
+  def issue_aws_credentials
+    authorize current_user
+    usr_email = params[:email]
+    uri = URI()
+    response = issue_http_post(uri, usr_email)
+    respond_to do |format|
+      format.json { render json: { status: response.code, body: response.body } }
+    end
+  end
+
+  def revoke_aws_credentials
+    authorize current_user
+    usr_email = params[:email]
+    uri = URI()
+    response = issue_http_post(uri, usr_email)
+    respond_to do |format|
+      format.json { render json: { status: response.code, body: response.body } }
+    end
+  end
+
   def vacuum
     authorize current_user
     if params[:vacuum_target]
@@ -391,6 +411,13 @@ class UsersController < ApplicationController
 
   def user_params
     params.required(:user).permit(:password, :password_confirmation, :current_password, :name, :email, :phone_number, :institution_id, :role_ids, :two_factor_enabled)
+  end
+
+  def issue_http_post(uri, email)
+    http = Net::HTTP.new(uri.host, uri.port)
+    request = Net::HTTP::Post.new(uri)
+    request.body = { api_user: request.headers['X-Pharos-API-User'], api_key: request.headers['X-Pharos-API-Key'], email: email }
+    http.request(request)
   end
 
   def set_query(target)

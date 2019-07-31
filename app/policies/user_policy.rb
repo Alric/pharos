@@ -212,6 +212,14 @@ class UserPolicy < ApplicationPolicy
     deactivate?
   end
 
+  def issue_aws_credentials?
+    user.admin?
+  end
+
+  def revoke_aws_credentials?
+    user.admin?
+  end
+
   def work_item_batch_update?
     user.admin?
   end
