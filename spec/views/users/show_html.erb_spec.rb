@@ -11,7 +11,8 @@ describe 'users/show.html.erb' do
 
   describe 'A user with access' do
     before do
-      allow(view).to receive(:policy).and_return double(edit?: true, generate_api_key?: true, destroy?: false, deactivate?: false)
+      allow(view).to receive(:policy).and_return double(edit?: true, generate_api_key?: true, destroy?: false, deactivate?: false,
+                                                        issue_aws_credentials?: true, revoke_aws_credentials?: false)
       render
     end
 
@@ -26,7 +27,8 @@ describe 'users/show.html.erb' do
 
   describe 'A user without access' do
     before do
-      allow(view).to receive(:policy).and_return double(edit?: false, generate_api_key?: false, destroy?: false, deactivate?: false)
+      allow(view).to receive(:policy).and_return double(edit?: false, generate_api_key?: false, destroy?: false, deactivate?: false,
+                                                        issue_aws_credentials?: false, revoke_aws_credentials?: false)
       render
     end
 
