@@ -433,10 +433,9 @@ class UsersController < ApplicationController
   end
 
   def setup_aws_client
-    #creds = Aws::Credentials.initialize(ENV['AWS_SES_USER'], ENV['AWS_SES_PWD'])
-
     creds = Aws::Credentials.new(ENV['AWS_SES_USER'], ENV['AWS_SES_PWD'])
-    client = Aws::IAM::Client.new(region: ENV['AWS_DEFAULT_REGION'], credentials: creds)
+    client = Aws::IAM::Client.new(region: ENV['AWS_DEFAULT_REGION'], credentials: creds,
+                                  instance_profile_credentials_timeout: 15, instance_profile_credentials_retries: 5)
     client
   end
 
