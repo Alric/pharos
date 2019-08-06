@@ -292,7 +292,7 @@ class UsersController < ApplicationController
     respond_to do |format|
       format.html {
         render 'show'
-        flash[:notice] = 'Your AWS credentials have been successfully created.'
+        flash[:notice] = 'Your AWS credentials have been successfully created. Please store them somewhere safe.'
       }
       format.json { render json: { status: response.code, body: response.body } }
     end
