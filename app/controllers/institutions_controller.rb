@@ -209,8 +209,8 @@ class InstitutionsController < ApplicationController
     Institution.all.each do |current_inst|
       items = current_inst.new_deletion_items
       unless items.nil? || items.count == 0
-        zip = current_inst.generate_deletion_zipped_csv(items)
-        email = NotificationMailer.deletion_notification(current_inst, zip).deliver_now
+        current_inst.generate_deletion_zipped_csv(items)
+        email = NotificationMailer.deletion_notification(current_inst).deliver_now
         email_log_deletions(email, current_inst)
       end
     end
