@@ -17,7 +17,7 @@ gem 'jbuilder', '~> 2.9.1'
 gem 'pg', '1.1.4' # Necessary for talking to our RDS instance
 gem 'pundit'
 gem 'figaro'
-gem 'devise', '4.7.0'
+gem 'devise', '4.6.2'
 gem 'devise-security'
 gem 'devise-two-factor'
 gem 'dotenv-rails'
@@ -26,7 +26,6 @@ gem 'aws-sdk-iam'
 gem 'devise-authy'
 gem 'rake'
 gem 'email_validator'
-gem 'phonelib'
 
 # Used to generate PDFs for reports
 gem 'wicked_pdf'
@@ -48,7 +47,7 @@ gem 'browser-timezone-rails'
 gem 'activerecord-nulldb-adapter'
 gem 'puma', '3.12.0'
 
-group :demo, :production, :staging do
+group :demo, :production do
   # Graylog logging gems
   gem 'rails_semantic_logger'
   gem 'gelf'
@@ -73,7 +72,7 @@ group :test, :development do
   gem 'mimemagic'
 end
 
-group :development, :test, :staging, :demo, :production, :integration do
+group :development, :test, :demo, :production, :integration do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug'
   gem 'factory_bot_rails'
