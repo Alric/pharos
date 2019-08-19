@@ -5,7 +5,7 @@ class UsersController < ApplicationController
   before_action :set_user, only: [:show, :edit, :update, :destroy, :generate_api_key, :admin_password_reset, :deactivate, :reactivate,
                                   :vacuum, :enable_otp, :disable_otp, :register_authy_user, :verify_twofa, :generate_backup_codes,
                                   :verify_email, :email_confirmation, :forced_password_update, :indiv_confirmation_email, :confirm_account,
-                                  :change_authy_phone_number, :issue_aws_credentials, :revoke_aws_credentials]
+                                  :change_authy_phone_number, :issue_aws_credentials, :revoke_aws_credentials, :update_phone_number]
   after_action :verify_authorized, :except => :index
   after_action :verify_policy_scoped, :only => :index
 
@@ -44,7 +44,27 @@ class UsersController < ApplicationController
 
   def update
     authorize @user
+    old_num = @user.phone_number
     update!
+    if @user.authy_id.present? && !(@user.phone_number == old_num)
+      response = Authy::API.delete_user(id: @user.authy_id)
+      if response.ok?
+        @user.update(authy_id: nil)
+        second_response = generate_authy_account(@user)
+        if second_response.ok? && (second_response['errors'].nil? || second_response['errors'].empty?)
+          message = ' The phone number for both this Pharos account and Authy account has been successfully updated.'
+          flash[:notice] ? flash[:notice] += message : flash[:notice] = message
+        else
+          logger.info "Re-Generate Authy Account Errors: #{second_response.errors.inspect}"
+          message = 'The phone number associated with this Authy account was unable to be updated at this time. Authy push notifications will not be able to be used until it has been properly updated.'
+          flash[:error] ? flash[:error] += message : flash[:error] = message
+        end
+      else
+        logger.info "Delete Authy Account Errors: #{response.errors.inspect}"
+        message = 'The phone number associated with this Authy account was unable to be updated at this time. Authy push notifications will not be able to be used until it has been properly updated.'
+        flash[:error] ? flash[:error] += message : flash[:error] = message
+      end
+    end
   end
 
   def destroy
@@ -74,30 +94,56 @@ class UsersController < ApplicationController
     authorize @user
     @user.force_password_update = true
     @user.save!
+    msg = "#{@user.name} will be forced to change their password upon next login."
     respond_to do |format|
-      format.json { render json: { message: 'This user will be forced to change their password upon next login.' }, status: :ok }
-      format.html { redirect_to @user, flash: { notice: 'This user will be forced to change their password upon next login.' } }
+      format.json { render json: { message: msg }, status: :ok }
+      format.html { redirect_to @user, flash: { notice: msg } }
     end
   end
 
   def enable_otp
     authorize @user
-    unless Rails.env.test?
-      authy = generate_authy_account(@user) if (@user.authy_id.nil? || @user.authy_id == '')
-    end
-    if authy && !authy['errors'].nil? && !authy['errors'].empty?
-      logger.info "Testing Authy Errors hash: #{authy.errors.inspect}"
-      msg = 'An error occurred while trying to enable Two Factor Authentication.'
+    flash.clear
+    params[:phone_number] = @user.phone_number if params[:phone_number].nil?
+    if params[:phone_number].blank?
+      msg = 'You must have a phone number listed in order to enable Two Factor Authentication.'
       flash[:error] = msg
+      @user.errors.add(:phone_number, 'must not be blank')
+    elsif Phonelib.invalid?(params[:phone_number])
+      msg = "The phone number #{params[:phone_number]} is invalid. Please try again."
+      flash[:error] = msg
+      @user.errors.add(:phone_number, 'is invalid')
     else
-      @codes = update_enable_otp_attributes(@user)
-      (current_user == @user) ? usr = ' for your account' : usr = ' for this user'
-      msg = "Two Factor Authentication has been enabled#{usr}. Authy ID is #{@user.authy_id}."
-      flash[:notice] = msg
+      @user.phone_number = params[:phone_number]
+      @user.save!
+      unless Rails.env.test?
+        authy = generate_authy_account(@user) if (@user.authy_id.blank?)
+      end
+      if authy && !authy['errors'].nil? && !authy['errors'].empty?
+        logger.info "Testing Authy Errors hash: #{authy.errors.inspect}"
+        msg = 'An error occurred while trying to enable Two Factor Authentication.'
+        flash[:error] = msg
+      else
+        @codes = update_enable_otp_attributes(@user)
+        (current_user == @user) ? usr = ' for your account' : usr = " for #{@user.name}"
+        msg = "Two Factor Authentication has been enabled#{usr}. Authy ID is #{@user.authy_id}."
+        flash[:notice] = msg
+      end
     end
     respond_to do |format|
-      format.json { render json: { user: @user, codes: @codes, message: msg } }
-      format.html { (params[:redirect_loc] && params[:redirect_loc] == 'index') ? (redirect_to users_path) : (render 'show') }
+      @codes ? format.json { render json: {user: @user, codes: @codes, message: msg} } : format.json { render json: {user: @user, message: msg} }
+      format.html {
+        if params[:redirect_loc] && params[:redirect_loc] == 'index'
+          @users = policy_scope(User)
+          if msg.include?('Authy ID is')
+            redirect_to users_path
+          else
+            render 'index'
+          end
+        else
+          render 'show'
+        end
+      }
     end
   end
 
@@ -105,7 +151,7 @@ class UsersController < ApplicationController
     authorize @user
     if current_user_is_an_admin
       if current_user == @user || user_is_an_admin(@user)
-        (current_user == @user) ? msg_opt = 'you based on your role as an administrator' : msg_opt = 'this user based on their role as an administrator'
+        (current_user == @user) ? msg_opt = 'you based on your role as an administrator' : msg_opt = "#{@user.name} based on their role as an administrator"
         msg = "Two Factor Authentication cannot be disabled at this time because it is required for #{msg_opt}."
         flash[:alert] = msg
       elsif user_inst_requires_twofa(@user)
@@ -113,7 +159,7 @@ class UsersController < ApplicationController
         flash[:alert] = msg
       else
         disable_twofa(@user)
-        msg = 'Two Factor Authentication has been disabled for this user.'
+        msg = "Two Factor Authentication has been disabled for #{@user.name}."
         flash[:notice] = msg
       end
     else
@@ -134,7 +180,7 @@ class UsersController < ApplicationController
 
   def register_authy_user
     authorize @user
-    if @user.authy_id.nil? || @user.authy_id == ''
+    if @user.authy_id.blank?
       authy = generate_authy_account(@user)
     end
     if authy && !authy['errors'].nil? && !authy['errors'].empty?
@@ -153,28 +199,39 @@ class UsersController < ApplicationController
 
   def change_authy_phone_number
     authorize @user
-    update_phone_number(@user)
-    response = Authy::API.delete_user(id: @user.authy_id)
-    if response.ok?
-      @user.update(authy_id: nil)
-      second_response = generate_authy_account(@user)
-      if second_response.ok? && (second_response['errors'].nil? || second_response['errors'].empty?)
-        message = 'The phone number for both this Pharos account and Authy account has been successfully updated.'
-        flash[:notice] = message
+    flash.clear
+    if params[:phone_number].blank?
+      msg = 'You must have a phone number listed in order to change your number with Authy.'
+      flash[:error] = msg
+      @user.errors.add(:phone_number, 'must not be blank')
+    elsif Phonelib.invalid?(params[:phone_number])
+      msg = "The phone number #{params[:phone_number]} is invalid. Please try again."
+      flash[:error] = msg
+      @user.errors.add(:phone_number, 'is invalid')
+    else
+      @user.phone_number = params[:phone_number]
+      @user.save
+      response = Authy::API.delete_user(id: @user.authy_id)
+      if response.ok?
+        @user.update(authy_id: nil)
+        second_response = generate_authy_account(@user)
+        if !second_response['errors'].nil? && !second_response['errors'].empty?
+          logger.info "Re-Generate Authy Account Errors: #{second_response.errors.inspect}"
+          message = 'The Authy account was unable to be updated at this time, you will not be able to use Authy push notifications until it has been properly updated. If you now see a "Register with Authy" button, please try using that.'
+          flash[:error] = message
+        elsif second_response.ok?
+          message = 'The phone number for both this Pharos account and Authy account has been successfully updated.'
+          flash[:notice] = message
+        end
       else
-        logger.info "Re-Generate Authy Account Errors: #{second_response.errors.inspect}"
-        message = 'The Authy account was unable to be updated at this time, you will not be able to use Authy push notifications'
-        + 'until it has been properly updated. If you now see a "Register with Authy" button, please try using that.'
+        logger.info "Delete Authy Account Errors: #{response.errors.inspect}"
+        message = 'The Authy account was unable to be updated at this time, you will not be able to use Authy push notifications until it has been properly updated. Please try again later.'
         flash[:error] = message
       end
-    else
-      logger.info "Delete Authy Account Errors: #{response.errors.inspect}"
-      message = 'The Authy account was unable to be updated at this time, you will not be able to use Authy push notifications until it has been properly updated. Please try again later.'
-      flash[:error] = message
     end
     respond_to do |format|
       format.json { render json: { user: @user, message: message } }
-      format.html { redirect_to @user }
+      format.html { render 'show' }
     end
   end
 
@@ -192,14 +249,14 @@ class UsersController < ApplicationController
     authorize @user
     if params[:verification_option] == 'push'
       one_touch = generate_one_touch('Request to Verify Phone Number for APTrust Repository Website')
-      if one_touch.ok? && (one_touch['errors'].nil? || one_touch['errors'].empty?)
-        check_one_touch_verify(one_touch)
-      else
+      if !one_touch['errors'].nil? && !one_touch['errors'].empty?
         logger.info "Checking one touch contents: #{one_touch.inspect}"
         respond_to do |format|
           format.json { render json: { error: 'Create Push Error', message: one_touch.inspect }, status: :internal_server_error }
-          format.html { redirect_to @user, flash: { error: "There was an error creating your push notification. Please contact your administrator or an APTrust administrator for help, and let them know that the error was: #{one_touch[:errors][:message]}" } }
+          format.html { redirect_to @user, flash: { error: "There was an error creating your push notification. Please contact your administrator or an APTrust administrator for help, and let them know that the error was: #{one_touch['errors']['message']}" } }
         end
+      elsif one_touch.ok?
+        check_one_touch_verify(one_touch)
       end
     elsif params[:verification_option] == 'sms'
       send_sms
@@ -386,6 +443,24 @@ class UsersController < ApplicationController
     end
   end
 
+  def stale_user_notification
+    authorize current_user
+    stale_users = User.stale_users
+    if stale_users == []
+      msg = 'There are no stale users at this time, no email has been sent out.'
+    else
+      NotificationMailer.stale_user_notification(stale_users).deliver!
+      msg = 'The stale user notification email has been sent to the team.'
+    end
+    flash[:notice] = msg
+    respond_to do |format|
+      format.json { render json: { status: 'success', message: msg }, status: :ok }
+      format.html {
+        request.env['HTTP_REFERER'].nil? ? (redirect_to root_path) : (redirect_to(request.env['HTTP_REFERER']))
+      }
+    end
+  end
+
   private
 
   # If an id is passed through params, use it.  Otherwise default to show the current user.
@@ -493,7 +568,15 @@ class UsersController < ApplicationController
   def one_touch_status_for_users
     @user = current_user
     status = Authy::OneTouch.approval_request_status({uuid: session[:uuid]})
-    if status.ok? && (status['errors'].nil? || status['errors'].empty?)
+    if !status['errors'].nil? && !status['errors'].empty?
+      logger.info "Checking one touch contents: #{status.inspect}"
+      msg = "There was a problem verifying your push notification. Please try again. If the problem persists, please contact your administrator or an APTrust administrator for help, and let them know that the error message was: #{status['errors']['message']}."
+      flash[:error] = msg
+      respond_to do |format|
+        format.json { render json: { message: msg }, status: :internal_server_error }
+        format.html { redirect_to @user }
+      end
+    elsif status.ok?
       if session[:verify_timeout] <= 0
         msg = 'This push notification has expired'
         flash[:error] = msg
@@ -520,14 +603,6 @@ class UsersController < ApplicationController
         else
           recheck_one_touch_status_user
         end
-      end
-    else
-      logger.info "Checking one touch contents: #{status.inspect}"
-      msg = "There was a problem verifying your push notification. Please try again. If the problem persists, please contact your administrator or an APTrust administrator for help, and let them know that the error message was: #{status[:errors][:message]}."
-      flash[:error] = msg
-      respond_to do |format|
-        format.json { render json: { message: msg }, status: :internal_server_error }
-        format.html { redirect_to @user }
       end
     end
   end

@@ -230,9 +230,8 @@ class NotificationMailer < ApplicationMailer
 
   def snapshot_notification(snap_hash)
     @snap_hash = snap_hash
-    emails = ['team@aptrust.org', 'chip.german@aptrust.org']
     Rails.env.production? ? prefix = '[APTrust Production] - ' : prefix = '[APTrust Demo] - '
-    mail(to: emails, subject: "#{prefix}New Snapshots")
+    mail(to: 'team@aptrust.org', subject: "#{prefix}New Snapshots")
   end
 
   def deletion_notification(subject)
@@ -278,6 +277,12 @@ class NotificationMailer < ApplicationMailer
     @confirmation_url = confirm_account_url(@subject, confirmation_token: confirmation_token.token)
     Rails.env.production? ? prefix = '[APTrust Production] - ' : prefix = '[APTrust Demo] - '
     mail(to: subject.email, subject: "#{prefix}Confirm Your Account")
+  end
+
+  def stale_user_notification(users)
+    @users = users
+    Rails.env.production? ? prefix = '[APTrust Production] - ' : prefix = '[APTrust Demo] - '
+    mail(to: 'team@aptrust.org', subject: "#{prefix}Stale Users")
   end
 
 end

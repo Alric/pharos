@@ -17,7 +17,8 @@ class User < ActiveRecord::Base
 
   validates :email, presence: true, uniqueness: true
   validate :email_is_valid
-  validates :phone_number, presence: true
+  # validates :phone_number, presence: true
+  validates_presence_of :phone_number, on: :enable_otp
   validates :role_ids, presence: true
   validates :institution_id, presence: true
   validate :institution_id_points_at_institution
@@ -25,7 +26,6 @@ class User < ActiveRecord::Base
   phony_normalize :phone_number, :default_country_code => 'US'
   validates_plausible_phone :phone_number
   validate :init_grace_period, on: :create
-  #validate :phone_number_length
 
   # We want this to always be true so that authorization happens in the user policy, preventing incorrect 404 errors.
   scope :readable, ->(current_user) { where('(1=1)') }
@@ -89,11 +89,16 @@ class User < ActiveRecord::Base
     self.institution.otp_enabled || self.admin? || self.institutional_admin?
   end
 
-  def otp_qr_code
-    issuer = 'APTrust'
-    label = "#{issuer}:#{self.email}"
-    qrcode = RQRCode::QRCode.new(otp_provisioning_uri(label, issuer: issuer))
-    qrcode.as_svg(module_size: 4)
+  def self.stale_users
+    users = User.where('created_at <= ? AND created_at >= ?',
+                       DateTime.now - (ENV['PHAROS_2FA_GRACE_PERIOD'].to_i - 3).days,
+                       DateTime.now - (ENV['PHAROS_2FA_GRACE_PERIOD'].to_i + 7).days, )
+    stale_users = []
+    users.each do |usr|
+      items = WorkItem.where(user: usr.email)
+      stale_users.push(usr) if items.count == 0
+    end
+    stale_users
   end
 
   def role_id
@@ -192,9 +197,11 @@ class User < ActiveRecord::Base
   end
 
   def init_grace_period
-    if self.grace_period == '' || self.grace_period == nil
-      self.grace_period = DateTime.now
-    end
+    self.grace_period = DateTime.now
+  end
+
+  def self.phone_number_is_valid
+
   end
 
 end

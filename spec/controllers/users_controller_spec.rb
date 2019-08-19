@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 RSpec.describe UsersController, type: :controller do
-  after do
+  after :all do
     User.delete_all
     Institution.delete_all
   end
@@ -9,6 +9,7 @@ RSpec.describe UsersController, type: :controller do
   describe 'An APTrust Administrator' do
     let(:admin_user) { FactoryBot.create(:user, :admin) }
     let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin)}
+    let(:stale_user) { FactoryBot.create(:user) }
 
     before do
       sign_in admin_user
@@ -89,7 +90,7 @@ RSpec.describe UsersController, type: :controller do
         }.to change(User, :count).by(1)
         email = ActionMailer::Base.deliveries.last
         expect(email.body.encoded).to include('An account with a temporary password has been created for you.')
-        expect(email.body.encoded).to include('Your temporary password is ABCabc-')
+        expect(email.body.encoded).to include('Temporary password: ABCabc-')
       end
     end
 
@@ -105,7 +106,7 @@ RSpec.describe UsersController, type: :controller do
       expect(assigns[:user]).to eq institutional_admin
       expect(assigns[:user].password).not_to eq password
       email = ActionMailer::Base.deliveries.last
-      expect(email.body.encoded).to include("Your new password is ")
+      expect(email.body.encoded).to include('Your new password is ')
       expect(flash[:notice]).to eq "Password has been reset for #{institutional_admin.email}. They will be notified of their new password via email."
     end
 
@@ -129,7 +130,7 @@ RSpec.describe UsersController, type: :controller do
       it 'for myself should succeed' do
         admin_user.enabled_two_factor = false
         admin_user.save!
-        get :enable_otp, params: { id: admin_user.id }, format: :json
+        get :enable_otp, params: { id: admin_user.id, phone_number: '8055559014' }, format: :json
         expect(response.status).to eq(200)
         expect(assigns[:user].enabled_two_factor).to eq true
         expect(assigns[:codes]).not_to be_nil
@@ -138,7 +139,7 @@ RSpec.describe UsersController, type: :controller do
       it 'for another user at my institution should succeed' do
         user_at_institution.enabled_two_factor = false
         user_at_institution.save!
-        get :enable_otp, params: { id: user_at_institution.id }, format: :json
+        get :enable_otp, params: { id: user_at_institution.id, phone_number: '8055559014' }, format: :json
         expect(response.status).to eq(200)
         expect(assigns[:user].enabled_two_factor).to eq true
         expect(assigns[:codes]).not_to be_nil
@@ -147,7 +148,7 @@ RSpec.describe UsersController, type: :controller do
       it 'for another user not at my institution should succeed' do
         user_of_different_institution.enabled_two_factor = false
         user_of_different_institution.save!
-        get :enable_otp, params: { id: user_of_different_institution.id }, format: :json
+        get :enable_otp, params: { id: user_of_different_institution.id, phone_number: '8055559014' }, format: :json
         expect(response.status).to eq(200)
         expect(assigns[:user].enabled_two_factor).to eq true
         expect(assigns[:codes]).not_to be_nil
@@ -272,6 +273,18 @@ RSpec.describe UsersController, type: :controller do
           response.should be_successful
         end
       end
+    end
+
+    it 'can send a stale user notification' do
+      stale_user.created_at = DateTime.now - (ENV['PHAROS_2FA_GRACE_PERIOD'].to_i - 1).days
+      stale_user.save!
+      get :stale_user_notification, format: :html
+      expect(response.status).to eq(302)
+      email = ActionMailer::Base.deliveries.last
+      expect(email.body.encoded).to include('Here are the latest stale users')
+      expect(email.body.encoded).to include(stale_user.name)
+      expect(email.body.encoded).to include(stale_user.email)
+      expect(flash[:notice]).to eq 'The stale user notification email has been sent to the team.'
     end
 
   end
@@ -485,6 +498,11 @@ RSpec.describe UsersController, type: :controller do
       expect(response.status).to eq(403)
     end
 
+    it 'should not be able to send a stale user notification' do
+      get :stale_user_notification, format: :json
+      expect(response.status).to eq(403)
+    end
+
     it 'should not be able to perform yearly account confirmations' do
       get :account_confirmations, format: :json
       expect(response.status).to eq(403)
@@ -513,7 +531,7 @@ RSpec.describe UsersController, type: :controller do
       it 'for myself should succeed' do
         institutional_admin.enabled_two_factor = false
         institutional_admin.save!
-        get :enable_otp, params: { id: institutional_admin.id }, format: :json
+        get :enable_otp, params: { id: institutional_admin.id, phone_number: '8055559014' }, format: :json
         expect(response.status).to eq(200)
         expect(assigns[:user].enabled_two_factor).to eq true
         expect(assigns[:codes]).not_to be_nil
@@ -522,7 +540,7 @@ RSpec.describe UsersController, type: :controller do
       it 'for another user at my institution should succeed' do
         user_at_institution.enabled_two_factor = false
         user_at_institution.save!
-        get :enable_otp, params: { id: user_at_institution.id }, format: :json
+        get :enable_otp, params: { id: user_at_institution.id, phone_number: '8055559014' }, format: :json
         expect(response.status).to eq(200)
         expect(assigns[:user].enabled_two_factor).to eq true
         expect(assigns[:codes]).not_to be_nil
@@ -531,7 +549,7 @@ RSpec.describe UsersController, type: :controller do
       it 'for another user not at my institution should not succeed' do
         user_of_different_institution.enabled_two_factor = false
         user_of_different_institution.save!
-        get :enable_otp, params: { id: user_of_different_institution.id }, format: :json
+        get :enable_otp, params: { id: user_of_different_institution.id, phone_number: '8055559014' }, format: :json
         expect(response.status).to eq(403)
       end
     end
@@ -650,7 +668,7 @@ RSpec.describe UsersController, type: :controller do
         get :forced_password_update, params: { id: user_at_institution.id }
         expect(response.status).to eq(302)
         expect(assigns[:user].force_password_update).to eq true
-        expect(flash[:notice]).to eq 'This user will be forced to change their password upon next login.'
+        expect(flash[:notice]).to eq "#{assigns[:user].name} will be forced to change their password upon next login."
       end
 
       it 'at another institution should not succeed' do
@@ -693,6 +711,11 @@ RSpec.describe UsersController, type: :controller do
 
     it 'should not be able to perform vacuum operations' do
       get :vacuum, params: { vacuum_target: 'snapshots' }, format: :json
+      expect(response.status).to eq(403)
+    end
+
+    it 'should not be able to send a stale user notification' do
+      get :stale_user_notification, format: :json
       expect(response.status).to eq(403)
     end
 
@@ -741,7 +764,7 @@ RSpec.describe UsersController, type: :controller do
       it 'for myself should succeed' do
         user.enabled_two_factor = false
         user.save!
-        get :enable_otp, params: { id: user.id }, format: :json
+        get :enable_otp, params: { id: user.id, phone_number: '8055559014' }, format: :json
         expect(response.status).to eq(200)
         expect(assigns[:user].enabled_two_factor).to eq true
         expect(assigns[:codes]).not_to be_nil
@@ -750,7 +773,7 @@ RSpec.describe UsersController, type: :controller do
       it 'for another user should not succeed' do
         other_user.enabled_two_factor = false
         other_user.save!
-        get :enable_otp, params: { id: other_user.id }, format: :json
+        get :enable_otp, params: { id: other_user.id, phone_number: '8055559014' }, format: :json
         expect(response.status).to eq(403)
       end
     end
