@@ -189,7 +189,7 @@ RSpec.describe MemberInstitution, :type => :model do
         Institution.remove_directory('test')
       end
 
-      it 'should return a list of new deletion items' do
+      it 'should return a list of new deletion items created after the lastest email' do
         latest_email = FactoryBot.create(:deletion_notification_email, institution_id: subject.id)
         sleep 1
         item_one = FactoryBot.create(:work_item, action: 'Delete', status: 'Success', stage: 'Resolve', generic_file: file_one, institution_id: subject.id)
@@ -197,6 +197,18 @@ RSpec.describe MemberInstitution, :type => :model do
         items = subject.new_deletion_items
         items.count.should eq(2)
         expect(items).to include(item_one)
+        expect(items).to include(item_two)
+      end
+
+      it 'should return a list of only deletion items created in the last month if no latest email exists' do
+        item_one = FactoryBot.create(:work_item, action: 'Delete', status: 'Success', stage: 'Resolve', generic_file: file_one, institution_id: subject.id)
+        item_one.created_at = Time.now - 2.month
+        item_one.save!
+        item_two = FactoryBot.create(:work_item, action: 'Delete', status: 'Success', stage: 'Resolve', generic_file: file_two, institution_id: subject.id)
+        item_two.created_at = Time.now - 2.week
+        item_two.save!
+        items = subject.new_deletion_items
+        items.count.should eq(1)
         expect(items).to include(item_two)
       end
 
