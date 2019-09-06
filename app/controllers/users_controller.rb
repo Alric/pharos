@@ -28,6 +28,11 @@ class UsersController < ApplicationController
       @user.password = password
       @user.password_confirmation = password
       @user.save!
+      unless Rails.env.test?
+        user_name = current_user.name.split(' ').join('.')
+        client = setup_aws_client
+        client.create_user({ user_name: user_name })
+      end
       NotificationMailer.welcome_email(@user, password).deliver!
     end
   end
@@ -69,6 +74,11 @@ class UsersController < ApplicationController
 
   def destroy
     authorize @user
+    unless Rails.env.test?
+      user_name = current_user.name.split(' ').join('.')
+      client = setup_aws_client
+      client.delete_user({ user_name: user_name })
+    end
     destroy!(notice: "User #{@user.to_s} was deleted.")
   end
 
@@ -351,7 +361,7 @@ class UsersController < ApplicationController
         render 'show'
         flash[:notice] = 'Your AWS credentials have been successfully created. Please store them somewhere safe.'
       }
-      format.json { render json: { status: response.code, body: response.body } }
+      format.json { render json: { status: :ok, body: response } }
     end
   end
 
@@ -365,7 +375,7 @@ class UsersController < ApplicationController
     @user.aws_access_key = ''
     @user.save!
     respond_to do |format|
-      format.json { render json: { status: response.code, body: response.body } }
+      format.json { render json: { status: :ok, message: "This user's AWS credentials have been successfully revoked." } }
       format.html {
         render 'show'
         flash[:notice] = "This user's AWS credentials have been successfully revoked."
