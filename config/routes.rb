@@ -200,6 +200,7 @@ Rails.application.routes.draw do
   get 'users/:id/two_factor_text_link', to: 'users#two_factor_text_link', as: :twofa_text
   get 'users/:id/verify_email', to: 'users#verify_email', as: :email_verification
   get 'users/:id/email_confirmation', to: 'users#email_confirmation', as: :email_confirmation
+  get 'users/:id/create_iam_user', to: 'users#create_iam_user', format: [:json, :html], as: :iam_creation
 
   resources :verifications, only: [:edit, :update]
   get 'verifications/login', to: 'verifications#login', as: :verification_login

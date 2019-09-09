@@ -224,6 +224,10 @@ class UserPolicy < ApplicationPolicy
     user.admin? || (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
+  def create_iam_user?
+    create?
+  end
+
   def work_item_batch_update?
     user.admin?
   end

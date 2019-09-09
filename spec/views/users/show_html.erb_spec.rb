@@ -7,12 +7,13 @@ describe 'users/show.html.erb' do
   before do
     assign(:user, user)
     controller.stub(:current_user).and_return user
+    @response = 'You do not have an IAM account.'
   end
 
   describe 'A user with access' do
     before do
       allow(view).to receive(:policy).and_return double(edit?: true, generate_api_key?: true, destroy?: false, deactivate?: false,
-                                                        issue_aws_credentials?: true, revoke_aws_credentials?: false)
+                                                        issue_aws_credentials?: true, revoke_aws_credentials?: false, create_iam_user?: false)
       render
     end
 
@@ -28,7 +29,7 @@ describe 'users/show.html.erb' do
   describe 'A user without access' do
     before do
       allow(view).to receive(:policy).and_return double(edit?: false, generate_api_key?: false, destroy?: false, deactivate?: false,
-                                                        issue_aws_credentials?: false, revoke_aws_credentials?: false)
+                                                        issue_aws_credentials?: false, revoke_aws_credentials?: false, create_iam_user?: false)
       render
     end
 

@@ -116,5 +116,17 @@
 <br />
 
 <%= render 'api_key' %>
-<%= render 'aws_credentials' %>
+<br />
+<h4> AWS IAM User Status </h4>
+<% if @response.present? && (!@response.is_a?(String)) && @response.user.present? %>
+    <p>You have an AWS IAM User account. Your user name for this system is <%= @response.user.user_name %></p>
+    <br />
+    <%= render 'aws_credentials' %>
+    <br />
+<% else %>
+    <p><%= @response %></p>
+    <% if policy(current_user).create_iam_user? %>
+        <%= link_to 'Create AWS IAM User Account', iam_creation_path(@user.id), :method => :get, class: 'btn btn-normal doc-action-btn' %>
+    <% end %>
+<% end %>
 <%= render 'revoke_aws_credentials' %>

@@ -467,7 +467,7 @@ RSpec.describe UsersController, type: :controller do
       describe 'from another institution' do
         let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
         it 'should not succeed' do
-          get :deactivate, params: { id: user_of_different_institution }, format: :json
+          get :deactivate, params: { id: user_of_different_institution }, format: :html
           response.should be_redirect
         end
       end
