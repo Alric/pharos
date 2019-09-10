@@ -72,7 +72,7 @@ class UsersController < ApplicationController
         logger.error "Exception in user#show; User: #{@user.name} does not have an AWS IAM account."
         logger.error e.message
         logger.error e.backtrace.join("\n")
-        if e.incude?('not found')
+        if e.include?('not found')
           @response = 'You do not have an AWS IAM account. You will not be able to generate credentials until you have an IAM. Please talk to your administrator about setting up an account.'
         else
           @response = "There was an error verifying your AWS account, please check back later. Response was #{e}"
