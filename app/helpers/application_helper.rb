@@ -73,12 +73,17 @@ module ApplicationHelper
     content ||= '<i class="glyphicon glyphicon-trash"></i> Delete'
     options[:class] = 'btn doc-action-btn btn-danger btn-sm' if options[:class].nil?
     options[:method] = :delete if options[:method].nil?
-    options[:data] = { confirm: 'Are you sure you want to delete this?' } if options[:confirm].nil?
     if object.is_a?(Institution)
+      options[:data] = { confirm: 'Are you sure you want to delete this institution?' } if options[:confirm].nil?
       link_to(content.html_safe, institution_path(object), options) if policy(object).destroy?
+    elsif object.is_a?(User)
+      options[:data] = { confirm: "Are you sure you want to delete the user #{object.name}?" } if options[:confirm].nil?
+      link_to(content.html_safe, object, options) if policy(object).destroy?
     else
+      options[:data] = { confirm: 'Are you sure you want to delete this?' } if options[:confirm].nil?
       link_to(content.html_safe, object, options) if policy(object).destroy?
     end
+
   end
 
   def admin_password_link(object, content = nil, options={})

@@ -118,11 +118,13 @@
 <%= render 'api_key' %>
 <br />
 <h4> AWS IAM User Status </h4>
+<% if @response.nil? %>
+    <% aws_response %>
+<% end %>
 <% if @response.present? && (!@response.is_a?(String)) && @response.user.present? %>
     <p>You have an AWS IAM User account. Your user name for this system is <%= @response.user.user_name %></p>
     <br />
     <%= render 'aws_credentials' %>
-    <br />
 <% else %>
     <p><%= @response %></p>
     <% if policy(current_user).create_iam_user? %>

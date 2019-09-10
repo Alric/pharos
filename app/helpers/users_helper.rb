@@ -35,4 +35,34 @@ module UsersHelper
     user.errors.add(:phone_number, @user.errors.messages[:phone_number][0]) if @user && @user.errors.any? && user.id == @user.id
     user
   end
+
+  def setup_aws_client
+    creds = Aws::Credentials.new(ENV['AWS_SES_USER'], ENV['AWS_SES_PWD'])
+    client = Aws::IAM::Client.new(region: ENV['AWS_DEFAULT_REGION'], credentials: creds, instance_profile_credentials_timeout: 15, instance_profile_credentials_retries: 5)
+    client
+  end
+
+  def aws_response
+    if Rails.env.production?
+      user_name = @user.name.split(' ').join('.')
+    elsif Rails.env.demo?
+      user_name = @user.name.split(' ').join('.') + '.test'
+    else
+      user_name = @user.name.split(' ').join('.') + '.' + Rails.env
+    end
+    @response = 'You do not have an AWS IAM account. You will not be able to generate credentials until you have one. Please talk to your administrator about setting up an account.'
+    begin
+      client = setup_aws_client
+      @response = client.get_user({ user_name: user_name })
+    rescue => e
+      logger.error "Exception in user#show; User: #{@user.name}."
+      logger.error e.message
+      logger.error e.backtrace.join("\n")
+      if e.message.include?('not found')
+        @response = 'You do not have an AWS IAM account. You will not be able to generate credentials until you have an IAM. Please talk to your administrator about setting up an account.'
+      else
+        @response = "There was an error verifying your AWS account, please check back later. Response was '#{e}'."
+      end
+    end
+  end
 end
