@@ -43,10 +43,10 @@ class UsersController < ApplicationController
           @response = client.create_user({ user_name: user_name })
           msg =  "AWS IAM username is #{@response.user.user_name}."
         rescue => e
-          logger.error "Exception in user#create; Pharos and/or AWS was unsuccessful in creating an IAM account for #{@user.name}."
+          logger.error "Exception in user#create; There was an error creating an IAM account for #{@user.name}."
           logger.error e.message
           logger.error e.backtrace.join("\n")
-          msg =  "Pharos and/or AWS was unsuccessful in creating an IAM account for #{@user.name}. Response was: '#{e}'."
+          msg =  "There was an error creating an IAM account for #{@user.name}. Response was: '#{e}'."
         end
       end
       NotificationMailer.welcome_email(@user, password).deliver!
@@ -116,6 +116,8 @@ class UsersController < ApplicationController
     authorize @user
     msg_one = ''
     msg_two = ''
+    find_msg = ''
+    @key_msg = ''
     unless Rails.env.test?
       if Rails.env.production?
         user_name = @user.name.split(' ').join('.')
@@ -124,41 +126,60 @@ class UsersController < ApplicationController
       else
         user_name = @user.name.split(' ').join('.') + '.' + Rails.env
       end
+      delete_flag = ''
       begin
         client = setup_aws_client
-        if @user.aws_access_key.blank?
-          msg_one = ''
+        @response = client.get_user({ user_name: user_name })
+        delete_flag = true
+      rescue => e
+        if e.message.include?('cannot be found')
+          delete_flag = false
         else
-          response = client.delete_access_key({ access_key_id: @user.aws_access_key, user_name: user_name })
-          @user.aws_access_key = ''
-          @user.save!
-          msg_one = "AWS credentials for #{@user.name} were deleted."
+          logger.error "Exception in user#show; User: #{@user.name}."
+          logger.error e.message
+          logger.error e.backtrace.join("\n")
+          find_msg = "There was an error verifying your AWS account, please check back later. Response was '#{e}'."
         end
-      rescue => e
-        logger.error "Exception in user#deactivate; Pharos and/or AWS was unsuccessful in deleting AWS credentials for #{@user.name}."
-        logger.error e.message
-        logger.error e.backtrace.join("\n")
-        msg_one = "Pharos and/or AWS was unsuccessful in deleting AWS credentials for #{@user.name}. Response was: '#{e}'."
       end
-      begin
-        client = setup_aws_client
-        response = client.delete_user({ user_name: user_name })
-        msg_two = "IAM account #{response.user.user_name} was deleted."
-      rescue => e
-        logger.error "Exception in user#destroy; Pharos and/or AWS was unsuccessful in deleting the IAM account for #{@user.name}."
-        logger.error e.message
-        logger.error e.backtrace.join("\n")
-        msg_two = "Pharos and/or AWS was unsuccessful in deleting the IAM account for this user. Response was: '#{e}'."
+      if delete_flag
+        key_response = get_access_keys(@user, user_name)
+        unless key_response == '' || key_response == 'Error'
+          begin
+            client = setup_aws_client
+            key_response.access_key_metadata.each do |key|
+              client.delete_access_key({ access_key_id: key.access_key_id, user_name: user_name })
+            end
+            @user.aws_access_key = ''
+            @user.save!
+            msg_one = "AWS credentials for #{@user.name} were deleted."
+          rescue => e
+            logger.error "Exception in user#destroy; There was an error deleting AWS credentials for #{@user.name}."
+            logger.error e.message
+            logger.error e.backtrace.join("\n")
+            msg_one = "There was an error deleting AWS credentials for #{@user.name}. Response was: '#{e}'."
+          end
+        end
+        begin
+          client = setup_aws_client
+          response = client.delete_user({ user_name: user_name })
+          msg_two = "IAM user account for #{@user.name} was deleted."
+        rescue => e
+          logger.error "Exception in user#destroy; There was an error deleting the IAM account for #{@user.name}."
+          logger.error e.message
+          logger.error e.backtrace.join("\n")
+          msg_two = "There was an error deleting the IAM account for #{@user.name}. Response was: '#{e}'."
+        end
       end
     end
-    if msg_one.include?('unsuccessful') || msg_two.include?('unsuccessful')
-      flash[:notice] = "User was unable to be deleted due to an AWS issue. #{msg_one} #{msg_two}"
+    if msg_one.include?('error') || msg_two.include?('error') || @key_msg.include?('error') || find_msg.include?('error')
+      total_message = "User was unable to be deleted due to an AWS issue. #{find_msg} #{@key_msg} #{msg_one} #{msg_two}"
+      flash[:notice] = total_message
       respond_to do |format|
-        format.json { render json: { message: "User was unable to be deleted due to an AWS issue. #{msg_one} #{msg_two}" }, status: :error }
-        format.html { redirect_to @user, flash: { notice: "User was unable to be deleted due to an AWS issue. #{msg_one} #{msg_two}" } }
+        format.json { render json: { message: total_message }, status: :error }
+        format.html { redirect_to @user }
       end
     else
-      destroy!(notice: "User #{@user.to_s} was deleted. #{msg_one} #{msg_two}")
+      destroy!(notice: "User #{@user.to_s} was deleted. #{find_msg} #{@key_msg} #{msg_one} #{msg_two}")
     end
   end
 
@@ -415,6 +436,7 @@ class UsersController < ApplicationController
     msg_one = ''
     msg_two = ''
     find_msg = ''
+    @key_msg = ''
     unless Rails.env.test?
       if Rails.env.production?
         user_name = @user.name.split(' ').join('.')
@@ -422,23 +444,6 @@ class UsersController < ApplicationController
         user_name = @user.name.split(' ').join('.') + '.test'
       else
         user_name = @user.name.split(' ').join('.') + '.' + Rails.env
-      end
-      key_response = get_access_keys(@user, user_name)
-      unless key_response == '' || key_response == 'Error'
-        begin
-          client = setup_aws_client
-          key_response.access_key_metadata.each do |key|
-            client.delete_access_key({ access_key_id: key.access_key_id, user_name: user_name })
-          end
-          @user.aws_access_key = ''
-          @user.save!
-          msg_one = "AWS credentials for #{@user.name} were deleted."
-        rescue => e
-          logger.error "Exception in user#deactivate; Pharos and/or AWS was unsuccessful in deleting AWS credentials for #{@user.name}."
-          logger.error e.message
-          logger.error e.backtrace.join("\n")
-          msg_one = "Pharos and/or AWS was unsuccessful in deleting AWS credentials for #{@user.name}. Response was: '#{e}'."
-        end
       end
       delete_flag = ''
       begin
@@ -452,29 +457,46 @@ class UsersController < ApplicationController
           logger.error "Exception in user#show; User: #{@user.name}."
           logger.error e.message
           logger.error e.backtrace.join("\n")
-           find_msg = "There was an error verifying your AWS account, please check back later. Response was '#{e}'."
+          find_msg = "There was an error verifying your AWS account, please check back later. Response was '#{e}'."
         end
       end
       if delete_flag
+        key_response = get_access_keys(@user, user_name)
+        unless key_response == '' || key_response == 'Error'
+          begin
+            client = setup_aws_client
+            key_response.access_key_metadata.each do |key|
+              client.delete_access_key({ access_key_id: key.access_key_id, user_name: user_name })
+            end
+            @user.aws_access_key = ''
+            @user.save!
+            msg_one = "AWS credentials for #{@user.name} were deleted."
+          rescue => e
+            logger.error "Exception in user#deactivate; There was an error deleting AWS credentials for #{@user.name}."
+            logger.error e.message
+            logger.error e.backtrace.join("\n")
+            msg_one = "There was an error deleting AWS credentials for #{@user.name}. Response was: '#{e}'."
+          end
+        end
         begin
           client = setup_aws_client
           response = client.delete_user({ user_name: user_name })
           msg_two = "IAM user account for #{@user.name} was deleted."
         rescue => e
-          logger.error "Exception in user#deactivate; Pharos and/or AWS was unsuccessful in deleting IAM account for #{@user.name}."
+          logger.error "Exception in user#deactivate; There was an error deleting the IAM account for #{@user.name}."
           logger.error e.message
           logger.error e.backtrace.join("\n")
-          msg_two = "Pharos and/or AWS was unsuccessful in deleting IAM account for #{@user.name}. Response was: '#{e}'."
+          msg_two = "There was an error deleting the IAM account for #{@user.name}. Response was: '#{e}'."
         end
       end
     end
-    if msg_one.include?('unsuccessful') || msg_two.include?('unsuccessful')
-      flash[:notice] = "#{@user.name}'s account could not be deactivated due to an AWS issue. #{msg_one} #{msg_two}"
+    if msg_one.include?('error') || msg_two.include?('error') || @key_msg.include?('error') || find_msg.include?('error')
+      flash[:notice] = "#{@user.name}'s account could not be deactivated due to an AWS issue. #{find_msg} #{@key_msg} #{msg_one} #{msg_two}"
       render 'show'
     else
       @user.soft_delete
       (@user == current_user) ? sign_out(@user) : redirect_to(@user)
-      flash[:notice] = "#{@user.name}'s account has been deactivated. #{@key_msg} #{msg_one} #{find_msg} #{msg_two}"
+      flash[:notice] = "#{@user.name}'s account has been deactivated. #{find_msg} #{@key_msg} #{msg_one} #{msg_two}"
     end
   end
 
@@ -495,10 +517,10 @@ class UsersController < ApplicationController
         response = client.create_user({ user_name: user_name })
         msg = "AWS IAM username is #{response.user.user_name}."
       rescue => e
-        logger.error "Exception in user#reactivate; Pharos and/or AWS was unsuccessful in creating an IAM account for #{@user.name}."
+        logger.error "Exception in user#reactivate; There was an error creating an IAM account for #{@user.name}."
         logger.error e.message
         logger.error e.backtrace.join("\n")
-        msg = "Pharos and/or AWS was unsuccessful in creating an IAM account for #{@user.name}. Response was: '#{e}'"
+        msg = "There was an error creating an IAM account for #{@user.name}. Response was: '#{e}'"
       end
     end
     redirect_to @user
@@ -516,16 +538,15 @@ class UsersController < ApplicationController
       else
         user_name = @user.name.split(' ').join('.') + '.' + Rails.env
       end
-      @response = 'You do not have an AWS IAM account. You will not be able to generate credentials until you have one. Please talk to your administrator about setting up an account.'
       begin
         client = setup_aws_client
-        @response = client.create_user({ user_name: user_name })
+        response = client.create_user({ user_name: user_name })
         msg = "AWS IAM account was successfully created. Username is #{@response.user.user_name}."
       rescue => e
-        logger.error "Exception in user#create_iam_user; Pharos and/or AWS was unsuccessful in creating an IAM account for #{@user.name}."
+        logger.error "Exception in user#create_iam_user; There was an error creating an IAM account for #{@user.name}."
         logger.error e.message
         logger.error e.backtrace.join("\n")
-        msg = "Pharos and/or AWS was unsuccessful in creating an IAM account for #{@user.name}. Response was: '#{e}'"
+        msg = "There was an error creating an IAM account for #{@user.name}. Response was: '#{e}'"
       end
       flash[:notice] = msg
     end
@@ -539,6 +560,9 @@ class UsersController < ApplicationController
     authorize current_user
     msg_one = ''
     msg_two = ''
+    find_msg = ''
+    user_flag = ''
+    @key_msg = ''
     if Rails.env.production?
       user_name = current_user.name.split(' ').join('.')
     elsif Rails.env.demo?
@@ -548,47 +572,79 @@ class UsersController < ApplicationController
     end
     begin
       client = setup_aws_client
-      unless current_user.aws_access_key.blank?
-        response = client.delete_access_key({ access_key_id: current_user.aws_access_key, user_name: user_name })
-        current_user.aws_access_key = ''
-        current_user.save!
-      end
+      response = client.get_user({ user_name: user_name })
+      user_flag = true
     rescue => e
-      logger.error "Exception in user#issue_aws_credentials; Pharos and/or AWS was unsuccessful in deleting AWS credentials for #{current_user.name}, which is a necessary step in issuing new credentials."
-      logger.error e.message
-      logger.error e.backtrace.join("\n")
-      msg_one = "Pharos and/or AWS was unsuccessful in deleting AWS credentials for #{current_user.name}, which is a necessary step in issuing new credentials. Response was: '#{e}'."
-    end
-    if msg_one == ''
-      begin
-        client = setup_aws_client
-        @response_two = client.create_access_key({ user_name: user_name })
-        current_user.aws_access_key = @response_two.access_key.access_key_id
-        current_user.save!
-        @acc_key_id = @response_two.access_key.access_key_id
-        @secret_key = @response_two.access_key.secret_access_key
-        msg_two = 'Your AWS credentials have been successfully created. Please store them somewhere safe.'
-      rescue => e
-        logger.error "Exception in user#issue_aws_credentials; Pharos and/or AWS was unsuccessful in creating AWS credentials for #{current_user.name}."
+      if e.message.include?('cannot be found')
+        user_flag = false
+        find_msg = 'You do not have an IAM account therefore you cannot be issued AWS credentials. Please ask your administrator for help.'
+      else
+        logger.error "Exception in user#show; User: #{@user.name}."
         logger.error e.message
         logger.error e.backtrace.join("\n")
-        msg_two = "Pharos and/or AWS was unsuccessful in creating AWS credentials for #{current_user.name}. Response was: '#{e}'."
+        find_msg = "There was an error verifying your AWS account, please check back later. Response was '#{e}'."
+        user_flag = false
+      end
+    end
+    if user_flag
+      key_response = get_access_keys(current_user, user_name)
+      unless key_response == '' || key_response == 'Error'
+        begin
+          client = setup_aws_client
+          key_response.access_key_metadata.each do |key|
+            client.delete_access_key({ access_key_id: key.access_key_id, user_name: user_name })
+          end
+          current_user.aws_access_key = ''
+          current_user.save!
+        rescue => e
+          logger.error "Exception in user#issue_aws_credentials; There was an error deleting AWS credentials for #{current_user.name}, which is a necessary step in issuing new credentials."
+          logger.error e.message
+          logger.error e.backtrace.join("\n")
+          msg_one = "There was an error deleting AWS credentials for #{current_user.name}, which is a necessary step in issuing new credentials. Response was: '#{e}'."
+        end
+      end
+      if msg_one == ''
+        begin
+          client = setup_aws_client
+          @response_two = client.create_access_key({ user_name: user_name })
+          current_user.aws_access_key = @response_two.access_key.access_key_id
+          current_user.save!
+          @acc_key_id = @response_two.access_key.access_key_id
+          @secret_key = @response_two.access_key.secret_access_key
+          msg_two = 'Your AWS credentials have been successfully created. Please store them somewhere safe.'
+        rescue => e
+          logger.error "Exception in user#issue_aws_credentials; There was an error creating AWS credentials for #{current_user.name}."
+          logger.error e.message
+          logger.error e.backtrace.join("\n")
+          msg_two = "There was an error creating AWS credentials for #{current_user.name}. Response was: '#{e}'."
+        end
+      else
+        msg_two = ''
+      end
+      respond_to do |format|
+        format.html {
+          flash[:notice] = "#{@key_msg} #{msg_one} #{msg_two}"
+          render 'show'
+        }
+        format.json { render json: { status: :ok, message: "#{@key_msg} #{msg_one} #{msg_two}" } }
       end
     else
-      msg_two = ''
-    end
-    respond_to do |format|
-      format.html {
-        flash[:notice] = "#{msg_one} #{msg_two}"
-        render 'show'
-      }
-      format.json { render json: { status: :ok, message: "#{msg_one} #{msg_two}" } }
+      respond_to do |format|
+        format.html {
+          flash[:notice] = "#{find_msg}"
+          render 'show'
+        }
+        format.json { render json: { status: :ok, message: "#{find_msg}" } }
+      end
     end
   end
 
   def revoke_aws_credentials
     authorize @user
     msg = ''
+    find_msg = ''
+    user_flag = ''
+    @key_msg = ''
     if Rails.env.production?
       user_name = @user.name.split(' ').join('.')
     elsif Rails.env.demo?
@@ -598,26 +654,57 @@ class UsersController < ApplicationController
     end
     begin
       client = setup_aws_client
-      if @user.aws_access_key.blank?
-        msg = 'There were no access keys to delete.'
-      else
-        response = client.delete_access_key({ access_key_id: @user.aws_access_key, user_name: user_name })
-        @user.aws_access_key = ''
-        @user.save!
-        msg = "AWS credentials for #{@user.name} were deleted."
-      end
+      @response = client.get_user({ user_name: user_name })
+      user_flag = true
     rescue => e
-      logger.error "Exception in user#revoke_aws_credentials; Pharos and/or AWS was unsuccessful in deleting AWS credentials for #{@user.name}."
-      logger.error e.message
-      logger.error e.backtrace.join("\n")
-      msg = "Pharos and/or AWS was unsuccessful in deleting AWS credentials for #{@user.name}. Response was: '#{e}'."
+      if e.message.include?('cannot be found')
+        user_flag = false
+        find_msg = 'This user does not have an IAM account therefore does not have any AWS credentials to revoke.'
+      else
+        logger.error "Exception in user#show; User: #{@user.name}."
+        logger.error e.message
+        logger.error e.backtrace.join("\n")
+        find_msg = "There was an error verifying the AWS account, please check back later. Response was '#{e}'."
+        user_flag = false
+      end
     end
-    respond_to do |format|
-      format.json { render json: { status: :ok, message: msg } }
-      format.html {
-        flash[:notice] = msg
-        render 'show'
-      }
+    if user_flag
+      key_response = get_access_keys(@user, user_name)
+      if key_response == ''
+        msg = 'There were no access keys to delete.'
+      elsif key_response == 'Error'
+        #do nothing. we want this condition caught but don't want anything altered.
+      else
+        begin
+          client = setup_aws_client
+          key_response.access_key_metadata.each do |key|
+            client.delete_access_key({ access_key_id: key.access_key_id, user_name: user_name })
+          end
+          @user.aws_access_key = ''
+          @user.save!
+          msg = "AWS credentials for #{@user.name} were deleted."
+        rescue => e
+          logger.error "Exception in user#revoke_aws_credentials; There was an error deleting AWS credentials for #{@user.name}."
+          logger.error e.message
+          logger.error e.backtrace.join("\n")
+          msg = "There was an error deleting AWS credentials for #{@user.name}. Response was: '#{e}'."
+        end
+      end
+      respond_to do |format|
+        format.html {
+          flash[:notice] = "#{@key_msg} #{msg}"
+          render 'show'
+        }
+        format.json { render json: { status: :ok, message: "#{@key_msg} #{msg}" } }
+      end
+    else
+      respond_to do |format|
+        format.html {
+          flash[:notice] = "#{find_msg}"
+          render 'show'
+        }
+        format.json { render json: { status: :ok, message: "#{find_msg}" } }
+      end
     end
   end
 
@@ -867,7 +954,7 @@ class UsersController < ApplicationController
         logger.error "Exception in user##{params[:action]}; AWS couldn't retrieve keys for #{user.name}."
         logger.error e.message
         logger.error e.backtrace.join("\n")
-        @key_msg = "AWS couldn't retrieve keys for #{user.name}. Response was: '#{e}'"
+        @key_msg = "There was an error retrieving keys for #{user.name}. Response was: '#{e}'"
       end
     end
     key_response
