@@ -1,4 +1,6 @@
 module UsersHelper
+  include AwsIam
+
   # Returns the Gravatar (http://gravatar.com/) for the given user.
   def gravatar_for(user, options = { size: 50 })
     gravatar_id = Digest::MD5::hexdigest(user.email.downcase)
@@ -43,14 +45,8 @@ module UsersHelper
   end
 
   def aws_response
-    if Rails.env.production?
-      user_name = @user.name.split(' ').join('.')
-    elsif Rails.env.demo?
-      user_name = @user.name.split(' ').join('.') + '.test'
-    else
-      user_name = @user.name.split(' ').join('.') + '.' + Rails.env
-    end
-    @response = 'You do not have an AWS IAM account. You will not be able to generate credentials until you have one. Please talk to your administrator about setting up an account.'
+    user_name = build_user_name(@user)
+    @response = ''
     begin
       client = setup_aws_client
       @response = client.get_user({ user_name: user_name })
@@ -58,8 +54,8 @@ module UsersHelper
       logger.error "Exception in user#show; User: #{@user.name}."
       logger.error e.message
       logger.error e.backtrace.join("\n")
-      if e.message.include?('not found')
-        @response = 'You do not have an AWS IAM account. You will not be able to generate credentials until you have an IAM. Please talk to your administrator about setting up an account.'
+      if e.message.include?('cannot be found')
+        @response = 'You do not have an AWS IAM account. You will not be able to generate credentials until you have one. Please talk to your administrator about setting up an account.'
       else
         @response = "There was an error verifying your AWS account, please check back later. Response was '#{e}'."
       end
