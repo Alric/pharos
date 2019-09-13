@@ -16,6 +16,18 @@ module AwsIam
     user_name
   end
 
+  def build_group_name(user)
+    inst_identifier = user.institution.identifier
+    if Rails.env.production?
+      group_name = "#{inst_identifier}.users"
+    elsif Rails.env.demo?
+      group_name = "test.#{inst_identifier}.users"
+    else
+      group_name = "#{Rails.env}.#{inst_identifier}.users"
+    end
+    group_name
+  end
+
   def get_aws_iam_user(user_name)
     begin
       client = setup_aws_client
@@ -57,11 +69,37 @@ module AwsIam
     end
   end
 
+  def add_aws_user_to_group(user_name, group_name)
+    begin
+      client = setup_aws_client
+      client.add_user_to_group({ group_name: group_name, user_name: user_name })
+    rescue => e
+      logger.error "Exception in users##{params[:action]}; There was an error adding #{user_name} to group #{group_name}."
+      logger.error e.message
+      logger.error e.backtrace.join("\n")
+      @msg = @msg + " There was an error adding #{user_name} to group #{group_name}."
+    end
+  end
+
+  def remove_aws_user_from_group(user_name, group_name)
+    begin
+      client = setup_aws_client
+      client.remove_user_from_group({ group_name: group_name, user_name: user_name })
+      @msg = @msg + " Removed #{user_name} from group #{group_name}."
+    rescue => e
+      logger.error "Exception in users##{params[:action]}; There was an error removing #{user_name} from group #{group_name}."
+      logger.error e
+      logger.error e.backtrace.join("\n")
+      @msg = @msg + " There was an error removing #{user_name} from group #{group_name}."
+    end
+  end
+
   def get_aws_access_keys(user_name)
     key_response = ''
     begin
       client = setup_aws_client
       key_response = client.list_access_keys({ user_name: user_name })
+      @key_flag = true if key_response == ''
     rescue => e
       unless e.message.include?('cannot be found')
         logger.error "Exception in user##{params[:action]}; AWS couldn't retrieve keys for #{user_name}."

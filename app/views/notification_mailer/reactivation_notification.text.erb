@@ -1,0 +1,20 @@
+Team,
+
+<%= @subject.name %> has been reactivated on the <%= Rails.env %> repository.
+As part of that process, all of their associated users have been reactivated on
+Pharos as well. Pharos users are also associated AWS IAM accounts that can have Access
+Keys. The Pharos API keys have been deleted. A series of steps was taken for each user
+to return them to their proper IAM group.
+
+The following users have been returned to the proper IAM group:
+
+<% @good_users.each do |usr| %>
+    <%= usr.name %> : <%= usr.email %>
+<% end %>
+
+The following users may need an AWS account or may need to be manually returned to their
+IAM group:
+
+<% @failed_users.each do |usr| %>
+    <%= usr.name %> : <%= usr.email %>
+<% end %>

@@ -248,6 +248,22 @@ class NotificationMailer < ApplicationMailer
     mail(to: emails, subject: "#{prefix}New Completed Deletions")
   end
 
+  def deactivation_notification(subject, good_users, failed_users)
+    @subject = subject
+    @good_users = good_users
+    @failed_users = failed_users
+    prefix = "[APTrust #{Rails.env.capitalize}] - "
+    mail(to: 'team@aptrust.org', subject: "#{prefix}#{@subject.name} Deactivation")
+  end
+
+  def reactivation_notification(subject, good_users, failed_users)
+    @subject = subject
+    @good_users = good_users
+    @failed_users = failed_users
+    prefix = "[APTrust #{Rails.env.capitalize}] - "
+    mail(to: 'team@aptrust.org', subject: "#{prefix}#{@subject.name} Reactivation")
+  end
+
   def welcome_email(subject, password)
     @subject = subject
     @password = password

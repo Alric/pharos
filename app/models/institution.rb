@@ -176,16 +176,10 @@ class Institution < ActiveRecord::Base
 
   def deactivate
     update_attribute(:deactivated_at, Time.current)
-    self.users.each do |user|
-      user.soft_delete
-    end
   end
 
   def reactivate
     update_attribute(:deactivated_at, nil)
-    self.users.each do |user|
-      user.reactivate
-    end
   end
 
   def deactivated?

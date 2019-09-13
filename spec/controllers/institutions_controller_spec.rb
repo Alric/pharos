@@ -502,6 +502,9 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(assigns[:institution].users.first.deactivated?).to eq true
         expect(assigns[:institution].users.first.deactivated_at).not_to be_nil
         expect(assigns[:institution].users.first.encrypted_api_secret_key).to eq ''
+        email = ActionMailer::Base.deliveries.last
+        expect(email.body.encoded).to include('all of their associated users have been deactivated')
+        expect(email.body.encoded).to include(assigns[:institution].users.first.name)
       end
 
     end
@@ -558,6 +561,9 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(assigns[:institution].users.first.deactivated?).to eq false
         expect(assigns[:institution].users.first.deactivated_at).to be_nil
         expect(assigns[:institution].users.first.encrypted_api_secret_key).to eq ''
+        email = ActionMailer::Base.deliveries.last
+        expect(email.body.encoded).to include('all of their associated users have been reactivated')
+        expect(email.body.encoded).to include(assigns[:institution].users.first.name)
       end
 
     end

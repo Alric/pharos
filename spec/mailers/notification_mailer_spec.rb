@@ -743,4 +743,93 @@ RSpec.describe NotificationMailer, type: :mailer do
       expect(mail.body.encoded).to include(user.email)
     end
   end
+
+  describe 'stale_user_notification' do
+    let(:user) { FactoryBot.create(:user) }
+    let(:mail) { described_class.stale_user_notification([user]).deliver_now }
+
+    it 'renders the subject' do
+      expect(mail.subject).to eq('[APTrust Demo] - Stale Users')
+    end
+
+    it 'renders the receiver email' do
+      expect(mail.to).to eq ['team@aptrust.org']
+    end
+
+    it 'renders the sender email' do
+      expect(mail.from).to eq(['help@aptrust.org'])
+    end
+
+    it 'includes specific text about stale users' do
+      expect(mail.body.encoded).to include(user.name)
+      expect(mail.body.encoded).to include(user.email)
+    end
+  end
+
+  describe 'deactivation_notification' do
+    let(:institution) { FactoryBot.create(:member_institution) }
+    let(:user_one) { FactoryBot.create(:user, institution: institution) }
+    let(:user_two) { FactoryBot.create(:user, institution: institution) }
+    let(:user_three) { FactoryBot.create(:user, institution: institution) }
+    let(:user_four) { FactoryBot.create(:user, institution: institution) }
+    let(:user_five) { FactoryBot.create(:user, institution: institution) }
+    let(:user_six) { FactoryBot.create(:user, institution: institution) }
+    let(:good_users) { [user_one, user_two, user_three] }
+    let(:failed_users) { [user_four, user_five, user_six] }
+    let(:mail) { described_class.deactivation_notification(institution, good_users, failed_users).deliver_now }
+
+    it 'renders the subject' do
+      expect(mail.subject).to eq("[APTrust Test] - #{institution.name} Deactivation")
+    end
+
+    it 'renders the receiver email' do
+      expect(mail.to).to eq ['team@aptrust.org']
+    end
+
+    it 'renders the sender email' do
+      expect(mail.from).to eq(['help@aptrust.org'])
+    end
+
+    it 'includes specific text about failed and succeeded users' do
+      expect(mail.body.encoded).to include(user_one.name)
+      expect(mail.body.encoded).to include(user_four.name)
+      expect(mail.body.encoded).to include('all of their associated users have been deactivated')
+      expect(mail.body.encoded).to include('The following users have had their AWS keys successfully deleted, and have been removed')
+      expect(mail.body.encoded).to include('The following users will need to have their AWS keys manually deleted by an administrator')
+    end
+  end
+
+  describe 'reactivation_notification' do
+    let(:institution) { FactoryBot.create(:member_institution) }
+    let(:user_one) { FactoryBot.create(:user, institution: institution) }
+    let(:user_two) { FactoryBot.create(:user, institution: institution) }
+    let(:user_three) { FactoryBot.create(:user, institution: institution) }
+    let(:user_four) { FactoryBot.create(:user, institution: institution) }
+    let(:user_five) { FactoryBot.create(:user, institution: institution) }
+    let(:user_six) { FactoryBot.create(:user, institution: institution) }
+    let(:good_users) { [user_one, user_two, user_three] }
+    let(:failed_users) { [user_four, user_five, user_six] }
+    let(:mail) { described_class.reactivation_notification(institution, good_users, failed_users).deliver_now }
+
+    it 'renders the subject' do
+      expect(mail.subject).to eq("[APTrust Test] - #{institution.name} Reactivation")
+    end
+
+    it 'renders the receiver email' do
+      expect(mail.to).to eq ['team@aptrust.org']
+    end
+
+    it 'renders the sender email' do
+      expect(mail.from).to eq(['help@aptrust.org'])
+    end
+
+    it 'includes specific text about failed and succeeded users' do
+      expect(mail.body.encoded).to include(user_one.name)
+      expect(mail.body.encoded).to include(user_four.name)
+      expect(mail.body.encoded).to include('all of their associated users have been reactivated')
+      expect(mail.body.encoded).to include('The following users have been returned to the proper IAM group:')
+      expect(mail.body.encoded).to include('The following users may need an AWS account or may need to be manually returned to their')
+    end
+  end
 end
+ #

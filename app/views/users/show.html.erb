@@ -5,7 +5,8 @@
 <address>
   <strong><%= @user.name %></strong> (<em><%= @user.institution.name %></em>)<br />
   Email: <a href="mailto:#"><%= @user.email %></a><br />
-  Mobile Phone Number: <%= @user.phone_number %> <br /><br />
+  Mobile Phone Number: <%= @user.phone_number %></a><br />
+  AWS Access Key: <%= @user.aws_access_key %> <br /><br />
 </address>
 <%= edit_link(@user) %>
 <%= link_to 'Change Password', edit_password_user_path(@user), class: 'btn btn-normal doc-action-btn btn-sm' %>
@@ -116,19 +117,7 @@
 <br />
 
 <%= render 'api_key' %>
-<br />
-<h4> AWS IAM User Status </h4>
-<% if @response.nil? %>
-    <% aws_response %>
-<% end %>
-<% if @response.present? && (!@response.is_a?(String)) && @response.user.present? %>
-    <p>You have an AWS IAM User account. Your user name for this system is <%= @response.user.user_name %></p>
-    <br />
-    <%= render 'aws_credentials' %>
-<% else %>
-    <p><%= @response %></p>
-    <% if policy(current_user).create_iam_user? %>
-        <%= link_to 'Create AWS IAM User Account', iam_creation_path(@user.id), :method => :get, class: 'btn btn-normal doc-action-btn' %>
-    <% end %>
-<% end %>
+<%= render 'aws_credentials' %>
 <%= render 'revoke_aws_credentials' %>
+<br />
+

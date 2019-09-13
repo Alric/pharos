@@ -33,7 +33,9 @@ class UsersController < ApplicationController
       @user.save!
       unless Rails.env.test?
         user_name = build_user_name(@user)
-        create_aws_iam_user(user_name, @user)
+        group_name = build_group_name(@user)
+        create_aws_iam_user(user_name, @user) #Let's create a new user and...
+        add_aws_user_to_group(user_name, group_name) #Add them to our pity party!
       end
       NotificationMailer.welcome_email(@user, password).deliver!
     end
@@ -82,13 +84,11 @@ class UsersController < ApplicationController
     @msg = ''
     unless Rails.env.test?
       user_name = build_user_name(@user)
-      get_aws_iam_user(user_name)
+      get_aws_iam_user(user_name) #get the AWS user, if one exists...
       if @flag
-        keys = get_aws_access_keys(user_name)
-        unless keys == '' || keys == 'Error'
-          delete_aws_access_keys(user_name, keys, @user)
-        end
-        delete_aws_iam_user(user_name) if @key_flag
+        keys = get_aws_access_keys(user_name) #Let's check to see if they have keys already
+        delete_aws_access_keys(user_name, keys, @user) unless (keys == '' || keys == 'Error') #They do! Let's DESTROY THEM.
+        delete_aws_iam_user(user_name) if @key_flag #Now, let's kill them!
       end
     end
     if @msg.include?('error')
@@ -358,13 +358,12 @@ class UsersController < ApplicationController
     @key_flag = false
     unless Rails.env.test?
       user_name = build_user_name(@user)
-      get_aws_iam_user(user_name) #check to see if there's an IAM user account at all
+      group_name = build_group_name(@user)
+      get_aws_iam_user(user_name) #get the AWS user, if one exists...
       if @flag
-        keys = get_aws_access_keys(user_name) #if there is, get all the access keys on file
-        unless keys == '' || keys == 'Error'
-          delete_aws_access_keys(user_name, keys, @user) #delete all of them
-        end
-        delete_aws_iam_user(user_name) if @key_flag #then delete the IAM account
+        keys = get_aws_access_keys(user_name) #Let's check to see if they have keys already
+        delete_aws_access_keys(user_name, keys, @user) unless (keys == '' || keys == 'Error') #They do! Let's DESTROY THEM.
+        remove_aws_user_from_group(user_name, group_name) if @key_flag #Now, let's kick them out of our party!
       end
     end
     if @msg.include?('error')
@@ -383,7 +382,9 @@ class UsersController < ApplicationController
     @msg = ''
     unless Rails.env.test?
       user_name = build_user_name(@user)
-      create_aws_iam_user(user_name, @user)
+      group_name = build_group_name(@user)
+      get_aws_iam_user(user_name) #get the AWS user, if one exists...
+      add_aws_user_to_group(user_name, group_name) if @flag #and invite them back into the pity party!
     end
     redirect_to @user
     flash[:notice] = "#{@user.name}'s account has been reactivated.#{@msg}"
@@ -394,7 +395,9 @@ class UsersController < ApplicationController
     @msg = ''
     unless Rails.env.test?
       user_name = build_user_name(@user)
-      create_aws_iam_user(user_name, @user)
+      group_name = build_group_name(@user)
+      create_aws_iam_user(user_name, @user) #Let's create a new user and...
+      add_aws_user_to_group(user_name, group_name) #And them to our pity party!!
     end
     flash[:notice] = @msg
     respond_to do |format|
@@ -408,16 +411,22 @@ class UsersController < ApplicationController
     @msg = ''
     @flag = false
     @key_flag = false
-    user_name = build_user_name(current_user)
-    get_aws_iam_user(user_name)
-    if @flag
-      keys = get_aws_access_keys(user_name)
-      unless keys == '' || keys == 'Error'
-        delete_aws_access_keys(user_name, keys, current_user)
-        @msg = @msg + ' Deleting old AWS credentials is a necessary step before new ones can be issued.' if @msg.include?('deleting')
+    unless Rails.env.test?
+      user_name = build_user_name(current_user)
+      get_aws_iam_user(user_name) #get the AWS user, if one exists...
+      if (!@flag) && @msg.blank?
+        group_name = build_group_name(@user)
+        create_aws_iam_user(user_name, @user) #No user. Let's create one and...
+        add_aws_user_to_group(user_name, group_name) #Add it to the pity party!
+        get_aws_iam_user #And now we check again to make double sure the user is down to clown
       end
-      if @key_flag
-        create_aws_access_keys(user_name, current_user)
+      if @flag
+        keys = get_aws_access_keys(user_name) #Let's check to see if they have keys already
+        unless keys == '' || keys == 'Error'
+          delete_aws_access_keys(user_name, keys, current_user) #They do! Let's DESTROY THEM.
+          @msg = @msg + ' Deleting old AWS credentials is a necessary step before new ones can be issued.' if @msg.include?('deleting')
+        end
+        create_aws_access_keys(user_name, current_user) if @key_flag #Now we can give them new ones!
       end
     end
     respond_to do |format|
@@ -433,19 +442,21 @@ class UsersController < ApplicationController
     authorize @user
     @msg = ''
     @flag = false
-    user_name = build_user_name(@user)
-    get_aws_iam_user(user_name)
-    if @flag
-      keys = get_aws_access_keys(user_name)
-      if keys == ''
-        @msg = 'There were no access keys to revoke.'
-      elsif keys == 'Error'
-        #do nothing. we want this condition caught but don't want anything altered.
+    unless Rails.env.test?
+      user_name = build_user_name(@user)
+      get_aws_iam_user(user_name) #get the AWS user, if one exists...
+      if @flag
+        keys = get_aws_access_keys(user_name) #Let's check to see if they have keys already
+        if keys == ''
+          @msg = 'There were no access keys to revoke.' #They didn't. We have nothing to do.
+        elsif keys == 'Error'
+          #do nothing. we want this condition caught but don't want anything altered.
+        else
+          delete_aws_access_keys(user_name, keys, @user) #They do! Let's DESTROY THEM.
+        end
       else
-        delete_aws_access_keys(user_name, keys, @user)
+        @msg = 'This user does not have an IAM account therefore does not have any AWS credentials to revoke.' if @msg == '' #No user. No keys. No fun.
       end
-    else
-      @msg = 'This user does not have an IAM account therefore does not have any AWS credentials to revoke.' if @msg == ''
     end
     respond_to do |format|
       format.html {

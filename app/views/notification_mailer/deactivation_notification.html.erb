@@ -1,0 +1,52 @@
+<p>Team,</p>
+<br>
+<p><%= @subject.name %> has been deactivated on the <%= Rails.env %> repository.
+As part of that process, all of their associated users have been deactivated on
+Pharos as well. Pharos users are also associated with API keys and AWS IAM accounts
+that also have Access Keys. The Pharos API keys have been deleted. A series of steps
+was taken for each user to delete their AWS Access Keys and remove them from their IAM
+group.</p>
+<br>
+<p>The following users have had their AWS keys successfully deleted, and have been removed
+from their IAM group:</p>
+<br>
+<div>
+  <table class="table">
+    <thead>
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+    </tr>
+    </thead>
+    <tbody>
+    <% @good_users.each do |usr| %>
+        <tr>
+          <td><%= usr.name %></td>
+          <td><%= usr.email %></td>
+        </tr>
+    <% end %>
+    </tbody>
+  </table>
+</div>
+<br>
+<p>The following users will need to have their AWS keys manually deleted by an administrator, and/or
+will need to be manually removed from their IAM group:</p>
+<br>
+<div>
+  <table class="table">
+    <thead>
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+    </tr>
+    </thead>
+    <tbody>
+    <% @failed_users.each do |usr| %>
+        <tr>
+          <td><%= usr.name %></td>
+          <td><%= usr.email %></td>
+        </tr>
+    <% end %>
+    </tbody>
+  </table>
+</div>

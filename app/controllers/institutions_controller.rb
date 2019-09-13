@@ -1,5 +1,6 @@
 class InstitutionsController < ApplicationController
   require 'google_drive'
+  include AwsIam
   inherit_resources
   skip_before_action :verify_authenticity_token, only: [:trigger_bulk_delete]
   before_action :authenticate_user!
@@ -69,7 +70,26 @@ class InstitutionsController < ApplicationController
 
   def deactivate
     authorize @institution
+    failed_users, good_users = [], []
+    @institution.users.each do |user|
+      @msg = ''
+      @flag = false
+      @key_flag = false
+      unless Rails.env.test?
+        user_name = build_user_name(user)
+        group_name = build_group_name(user)
+        get_aws_iam_user(user_name) #get the AWS user, if one exists...
+        if @flag
+          keys = get_aws_access_keys(user_name) #Let's check to see if they have keys already
+          delete_aws_access_keys(user_name, keys, user) unless (keys == '' || keys == 'Error') #They do! Let's DESTROY THEM.
+          remove_aws_user_from_group(user_name, group_name) if @key_flag #Now, let's kick them out of our party!
+        end
+      end
+      @msg.include?('error') ? failed_users.push(user) : good_users.push(user)
+      user.soft_delete
+    end
     @institution.deactivate
+    NotificationMailer.deactivation_notification(@institution, good_users, failed_users).deliver!
     flash[:notice] = "All users at #{@institution.name} have been deactivated."
     respond_to do |format|
       format.html { render 'show' }
@@ -78,7 +98,20 @@ class InstitutionsController < ApplicationController
 
   def reactivate
     authorize @institution
+    failed_users, good_users = [], []
+    @institution.users.each do |user|
+      @msg = ''
+      unless Rails.env.test?
+        user_name = build_user_name(user)
+        group_name = build_group_name(user)
+        get_aws_iam_user(user_name) #get the AWS user, if one exists...
+        add_aws_user_to_group(user_name, group_name) if @flag #and invite them back into the pity party!
+      end
+      @msg.include?('error') ? failed_users.push(user) : good_users.push(user)
+      user.reactivate
+    end
     @institution.reactivate
+    NotificationMailer.reactivation_notification(@institution, good_users, failed_users).deliver!
     flash[:notice] = "All users at #{@institution.name} have been reactivated."
     respond_to do |format|
       format.html { render 'show' }

@@ -125,30 +125,21 @@ RSpec.describe MemberInstitution, :type => :model do
       end
       
       describe '#deactivate' do
-        it 'should deactivate the institution and all users belonging to it' do
+        it 'should deactivate the institution' do
           subject.deactivate
           subject.deactivated?.should eq true
-          subject.users.first.deactivated?.should eq true
           subject.deactivated_at.should_not be_nil
-          subject.users.first.deactivated_at.should_not be_nil
-          subject.users.first.encrypted_api_secret_key.should eq ''
         end
       end
 
       describe '#reactivate' do
-        it 'should reactivate the institution and all users belonging to it' do
+        it 'should reactivate the institution' do
           subject.deactivate
           subject.deactivated?.should eq true
-          subject.users.first.deactivated?.should eq true
           subject.deactivated_at.should_not be_nil
-          subject.users.first.deactivated_at.should_not be_nil
-          subject.users.first.encrypted_api_secret_key.should eq ''
           subject.reactivate
           subject.deactivated?.should eq false
-          subject.users.first.deactivated?.should eq false
           subject.deactivated_at.should be_nil
-          subject.users.first.deactivated_at.should be_nil
-          subject.users.first.encrypted_api_secret_key.should eq ''
         end
       end
     end
