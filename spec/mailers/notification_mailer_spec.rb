@@ -744,28 +744,6 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
   end
 
-  describe 'stale_user_notification' do
-    let(:user) { FactoryBot.create(:user) }
-    let(:mail) { described_class.stale_user_notification([user]).deliver_now }
-
-    it 'renders the subject' do
-      expect(mail.subject).to eq('[APTrust Demo] - Stale Users')
-    end
-
-    it 'renders the receiver email' do
-      expect(mail.to).to eq ['team@aptrust.org']
-    end
-
-    it 'renders the sender email' do
-      expect(mail.from).to eq(['help@aptrust.org'])
-    end
-
-    it 'includes specific text about stale users' do
-      expect(mail.body.encoded).to include(user.name)
-      expect(mail.body.encoded).to include(user.email)
-    end
-  end
-
   describe 'deactivation_notification' do
     let(:institution) { FactoryBot.create(:member_institution) }
     let(:user_one) { FactoryBot.create(:user, institution: institution) }
@@ -779,7 +757,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     let(:mail) { described_class.deactivation_notification(institution, good_users, failed_users).deliver_now }
 
     it 'renders the subject' do
-      expect(mail.subject).to eq("[APTrust Test] - #{institution.name} Deactivation")
+      expect(mail.subject).to eq("[APTrust #{Rails.env.capitalize}] - #{institution.name} Deactivation")
     end
 
     it 'renders the receiver email' do
@@ -812,7 +790,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     let(:mail) { described_class.reactivation_notification(institution, good_users, failed_users).deliver_now }
 
     it 'renders the subject' do
-      expect(mail.subject).to eq("[APTrust Test] - #{institution.name} Reactivation")
+      expect(mail.subject).to eq("[APTrust #{Rails.env.capitalize}] - #{institution.name} Reactivation")
     end
 
     it 'renders the receiver email' do
@@ -832,4 +810,3 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
   end
 end
- #
