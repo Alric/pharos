@@ -309,9 +309,15 @@ RSpec.describe InstitutionsController, type: :controller do
 
       it 'should ignore updates to read only fields' do
         test_inst = FactoryBot.create(:member_institution, identifier: 'test.edu')
-        patch :update, params: { institution_identifier: test_inst, institution: {name: 'Foo', identifier: 'foo.edu'} }
+        patch :update, params: { institution_identifier: test_inst, institution: {name: 'Foo', identifier: 'foo.edu',
+                                                                                  receiving_bucket: 'something.else.foo.edu',
+                                                                                  restore_bucket: 'something.restore.foo.edu' } }
         expect(assigns(:institution).name).to eq 'Foo'
         expect(assigns(:institution).identifier).not_to eq 'foo.edu'
+        expect(assigns(:institution).receiving_bucket).not_to eq 'something.else.foo.edu'
+        expect(assigns(:institution).receiving_bucket).to eq "#{Pharos::Application.config.pharos_receiving_bucket_prefix}test.edu"
+        expect(assigns(:institution).restore_bucket).not_to eq 'something.restore.foo.edu'
+        expect(assigns(:institution).restore_bucket).to eq "#{Pharos::Application.config.pharos_restore_bucket_prefix}test.edu"
       end
     end
   end
@@ -321,6 +327,9 @@ RSpec.describe InstitutionsController, type: :controller do
       let (:current_member) { FactoryBot.create(:member_institution) }
       let (:attributes) { FactoryBot.attributes_for(:member_institution) }
       let (:attributes2) { FactoryBot.attributes_for(:subscription_institution, member_institution_id: current_member.id) }
+      let (:attributes3) { FactoryBot.attributes_for(:member_institution, receiving_bucket: nil, restore_bucket: nil) }
+      let (:attributes4) { FactoryBot.attributes_for(:member_institution, receiving_bucket: 'something.delete.test.edu', restore_bucket: 'something.dpn.test.edu') }
+
       before do
         sign_in admin_user
         session[:verified] = true
@@ -347,6 +356,30 @@ RSpec.describe InstitutionsController, type: :controller do
         }.to change(Institution, :count).by(1)
         response.should redirect_to institution_url(assigns[:institution])
         assigns[:institution].should be_kind_of Institution
+      end
+
+      it 'should successfully set bucket names when none are given in the creation params' do
+        expect {
+          post :create, params: { institution: attributes3 }
+        }.to change(Institution, :count).by(1)
+        response.should redirect_to institution_url(assigns[:institution])
+        assigns[:institution].should be_kind_of Institution
+        inst = assigns[:institution]
+        expect(inst.receiving_bucket).to eq "#{Pharos::Application.config.pharos_receiving_bucket_prefix}#{inst.identifier}"
+        expect(inst.restore_bucket).to eq "#{Pharos::Application.config.pharos_restore_bucket_prefix}#{inst.identifier}"
+      end
+
+      it 'should override bucket names given in the parameters and set expected ones' do
+        expect {
+          post :create, params: { institution: attributes4 }
+        }.to change(Institution, :count).by(1)
+        response.should redirect_to institution_url(assigns[:institution])
+        assigns[:institution].should be_kind_of Institution
+        inst = assigns[:institution]
+        expect(inst.receiving_bucket).not_to eq 'something.delete.test.edu'
+        expect(inst.restore_bucket).not_to eq 'something.dpn.test.edu'
+        expect(inst.receiving_bucket).to eq "#{Pharos::Application.config.pharos_receiving_bucket_prefix}#{inst.identifier}"
+        expect(inst.restore_bucket).to eq "#{Pharos::Application.config.pharos_restore_bucket_prefix}#{inst.identifier}"
       end
     end
 
@@ -439,7 +472,7 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(assigns(:snapshots).first.first.apt_bytes).to eq 0
         expect(assigns(:snapshots).first.first.cost).to eq 0.00
         email = ActionMailer::Base.deliveries.last
-        expect(email.body.encoded).to include('Here are the latest snapshot results broken down by institution.')
+        expect(email.body.encoded).to include("Here are the latest snapshot results for the #{Rails.env.capitalize} repository broken down by institution.")
       end
 
       it 'responds successfully and creates a snapshot (JSON)' do
@@ -451,7 +484,7 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(data['snapshots'][0][0].has_key?('institution_id')).to be true
         expect(data['snapshots'][0][1].has_key?('institution_id')).to be true
         email = ActionMailer::Base.deliveries.last
-        expect(email.body.encoded).to include('Here are the latest snapshot results broken down by institution.')
+        expect(email.body.encoded).to include("Here are the latest snapshot results for the #{Rails.env.capitalize} repository broken down by institution.")
       end
     end
 
@@ -1091,12 +1124,16 @@ RSpec.describe InstitutionsController, type: :controller do
         extra_user = FactoryBot.create(:user, :institutional_admin, institution_id: institution_three.id)
         obj1 = FactoryBot.create(:intellectual_object, state: 'D', institution: institution_three)
         obj2 = FactoryBot.create(:intellectual_object, state: 'D', institution: institution_three)
+        obj3 = FactoryBot.create(:intellectual_object, state: 'D', institution: institution_three)
         file1 = FactoryBot.create(:generic_file, intellectual_object: obj1, state: 'D')
         file2 = FactoryBot.create(:generic_file, intellectual_object: obj2, state: 'D')
-        latest_email = FactoryBot.create(:deletion_notification_email, institution_id: institution_three.id)
+        file3 = FactoryBot.create(:generic_file, intellectual_object: obj3, state: 'D')
         sleep 1
         item1 = FactoryBot.create(:work_item, object_identifier: obj1.identifier, intellectual_object: obj1, generic_file_identifier: file1.identifier, generic_file: file1, action: 'Delete', status: 'Success', stage: 'Resolve', institution_id: institution_three.id)
         item2 = FactoryBot.create(:work_item, object_identifier: obj2.identifier, intellectual_object: obj2, generic_file_identifier: file2.identifier, generic_file: file2, action: 'Delete', status: 'Success', stage: 'Resolve', institution_id: institution_three.id)
+        item3 = FactoryBot.create(:work_item, object_identifier: obj3.identifier, intellectual_object: obj3, generic_file_identifier: file3.identifier, generic_file: file3, action: 'Delete', status: 'Success', stage: 'Resolve', institution_id: institution_three.id)
+        item3.created_at = Time.now - 2.month
+        item3.save!
         count_before = Email.all.count
         get :deletion_notifications
         count_after = Email.all.count

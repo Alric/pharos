@@ -22,7 +22,11 @@ class Institution < ActiveRecord::Base
   validate :domain_is_allowed
   validates_uniqueness_of :identifier
 
+  before_save :set_bucket_names
+
   attr_readonly :identifier
+  attr_readonly :receiving_bucket
+  attr_readonly :restore_bucket
 
   before_destroy :check_for_associations
 
@@ -67,21 +71,12 @@ class Institution < ActiveRecord::Base
   end
 
   def new_deletion_items
-    latest_email = Email.where(institution_id: self.id, email_type: 'deletion_notifications').order(id: :asc).limit(1).first
-    if latest_email.nil?
-      time = Time.now - 1.month
-      deletion_items = WorkItem.with_institution(self.id)
-                           .created_after(time)
-                           .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
-                           .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
-                           .with_status(Pharos::Application::PHAROS_STATUSES['success'])
-    else
-      deletion_items = WorkItem.with_institution(self.id)
-                           .created_after(latest_email.created_at)
-                           .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
-                           .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
-                           .with_status(Pharos::Application::PHAROS_STATUSES['success'])
-    end
+    time = Time.now - 1.month
+    deletion_items = WorkItem.with_institution(self.id)
+                         .created_after(time)
+                         .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
+                         .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
+                         .with_status(Pharos::Application::PHAROS_STATUSES['success'])
     deletion_items
   end
 
@@ -356,8 +351,16 @@ class Institution < ActiveRecord::Base
     errors.add(:identifier, "must end in '.com', '.org', '.edu', or .museum") unless Pharos::Application::VALID_DOMAINS.include?(self.identifier.split('.').last)
   end
 
+  def set_bucket_names
+    return if self.identifier.nil?
+    self.receiving_bucket = "#{Pharos::Application.config.pharos_receiving_bucket_prefix}#{self.identifier}"
+    self.restore_bucket = "#{Pharos::Application.config.pharos_restore_bucket_prefix}#{self.identifier}"
+  end
+
   def sanitize_update_params
     restore_attributes(['identifier', :identifier])
+    restore_attributes(['receiving_bucket', :receiving_bucket])
+    restore_attributes(['restore_bucket', :restore_bucket])
   end
 
   def check_for_associations

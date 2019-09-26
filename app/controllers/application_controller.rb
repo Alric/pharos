@@ -3,6 +3,8 @@ class ApplicationController < ActionController::Base
   include Pundit
   include AuthorizationForcedRedirects
   before_action do
+    params[:user] = { email: request.headers["X-Pharos-API-User"] } if api_request? && params[:controller] == 'users'
+
     resource = controller_path.singularize.gsub('/', '_').to_sym
     method = "#{resource}_params"
     params[resource] &&= send(method) if respond_to?(method, true)
@@ -130,8 +132,12 @@ class ApplicationController < ActionController::Base
         if !current_user.enabled_two_factor
           date_dif = ((DateTime.now.to_i - current_user.grace_period.to_i) / 86400)
           if current_user.institution.otp_enabled
-            msg = 'An administrator has made Two Factor Authentication mandatory for your institution. Please enable it now.'
-            forced_redirect_return(msg)
+            if right_controller_and_id && right_action('twofa_enable')
+              return
+            else
+              msg = 'An administrator has made Two Factor Authentication mandatory for your institution. Please enable it now.'
+              forced_redirect_return(msg)
+            end
           else
             if (date_dif <= ENV['PHAROS_2FA_GRACE_PERIOD'].to_i) || (right_controller_and_id && right_action('twofa_enable'))
               return
@@ -194,9 +200,11 @@ class ApplicationController < ActionController::Base
   rescue_from ActionController::RoutingError do |exception|
     logger.error "Routing error occurred. URL: #{request.url}"
     logger.error exception.backtrace.join("\n")
+    request.format = 'json' if api_request?
+    logger.error 'Routing error occurred'
     respond_to do |format|
       format.html { render 'shared/404', status: 404 }
-      format.json { render :json => { status: 'error', message: 'The page you were looking for could not be found! If you were searching for a specific object or file, check to make sure you have the correct identifier and try again. If you believe you have reached this message in error, please contact your administrator or an APTrust administrator.' }, status: 404 }
+      format.json { render :json => { status: 'error', message: 'The page you were looking for could not be found! If you were searching for a specific object or file, check to make sure you have the correct identifier and try again. If you believe you have reached this message in error, please contact your administrator or an APTrust administrator.', url: request.original_url }, status: 404 }
     end
   end
 

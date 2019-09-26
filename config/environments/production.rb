@@ -53,7 +53,7 @@ Rails.application.configure do
   end
 
    # Semantic logger
-  #config.colorize_logging = false
+  config.colorize_logging = false
   if ENV["DOCKERIZED"] == 'true'
     STDOUT.sync = true
     config.semantic_logger.add_appender(io: STDOUT, level: config.log_level, formatter: config.rails_semantic_logger.format)
@@ -120,4 +120,7 @@ Rails.application.configure do
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
   config.show_send_to_dpn_button = false
+
+  config.pharos_receiving_bucket_prefix = 'aptrust.receiving.'
+  config.pharos_restore_bucket_prefix = 'aptrust.restore.'
 end
