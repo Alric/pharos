@@ -77,7 +77,7 @@ module AwsIam
       logger.error "Exception in users##{params[:action]}; There was an error adding #{user_name} to group #{group_name}."
       logger.error e.message
       logger.error e.backtrace.join("\n")
-      @msg = @msg + " There was an error adding #{user_name} to group #{group_name}."
+      @msg = @msg + " There was an error adding #{user_name} to group #{group_name}. Response was: '#{e}'."
     end
   end
 
@@ -90,7 +90,7 @@ module AwsIam
       logger.error "Exception in users##{params[:action]}; There was an error removing #{user_name} from group #{group_name}."
       logger.error e
       logger.error e.backtrace.join("\n")
-      @msg = @msg + " There was an error removing #{user_name} from group #{group_name}."
+      @msg = @msg + " There was an error removing #{user_name} from group #{group_name}. Response was: '#{e}'."
     end
   end
 
@@ -99,7 +99,7 @@ module AwsIam
     begin
       client = setup_aws_client
       key_response = client.list_access_keys({ user_name: user_name })
-      @key_flag = true if key_response == ''
+      @key_flag = true if key_response.access_key_metadata == []
     rescue => e
       unless e.message.include?('cannot be found')
         logger.error "Exception in user##{params[:action]}; AWS couldn't retrieve keys for #{user_name}."
@@ -107,6 +107,7 @@ module AwsIam
         logger.error e.backtrace.join("\n")
         key_response = 'Error'
         @msg = @msg + " There was an error retrieving keys for #{user_name}. Response was: '#{e}'"
+        @key_flag = false
       end
     end
     key_response
@@ -138,12 +139,12 @@ module AwsIam
       user.aws_access_key = ''
       user.save!
       @msg = @msg + " AWS credentials for #{user_name} were deleted."
-      @key_flag = true
     rescue => e
       logger.error "Exception in user##{params[:action]}; There was an error deleting AWS credentials for #{user_name}."
       logger.error e.message
       logger.error e.backtrace.join("\n")
       @msg = @msg + " There was an error deleting AWS credentials for #{user_name}. Response was: '#{e}'."
+      @key_flag = false
     end
   end
 end

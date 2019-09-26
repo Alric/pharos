@@ -87,7 +87,7 @@ class UsersController < ApplicationController
       get_aws_iam_user(user_name) #get the AWS user, if one exists...
       if @flag
         keys = get_aws_access_keys(user_name) #Let's check to see if they have keys already
-        delete_aws_access_keys(user_name, keys, @user) unless (keys == '' || keys == 'Error') #They do! Let's DESTROY THEM.
+        delete_aws_access_keys(user_name, keys, @user) unless (keys == 'Error' || keys.access_key_metadata == []) #They do! Let's DESTROY THEM.
         delete_aws_iam_user(user_name) if @key_flag #Now, let's kill them!
       end
     end
@@ -362,7 +362,7 @@ class UsersController < ApplicationController
       get_aws_iam_user(user_name) #get the AWS user, if one exists...
       if @flag
         keys = get_aws_access_keys(user_name) #Let's check to see if they have keys already
-        delete_aws_access_keys(user_name, keys, @user) unless (keys == '' || keys == 'Error') #They do! Let's DESTROY THEM.
+        delete_aws_access_keys(user_name, keys, @user) unless (keys == 'Error' || keys.access_key_metadata == []) #They do! Let's DESTROY THEM.
         remove_aws_user_from_group(user_name, group_name) if @key_flag #Now, let's kick them out of our party!
       end
     end
@@ -407,12 +407,12 @@ class UsersController < ApplicationController
   end
 
   def issue_aws_credentials
-    authorize current_user
+    authorize @user
     @msg = ''
     @flag = false
     @key_flag = false
     unless Rails.env.test?
-      user_name = build_user_name(current_user)
+      user_name = build_user_name(@user)
       get_aws_iam_user(user_name) #get the AWS user, if one exists...
       if (!@flag) && @msg.blank?
         group_name = build_group_name(@user)
@@ -422,15 +422,16 @@ class UsersController < ApplicationController
       end
       if @flag
         keys = get_aws_access_keys(user_name) #Let's check to see if they have keys already
-        unless keys == '' || keys == 'Error'
-          delete_aws_access_keys(user_name, keys, current_user) #They do! Let's DESTROY THEM.
+        unless keys == 'Error' || keys.access_key_metadata == []
+          delete_aws_access_keys(user_name, keys, @user) #They do! Let's DESTROY THEM.
           @msg = @msg + ' Deleting old AWS credentials is a necessary step before new ones can be issued.' if @msg.include?('deleting')
         end
-        create_aws_access_keys(user_name, current_user) if @key_flag #Now we can give them new ones!
+        create_aws_access_keys(user_name, @user) if @key_flag #Now we can give them new ones!
       end
     end
     respond_to do |format|
       format.html {
+        @user.reload
         flash[:notice] = "#{@msg}"
         render 'show'
       }
@@ -447,7 +448,7 @@ class UsersController < ApplicationController
       get_aws_iam_user(user_name) #get the AWS user, if one exists...
       if @flag
         keys = get_aws_access_keys(user_name) #Let's check to see if they have keys already
-        if keys == ''
+        if keys.access_key_metadata == []
           @msg = 'There were no access keys to revoke.' #They didn't. We have nothing to do.
         elsif keys == 'Error'
           #do nothing. we want this condition caught but don't want anything altered.

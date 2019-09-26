@@ -81,7 +81,7 @@ class InstitutionsController < ApplicationController
         get_aws_iam_user(user_name) #get the AWS user, if one exists...
         if @flag
           keys = get_aws_access_keys(user_name) #Let's check to see if they have keys already
-          delete_aws_access_keys(user_name, keys, user) unless (keys == '' || keys == 'Error') #They do! Let's DESTROY THEM.
+          delete_aws_access_keys(user_name, keys, user) unless (keys == 'Error' || keys.access_key_metadata == []) #They do! Let's DESTROY THEM.
           remove_aws_user_from_group(user_name, group_name) if @key_flag #Now, let's kick them out of our party!
         end
       end
