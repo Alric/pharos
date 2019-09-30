@@ -49,10 +49,6 @@ gem 'browser-timezone-rails'
 gem 'activerecord-nulldb-adapter'
 gem 'puma', '3.12.0'
 
-gem 'rspec-rails', '~> 3.8.2'
-gem 'rspec-its'
-gem 'rspec-activemodel-mocks'
-
 group :demo, :production, :staging do
   # Graylog logging gems
   gem 'rails_semantic_logger'
@@ -76,6 +72,9 @@ group :test, :development do
   gem 'coveralls', '0.8.23', require: false
   gem 'rails-controller-testing'
   gem 'mimemagic'
+end
+
+group :development, :test, :staging, :demo, :production, :integration do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug'
   gem 'factory_bot_rails'
