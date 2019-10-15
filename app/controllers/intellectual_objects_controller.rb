@@ -53,7 +53,7 @@ class IntellectualObjectsController < ApplicationController
     else
       authorize current_user, :nil_object?
       respond_to do |format|
-        format.json { render json: { status: 'error', message: 'This object could not be found.' }, :status => 404 }
+        format.json { render json: { status: 'error', message: 'This object could not be found.', url: request.original_url }, :status => 404 }
         format.html { redirect_to root_url, alert: "An intellectual object with identifer: #{params[:intellectual_object_identifier]} could not be found." }
       end
     end
@@ -65,31 +65,47 @@ class IntellectualObjectsController < ApplicationController
   end
 
   def update
-    authorize @intellectual_object
-    @intellectual_object.update!(update_params)
-    respond_to do |format|
-      format.json { render json: object_as_json }
-      format.html { redirect_to intellectual_object_path(@intellectual_object) }
+    if @intellectual_object
+      authorize @intellectual_object
+      @intellectual_object.update!(update_params)
+      respond_to do |format|
+        format.json { render json: object_as_json }
+        format.html { redirect_to intellectual_object_path(@intellectual_object) }
+      end
+    else
+      authorize current_user, :nil_object?
+      respond_to do |format|
+        format.json { render json: { status: 'error', message: 'This object could not be found.', url: request.original_url }, :status => 404 }
+        format.html { redirect_to root_url, alert: "An intellectual object with identifer: #{params[:intellectual_object_identifier]} could not be found." }
+      end
     end
   end
 
   def destroy
-    authorize @intellectual_object, :soft_delete?
-    pending = WorkItem.pending_action(@intellectual_object.identifier)
-    if @intellectual_object.state == 'D'
-      message = 'This object has already been deleted.'
-      status = set_status_error(message)
-    elsif pending.nil?
-      object_or_file_start_destroy('object', @intellectual_object, current_user)
-      message = 'An email has been sent to the administrators of this institution to confirm deletion of this object.'
-      status = set_status_ok(message)
+    if @intellectual_object
+      authorize @intellectual_object, :soft_delete?
+      pending = WorkItem.pending_action(@intellectual_object.identifier)
+      if @intellectual_object.state == 'D'
+        message = 'This object has already been deleted.'
+        status = set_status_error(message)
+      elsif pending.nil?
+        object_or_file_start_destroy('object', @intellectual_object, current_user)
+        message = 'An email has been sent to the administrators of this institution to confirm deletion of this object.'
+        status = set_status_ok(message)
+      else
+        message = "Your object cannot be deleted at this time due to a pending #{pending.action} request. You may delete this object after the #{pending.action} request has completed."
+        status = set_status_error(message)
+      end
+      respond_to do |format|
+        format.json { render json: { status: status[:one], message: message }, status: status[:two] }
+        format.html { redirect_to @intellectual_object }
+      end
     else
-      message = "Your object cannot be deleted at this time due to a pending #{pending.action} request. You may delete this object after the #{pending.action} request has completed."
-      status = set_status_error(message)
-    end
-    respond_to do |format|
-      format.json { render json: { status: status[:one], message: message }, status: status[:two] }
-      format.html { redirect_to @intellectual_object }
+      authorize current_user, :nil_object?
+      respond_to do |format|
+        format.json { render json: { status: 'error', message: 'This object could not be found.', url: request.original_url }, :status => 404 }
+        format.html { redirect_to root_url, alert: "An intellectual object with identifer: #{params[:intellectual_object_identifier]} could not be found." }
+      end
     end
   end
 
@@ -170,31 +186,39 @@ class IntellectualObjectsController < ApplicationController
   end
 
   def restore
-    authorize @intellectual_object, :restore?
-    message = ""
-    api_status_code = :ok
-    restore_item = nil
-    pending = WorkItem.pending_action(@intellectual_object.identifier)
-    if @intellectual_object.state == 'D'
-      api_status_code = :conflict
-      message = 'This item has been deleted and cannot be queued for restoration.'
-    elsif pending.nil?
-      (@intellectual_object.storage_option == 'Standard') ?
-          restore_item = WorkItem.create_restore_request(@intellectual_object.identifier, current_user.email) :
-          restore_item = WorkItem.create_glacier_restore_request(@intellectual_object.identifier, current_user.email)
-      message = 'Your item has been queued for restoration.'
+    if @intellectual_object
+      authorize @intellectual_object, :restore?
+      message = ""
+      api_status_code = :ok
+      restore_item = nil
+      pending = WorkItem.pending_action(@intellectual_object.identifier)
+      if @intellectual_object.state == 'D'
+        api_status_code = :conflict
+        message = 'This item has been deleted and cannot be queued for restoration.'
+      elsif pending.nil?
+        (@intellectual_object.storage_option == 'Standard') ?
+            restore_item = WorkItem.create_restore_request(@intellectual_object.identifier, current_user.email) :
+            restore_item = WorkItem.create_glacier_restore_request(@intellectual_object.identifier, current_user.email)
+        message = 'Your item has been queued for restoration.'
+      else
+        api_status_code = :conflict
+        message = "Your object cannot be queued for restoration at this time due to a pending #{pending.action} request."
+      end
+      respond_to do |format|
+        status = restore_item.nil? ? 'error' : 'ok'
+        item_id = restore_item.nil? ? 0 : restore_item.id
+        format.json { render :json => { status: status, message: message, work_item_id: item_id }, :status => api_status_code }
+        format.html {
+          restore_item.nil? ? flash[:alert] = message : flash[:notice] = message
+          redirect_to @intellectual_object
+        }
+      end
     else
-      api_status_code = :conflict
-      message = "Your object cannot be queued for restoration at this time due to a pending #{pending.action} request."
-    end
-    respond_to do |format|
-      status = restore_item.nil? ? 'error' : 'ok'
-      item_id = restore_item.nil? ? 0 : restore_item.id
-      format.json { render :json => { status: status, message: message, work_item_id: item_id }, :status => api_status_code }
-      format.html {
-        restore_item.nil? ? flash[:alert] = message : flash[:notice] = message
-        redirect_to @intellectual_object
-      }
+      authorize current_user, :nil_object?
+      respond_to do |format|
+        format.json { render json: { status: 'error', message: 'This object could not be found.', url: request.original_url }, :status => 404 }
+        format.html { redirect_to root_url, alert: "An intellectual object with identifer: #{params[:intellectual_object_identifier]} could not be found." }
+      end
     end
   end
 

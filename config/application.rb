@@ -28,11 +28,20 @@ module Pharos
     # config.i18n.load_path += Dir[Rails.root.join('my', 'locales', '*.{rb,yml}').to_s]
     # config.i18n.default_locale = :de
 
-    VERSION = "1.0"
+	VERSION = "2.5"
 
     config.i18n.enforce_available_locales = true
 
-    #config.serve_static_assets = true
+	#config.public_file_server.enable = false
+    config.assets.version = '1.0'
+	config.assets.precompile += %w(.svg)
+
+    config.before_configuration do
+      env_file = File.join(Rails.root, 'config', 'dev_env.yml')
+      YAML.load(File.open(env_file)).each do |key, value|
+        ENV[key.to_s] = value
+      end if File.exists?(env_file)
+    end
 
     #GLOBALS
     PHAROS_STATUSES = {
