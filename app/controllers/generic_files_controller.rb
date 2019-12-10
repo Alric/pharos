@@ -18,7 +18,7 @@ class GenericFilesController < ApplicationController
     else
       if params[:not_checked_since]
         authorize current_user, :not_checked_since?
-        @generic_files = GenericFile.not_checked_since(params[:not_checked_since])
+        @generic_files = GenericFile.preload(:intellectual_object).not_checked_since(params[:not_checked_since])
       else
         load_parent_object
         if @intellectual_object
@@ -31,7 +31,7 @@ class GenericFilesController < ApplicationController
       end
       filter_count_and_sort
       page_results(@generic_files)
-      (params[:with_ingest_state] == 'true' && current_user.admin?) ? options_hash = {include: [:ingest_state]} : options_hash = {}
+      options_hash = build_options_hash
       respond_to do |format|
         format.json { render json: { count: @count, next: @next, previous: @previous, results: @paged_results.map { |f| f.serializable_hash(options_hash) } } }
         format.html { }
@@ -320,16 +320,28 @@ class GenericFilesController < ApplicationController
   end
 
   def object_as_json
-    if params[:with_ingest_state] == 'true' && current_user.admin? && params[:include_relations]
-      options_hash = {include: [:checksums, :premis_events, :ingest_state]}
-    elsif params[:with_ingest_state] == 'true' && current_user.admin?
-      options_hash = {include: [:ingest_state]}
-    elsif params[:include_relations]
-      options_hash = {include: [:checksums, :premis_events]}
-    else
-      options_hash = {}
-    end
+    options_hash = build_options_hash
     @generic_file.serializable_hash(options_hash)
+  end
+
+  def build_options_hash
+    options_hash = {}
+    options_hash[:include] = [:ingest_state] if params[:with_ingest_state] == 'true' && current_user.admin?
+    if params[:include_relations] == 'true'
+      if options_hash.key?(:include)
+        options_hash[:include].push(:checksums)
+        options_hash[:include].push(:premis_events)
+      else
+        options_hash[:include] = [:checksums, :premis_events]
+      end
+    end
+    if params[:include_checksums] == 'true'
+      options_hash.key?(:include) ? options_hash[:include].push(:checksums) : options_hash[:include] = [:checksums]
+    end
+    if params[:include_events] == 'true'
+      options_hash.key?(:include) ? options_hash[:include].push(:premis_events) : options_hash[:include] = [:premis_events]
+    end
+    options_hash
   end
 
   def array_as_json(list_of_generic_files)
@@ -405,33 +417,58 @@ class GenericFilesController < ApplicationController
   end
 
   def filter_count_and_sort
-    params[:state] = 'A' if params[:state].nil?
+    current_url = url_for(only_path: false)
+    unless (current_url.include? 'api/v2') && (!params.include? :intellectual_object_identifier) &&
+           (!params.include? :intellectual_object_id) && (!params.include? :state)
+      params[:state] = 'A' if params[:state].nil?
+    end
     parameter_deprecation
     @generic_files = @generic_files
-                         .with_identifier_like(params[:identifier])
-                         .with_uri_like(params[:uri])
-                         .created_before(params[:created_before])
-                         .created_after(params[:created_after])
-                         .updated_before(params[:updated_before])
-                         .updated_after(params[:updated_after])
-                         .with_institution(params[:institution])
-                         .with_file_format(params[:file_format])
-                         .with_state(params[:state])
+                       .with_identifier_like(params[:identifier])
+                       .with_uri_like(params[:uri])
+                       .created_before(params[:created_before])
+                       .created_after(params[:created_after])
+                       .updated_before(params[:updated_before])
+                       .updated_after(params[:updated_after])
+                       .with_institution(params[:institution])
+                       .with_file_format(params[:file_format])
+                       .with_state(params[:state])
+                       .with_storage_option(params[:storage_option])
+
+    # Not sure why this is declared here, but the erb templates
+    # seem to use it.
     @selected = {}
-    get_format_counts(@generic_files)
-    get_institution_counts(@generic_files)
-    get_state_counts(@generic_files)
-    count = @generic_files.count
-    set_page_counts(count)
+
+    # Don't run counts for API requests
+    if !api_request? && request.path !~ /\/api\/v2\//
+      ok_to_count_formats? ? get_format_counts(@generic_files) : @format_counts = {}
+      get_institution_counts(@generic_files)
+      get_state_counts(@generic_files)
+    end
+
+    set_page_counts(@generic_files.count)
     params[:sort] = 'name' if params[:sort].nil?
     case params[:sort]
       when 'date'
         @generic_files = @generic_files.order('updated_at DESC')
+      when 'last_fixity_check'
+        @generic_files = @generic_files.order('last_fixity_check')
       when 'name'
         @generic_files = @generic_files.order('identifier').reverse_order
       when 'institution'
         @generic_files = @generic_files.joins(:institution).order('institutions.name')
     end
+  end
+
+  # Don't count formats if there are no filters. This slows things down
+  # for APTrust users.
+  def ok_to_count_formats?
+    ok = true
+    if params[:institution_identifier] == 'aptrust.org' && params[:institution].blank?
+      logger.info("Skipping file format counts for APTrust user with no institution filter.")
+      ok = false
+    end
+    return ok
   end
 
   def parameter_deprecation
