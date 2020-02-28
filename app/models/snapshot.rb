@@ -1,3 +1,18 @@
+# == Schema Information
+#
+# Table name: snapshots
+#
+#  id             :bigint           not null, primary key
+#  apt_bytes      :bigint
+#  audit_date     :datetime
+#  cost           :decimal(, )
+#  cs_bytes       :bigint
+#  go_bytes       :bigint
+#  snapshot_type  :string
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#  institution_id :integer
+#
 class Snapshot < ApplicationRecord
   self.primary_key = 'id'
   belongs_to :institution

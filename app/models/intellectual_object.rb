@@ -1,3 +1,38 @@
+# == Schema Information
+#
+# Table name: intellectual_objects
+#
+#  id                          :integer          not null, primary key
+#  title                       :string
+#  description                 :text
+#  identifier                  :string
+#  alt_identifier              :string
+#  access                      :string
+#  bag_name                    :string
+#  institution_id              :integer
+#  created_at                  :datetime         not null
+#  updated_at                  :datetime         not null
+#  state                       :string
+#  etag                        :string
+#  ingest_state                :text
+#  bag_group_identifier        :string           default(""), not null
+#  storage_option              :string           default("Standard"), not null
+#  bagit_profile_identifier    :string
+#  source_organization         :string
+#  internal_sender_identifier  :string
+#  internal_sender_description :text
+#
+# Indexes
+#
+#  index_intellectual_objects_on_access                    (access)
+#  index_intellectual_objects_on_bag_name                  (bag_name)
+#  index_intellectual_objects_on_created_at                (created_at)
+#  index_intellectual_objects_on_identifier                (identifier) UNIQUE
+#  index_intellectual_objects_on_institution_id            (institution_id)
+#  index_intellectual_objects_on_institution_id_and_state  (institution_id,state)
+#  index_intellectual_objects_on_state                     (state)
+#  index_intellectual_objects_on_updated_at                (updated_at)
+#
 class IntellectualObject < ActiveRecord::Base
   self.primary_key = 'id'
   belongs_to :institution

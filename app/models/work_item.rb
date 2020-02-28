@@ -1,3 +1,48 @@
+# == Schema Information
+#
+# Table name: work_items
+#
+#  id                      :integer          not null, primary key
+#  action                  :string
+#  aptrust_approver        :string
+#  bag_date                :datetime
+#  bucket                  :string
+#  date                    :datetime
+#  etag                    :string
+#  generic_file_identifier :string
+#  inst_approver           :string
+#  name                    :string
+#  needs_admin_review      :boolean          default("false"), not null
+#  node                    :string(255)
+#  note                    :text
+#  object_identifier       :string
+#  outcome                 :text
+#  pid                     :integer          default("0")
+#  queued_at               :datetime
+#  retry                   :boolean          default("false"), not null
+#  size                    :bigint
+#  stage                   :string
+#  stage_started_at        :datetime
+#  status                  :string
+#  user                    :string
+#  created_at              :datetime         not null
+#  updated_at              :datetime         not null
+#  generic_file_id         :integer
+#  institution_id          :integer
+#  intellectual_object_id  :integer
+#
+# Indexes
+#
+#  index_work_items_on_action                   (action)
+#  index_work_items_on_date                     (date)
+#  index_work_items_on_etag_and_name            (etag,name)
+#  index_work_items_on_generic_file_id          (generic_file_id)
+#  index_work_items_on_institution_id           (institution_id)
+#  index_work_items_on_institution_id_and_date  (institution_id,date)
+#  index_work_items_on_intellectual_object_id   (intellectual_object_id)
+#  index_work_items_on_stage                    (stage)
+#  index_work_items_on_status                   (status)
+#
 class WorkItem < ActiveRecord::Base
   self.primary_key = 'id'
   paginates_per 10

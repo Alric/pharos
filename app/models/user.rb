@@ -1,3 +1,51 @@
+# == Schema Information
+#
+# Table name: users
+#
+#  id                        :integer          not null, primary key
+#  name                      :string
+#  email                     :string
+#  phone_number              :string
+#  created_at                :datetime         not null
+#  updated_at                :datetime         not null
+#  encrypted_password        :string           default(""), not null
+#  reset_password_token      :string
+#  reset_password_sent_at    :datetime
+#  remember_created_at       :datetime
+#  sign_in_count             :integer          default("0"), not null
+#  current_sign_in_at        :datetime
+#  last_sign_in_at           :datetime
+#  current_sign_in_ip        :string
+#  last_sign_in_ip           :string
+#  institution_id            :integer
+#  encrypted_api_secret_key  :text
+#  deactivated_at            :datetime
+#  password_changed_at       :datetime
+#  encrypted_otp_secret      :string
+#  encrypted_otp_secret_iv   :string
+#  encrypted_otp_secret_salt :string
+#  consumed_timestep         :integer
+#  otp_required_for_login    :boolean
+#  enabled_two_factor        :boolean          default("false")
+#  confirmed_two_factor      :boolean          default("false")
+#  otp_backup_codes          :string           is an Array
+#  authy_id                  :string
+#  last_sign_in_with_authy   :datetime
+#  authy_status              :string
+#  email_verified            :boolean          default("false")
+#  initial_password_updated  :boolean          default("false")
+#  force_password_update     :boolean          default("false")
+#  account_confirmed         :boolean          default("true")
+#  grace_period              :datetime
+#
+# Indexes
+#
+#  index_users_on_authy_id              (authy_id)
+#  index_users_on_email                 (email) UNIQUE
+#  index_users_on_institution_id        (institution_id)
+#  index_users_on_password_changed_at   (password_changed_at)
+#  index_users_on_reset_password_token  (reset_password_token) UNIQUE
+#
 require 'bcrypt'
 
 class User < ActiveRecord::Base

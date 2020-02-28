@@ -1,3 +1,19 @@
+# == Schema Information
+#
+# Table name: checksums
+#
+#  id              :integer          not null, primary key
+#  algorithm       :string
+#  datetime        :string
+#  digest          :string
+#  generic_file_id :integer
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#
+# Indexes
+#
+#  index_checksums_on_generic_file_id  (generic_file_id)
+#
 class Checksum < ActiveRecord::Base
   self.primary_key = 'id'
   belongs_to :generic_file

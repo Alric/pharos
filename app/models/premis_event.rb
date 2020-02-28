@@ -1,3 +1,41 @@
+# == Schema Information
+#
+# Table name: premis_events
+#
+#  id                             :integer          not null, primary key
+#  identifier                     :string
+#  event_type                     :string
+#  date_time                      :string
+#  outcome_detail                 :string
+#  detail                         :string
+#  outcome_information            :string
+#  object                         :string
+#  agent                          :string
+#  intellectual_object_id         :integer
+#  generic_file_id                :integer
+#  created_at                     :datetime         not null
+#  updated_at                     :datetime         not null
+#  outcome                        :string
+#  institution_id                 :integer
+#  intellectual_object_identifier :string           default(""), not null
+#  generic_file_identifier        :string           default(""), not null
+#  old_uuid                       :string
+#
+# Indexes
+#
+#  index_premis_events_date_time_desc                     (date_time)
+#  index_premis_events_on_event_type                      (event_type)
+#  index_premis_events_on_event_type_and_outcome          (event_type,outcome)
+#  index_premis_events_on_generic_file_id                 (generic_file_id)
+#  index_premis_events_on_generic_file_id_and_event_type  (generic_file_id,event_type)
+#  index_premis_events_on_generic_file_identifier         (generic_file_identifier)
+#  index_premis_events_on_identifier                      (identifier) UNIQUE
+#  index_premis_events_on_identifier_and_institution_id   (identifier,institution_id)
+#  index_premis_events_on_institution_id                  (institution_id)
+#  index_premis_events_on_intellectual_object_id          (intellectual_object_id)
+#  index_premis_events_on_intellectual_object_identifier  (intellectual_object_identifier)
+#  index_premis_events_on_outcome                         (outcome)
+#
 class PremisEvent < ActiveRecord::Base
   self.primary_key = 'id'
   belongs_to :institution

@@ -1,3 +1,43 @@
+# == Schema Information
+#
+# Table name: generic_files
+#
+#  id                     :integer          not null, primary key
+#  file_format            :string
+#  identifier             :string
+#  ingest_state           :text
+#  last_fixity_check      :datetime         default("2000-01-01 00:00:00"), not null
+#  size                   :bigint
+#  state                  :string
+#  storage_option         :string           default("Standard"), not null
+#  uri                    :string
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  institution_id         :integer          not null
+#  intellectual_object_id :integer
+#
+# Indexes
+#
+#  index_files_on_inst_state_and_format                           (institution_id,state,file_format)
+#  index_files_on_inst_state_and_updated                          (institution_id,state,updated_at)
+#  index_generic_files_on_created_at                              (created_at)
+#  index_generic_files_on_file_format                             (file_format)
+#  index_generic_files_on_file_format_and_state                   (file_format,state)
+#  index_generic_files_on_identifier                              (identifier) UNIQUE
+#  index_generic_files_on_institution_id                          (institution_id)
+#  index_generic_files_on_institution_id_and_size_and_state       (institution_id,size,state)
+#  index_generic_files_on_institution_id_and_state                (institution_id,state)
+#  index_generic_files_on_institution_id_and_updated_at           (institution_id,updated_at)
+#  index_generic_files_on_intellectual_object_id                  (intellectual_object_id)
+#  index_generic_files_on_intellectual_object_id_and_file_format  (intellectual_object_id,file_format)
+#  index_generic_files_on_intellectual_object_id_and_state        (intellectual_object_id,state)
+#  index_generic_files_on_size                                    (size)
+#  index_generic_files_on_size_and_state                          (size,state)
+#  index_generic_files_on_state                                   (state)
+#  index_generic_files_on_state_and_updated_at                    (state,updated_at)
+#  index_generic_files_on_updated_at                              (updated_at)
+#  ix_gf_last_fixity_check                                        (last_fixity_check)
+#
 class GenericFile < ActiveRecord::Base
   self.primary_key = 'id'
   belongs_to :intellectual_object

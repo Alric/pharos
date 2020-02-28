@@ -1,3 +1,14 @@
+# == Schema Information
+#
+# Table name: work_item_states
+#
+#  id           :integer          not null, primary key
+#  work_item_id :integer
+#  action       :string           not null
+#  state        :binary
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#
 class WorkItemState < ActiveRecord::Base
   self.primary_key = 'id'
   require 'zlib'
