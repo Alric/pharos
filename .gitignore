@@ -32,6 +32,7 @@ demo.log
 *.orig
 
 # Ignore local rbenv setting
+# TODO: AHT - Why are we ignoring the ruby-version file?
 .ruby-version
 
 # Import DB
