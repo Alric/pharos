@@ -1,6 +1,6 @@
 FROM madnight/docker-alpine-wkhtmltopdf as builder
 
-FROM ruby:2.6-alpine3.7
+FROM ruby:2.7.0-alpine
 LABEL maintainer="Christian Dahlhausen <christian@aptrust.org>"
 
 # Install dependencies
@@ -15,7 +15,7 @@ RUN apk update -qq && apk upgrade && apk add --no-cache build-base libpq \
 	libxml2-dev libxslt-dev readline readline-dev curl \
 # Following packages for wkhtmltopdf only
     libgcc libstdc++ libx11 glib libxrender libxext libintl \
-    libcrypto1.0 libssl1.0 \
+    libcrypto1.1 libssl1.1 \
     ttf-dejavu ttf-droid ttf-freefont ttf-liberation ttf-ubuntu-font-family
 
 RUN addgroup -S somegroup -g 1000 && adduser -S -G somegroup somebody -u 1000
@@ -37,7 +37,7 @@ ENV SECRET_KEY_BASE=${SECRET_KEY_BASE:-52517cb1d20063c94605ba51bb5c40c4b0e2dc7d4
 COPY --from=builder /bin/wkhtmltopdf /bin/wkhtmltopdf
 
 COPY Gemfile Gemfile.lock ./
-RUN gem update --system && gem install bundler -v 2.0.2
+RUN gem update --system && gem install bundler -v 2.1.4
 RUN bundle install --jobs=4 --without=["development" "test"] --no-cache
 
 COPY . $WORKDIR
