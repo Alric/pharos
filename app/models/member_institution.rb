@@ -32,7 +32,7 @@ class MemberInstitution < Institution
     self.subscribers.each do |si|
       size = si.total_file_size.to_f
       si_report[si.name] = size
-      total_size = total_size + size
+      total_size += size
     end
     si_report['total_bytes'] = total_size
     si_report
@@ -91,31 +91,31 @@ class MemberInstitution < Institution
     snapshot_array = []
     self.subscribers.each do |si|
       snap = si.snapshot
-      total_bytes = total_bytes + snap.apt_bytes
-      total_cs_bytes = total_cs_bytes + snap.cs_bytes
-      total_go_bytes = total_go_bytes + snap.go_bytes
+      total_bytes += snap.apt_bytes
+      total_cs_bytes += snap.cs_bytes
+      total_go_bytes += snap.go_bytes
       snapshot_array.push(snap)
     end
-    if total_bytes < 10995116277760 #10 TB
+    if total_bytes < 10_995_116_277_760 # 10 TB
       rounded_cost = 0.00
     else
-      excess = total_bytes - 10995116277760
+      excess = total_bytes - 10_995_116_277_760
       cost = excess * 0.000000000381988
       rounded_cost = cost.round(2)
     end
-    if indiv_bytes < 10995116277760 #10 TB
+    if indiv_bytes < 10_995_116_277_760 # 10 TB
       rounded_indiv_cost = 0.00
     else
-      indiv_excess = indiv_bytes - 10995116277760
+      indiv_excess = indiv_bytes - 10_995_116_277_760
       indiv_cost = indiv_excess * 0.000000000381988
       rounded_indiv_cost = indiv_cost.round(2)
     end
     rounded_cost = 0.00 if rounded_cost == 0.0
     rounded_indiv_cost = 0.00 if rounded_indiv_cost == 0.0
-    indiv_snapshot = Snapshot.create(institution_id: self.id, audit_date: Time.now, apt_bytes: indiv_bytes, cs_bytes: indiv_cs_bytes, go_bytes: indiv_go_bytes, cost: rounded_indiv_cost, snapshot_type: 'Individual')
+    indiv_snapshot = Snapshot.create(institution_id: self.id, audit_date: Time.zone.now, apt_bytes: indiv_bytes, cs_bytes: indiv_cs_bytes, go_bytes: indiv_go_bytes, cost: rounded_indiv_cost, snapshot_type: 'Individual')
     indiv_snapshot.save!
     snapshot_array.push(indiv_snapshot)
-    snapshot = Snapshot.create(institution_id: self.id, audit_date: Time.now, apt_bytes: total_bytes, cs_bytes: total_cs_bytes, go_bytes: total_go_bytes, cost: rounded_cost, snapshot_type: 'Subscribers Included')
+    snapshot = Snapshot.create(institution_id: self.id, audit_date: Time.zone.now, apt_bytes: total_bytes, cs_bytes: total_cs_bytes, go_bytes: total_go_bytes, cost: rounded_cost, snapshot_type: 'Subscribers Included')
     snapshot.save!
     snapshot_array.push(snapshot)
     snapshot_array
@@ -148,5 +148,4 @@ class MemberInstitution < Institution
       throw(:abort)
     end
   end
-
 end

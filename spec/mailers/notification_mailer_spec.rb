@@ -1,4 +1,4 @@
-require "spec_helper"
+require 'spec_helper'
 require 'rubygems'
 require 'zip'
 
@@ -31,7 +31,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
@@ -47,10 +47,12 @@ RSpec.describe NotificationMailer, type: :mailer do
   describe 'restoration_notification' do
     let(:institution) { FactoryBot.create(:member_institution) }
     let(:user) { FactoryBot.create(:user, :institutional_admin, institution: institution) }
-    let(:item) { FactoryBot.create(:work_item, institution: institution,
+    let(:item) do
+      FactoryBot.create(:work_item, institution: institution,
                                     action: Pharos::Application::PHAROS_ACTIONS['restore'],
                                     status: Pharos::Application::PHAROS_STATUSES['success'],
-                                    stage: Pharos::Application::PHAROS_STAGES['record']) }
+                                    stage: Pharos::Application::PHAROS_STAGES['record'])
+    end
     let(:email_log) { FactoryBot.create(:restoration_email) }
     let(:mail) { described_class.restoration_notification(item, email_log).deliver_now }
 
@@ -59,7 +61,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
@@ -86,7 +88,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
@@ -106,14 +108,18 @@ RSpec.describe NotificationMailer, type: :mailer do
   describe 'multiple_restoration_notification' do
     let(:institution) { FactoryBot.create(:member_institution) }
     let(:user) { FactoryBot.create(:user, :institutional_admin, institution: institution) }
-    let(:item) { FactoryBot.create(:work_item, institution: institution,
+    let(:item) do
+      FactoryBot.create(:work_item, institution: institution,
                                     action: Pharos::Application::PHAROS_ACTIONS['restore'],
                                     status: Pharos::Application::PHAROS_STATUSES['success'],
-                                    stage: Pharos::Application::PHAROS_STAGES['record']) }
-    let(:item_two) { FactoryBot.create(:work_item, institution: institution,
+                                    stage: Pharos::Application::PHAROS_STAGES['record'])
+    end
+    let(:item_two) do
+      FactoryBot.create(:work_item, institution: institution,
                                     action: Pharos::Application::PHAROS_ACTIONS['restore'],
                                     status: Pharos::Application::PHAROS_STATUSES['success'],
-                                    stage: Pharos::Application::PHAROS_STAGES['record']) }
+                                    stage: Pharos::Application::PHAROS_STAGES['record'])
+    end
     let(:items) { [item, item_two] }
     let(:email_log) { FactoryBot.create(:multiple_restoration_email, work_items: [item, item_two]) }
     let(:mail) { described_class.multiple_restoration_notification(items, email_log, institution).deliver_now }
@@ -123,7 +129,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
@@ -143,12 +149,14 @@ RSpec.describe NotificationMailer, type: :mailer do
   describe 'spot_test_restoration_notification' do
     let(:institution) { FactoryBot.create(:member_institution) }
     let(:user) { FactoryBot.create(:user, :institutional_admin, institution: institution) }
-    let(:item) { FactoryBot.create(:work_item, institution: institution,
-                                   action: Pharos::Application::PHAROS_ACTIONS['restore'],
-                                   status: Pharos::Application::PHAROS_STATUSES['success'],
-                                   stage: Pharos::Application::PHAROS_STAGES['record'],
-                                   object_identifier: 'test.edu/bag_name',
-                                   note: 'Bag test.edu/bag_name restored to https://s3.amazonaws.com/aptrust.restore.test.edu/bag_name.tar') }
+    let(:item) do
+      FactoryBot.create(:work_item, institution: institution,
+                                    action: Pharos::Application::PHAROS_ACTIONS['restore'],
+                                    status: Pharos::Application::PHAROS_STATUSES['success'],
+                                    stage: Pharos::Application::PHAROS_STAGES['record'],
+                                    object_identifier: 'test.edu/bag_name',
+                                    note: 'Bag test.edu/bag_name restored to https://s3.amazonaws.com/aptrust.restore.test.edu/bag_name.tar')
+    end
     let(:email_log) { FactoryBot.create(:restoration_email) }
     let(:mail) { described_class.spot_test_restoration_notification(item, email_log).deliver_now }
 
@@ -157,7 +165,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
@@ -187,7 +195,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
@@ -222,7 +230,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
@@ -260,7 +268,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     it 'renders the receiver email' do
       user.admin?
       user_two.admin?
-      user_three.admin? #including this because the user needs to be used somehow for spec to realize it exists.
+      user_three.admin? # including this because the user needs to be used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
       expect(mail.to).to include(user_two.email)
       expect(mail.to).to include(user_three.email)
@@ -296,7 +304,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
@@ -326,7 +334,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
@@ -357,7 +365,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
@@ -393,7 +401,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      user.admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      user.admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
@@ -490,9 +498,9 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      other_admin.admin? #including this because if the user isn't used somehow for spec to realize it exists.
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
-      admin_user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      other_admin.admin? # including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
+      admin_user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(other_admin.email)
       expect(mail.to).to include(user.email)
       expect(mail.to).to include(admin_user.email)
@@ -540,9 +548,9 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the receiver email' do
-      other_admin.admin? #including this because if the user isn't used somehow for spec to realize it exists.
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
-      admin_user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      other_admin.admin? # including this because if the user isn't used somehow for spec to realize it exists.
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
+      admin_user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(other_admin.email)
       expect(mail.to).to include(user.email)
       expect(mail.to).to include(admin_user.email)
@@ -585,23 +593,23 @@ RSpec.describe NotificationMailer, type: :mailer do
     end
 
     it 'renders the subject' do
-      zip.nil? #evaluate zip to force it to get made
+      zip.nil? # evaluate zip to force it to get made
       expect(mail.subject).to eq("[APTrust #{Rails.env.capitalize}] - New Completed Deletions")
     end
 
     it 'renders the receiver email' do
-      zip.nil? #evaluate zip to force it to get made
-      user.institutional_admin? #including this because if the user isn't used somehow for spec to realize it exists.
+      zip.nil? # evaluate zip to force it to get made
+      user.institutional_admin? # including this because if the user isn't used somehow for spec to realize it exists.
       expect(mail.to).to include(user.email)
     end
 
     it 'renders the sender email' do
-      zip.nil? #evaluate zip to force it to get made
+      zip.nil? # evaluate zip to force it to get made
       expect(mail.from).to eq(['help@aptrust.org'])
     end
 
     it 'has a zip attachment' do
-      zip.nil? #evaluate zip to force it to get made
+      zip.nil? # evaluate zip to force it to get made
       expect(mail.attachments.count).to eq(1)
       attachment = mail.attachments[0]
       attachment.should be_a_kind_of(Mail::Part)
@@ -614,7 +622,7 @@ RSpec.describe NotificationMailer, type: :mailer do
     let(:institution) { FactoryBot.create(:member_institution) }
     let(:object) { FactoryBot.create(:intellectual_object, institution: institution) }
     let(:file) { FactoryBot.create(:generic_file, intellectual_object: object) }
-    let(:snap_hash) { {institution.name => file.size} }
+    let(:snap_hash) { { institution.name => file.size } }
     let(:mail) { described_class.snapshot_notification(snap_hash).deliver_now }
 
     it 'renders the subject' do

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe SubscriptionInstitution, :type => :model do
+RSpec.describe SubscriptionInstitution, type: :model do
   before(:all) do
     User.delete_all
   end
@@ -41,9 +41,9 @@ RSpec.describe SubscriptionInstitution, :type => :model do
     it 'should validate uniqueness of the identifier' do
       one = FactoryBot.create(:subscription_institution, identifier: 'test.edu')
       two = FactoryBot.create(:subscription_institution, identifier: 'kollege.edu')
-      SubscriptionInstitution.find_by_identifier('test.edu').should eq one
-      SubscriptionInstitution.find_by_identifier('kollege.edu').should eq two
-      SubscriptionInstitution.find_by_identifier('idontexist.edu').should be nil
+      SubscriptionInstitution.find_by(identifier: 'test.edu').should eq one
+      SubscriptionInstitution.find_by(identifier: 'kollege.edu').should eq two
+      SubscriptionInstitution.find_by(identifier: 'idontexist.edu').should be nil
     end
   end
 
@@ -58,25 +58,25 @@ RSpec.describe SubscriptionInstitution, :type => :model do
 
     describe 'bytes_by_format' do
       it 'should return a hash' do
-        expect(subject.bytes_by_format).to eq({'all'=>0})
+        expect(subject.bytes_by_format).to eq({ 'all' => 0 })
       end
       describe 'with attached files' do
         before do
           subject.save!
         end
         let(:intellectual_object) { FactoryBot.create(:intellectual_object, institution: subject) }
-        let!(:generic_file1) { FactoryBot.create(:generic_file, intellectual_object: intellectual_object, size: 166311750, identifier: 'test.edu/123/data/file.xml') }
-        let!(:generic_file2) { FactoryBot.create(:generic_file, intellectual_object: intellectual_object, file_format: 'audio/wav', size: 143732461, identifier: 'test.edu/123/data/file.wav') }
+        let!(:generic_file1) { FactoryBot.create(:generic_file, intellectual_object: intellectual_object, size: 166_311_750, identifier: 'test.edu/123/data/file.xml') }
+        let!(:generic_file2) { FactoryBot.create(:generic_file, intellectual_object: intellectual_object, file_format: 'audio/wav', size: 143_732_461, identifier: 'test.edu/123/data/file.wav') }
         it 'should return a hash' do
-          expect(subject.bytes_by_format).to eq({"all"=>310044211,
-                                                 'application/xml' => 166311750,
-                                                 'audio/wav' => 143732461})
+          expect(subject.bytes_by_format).to eq({ 'all' => 310_044_211,
+                                                  'application/xml' => 166_311_750,
+                                                  'audio/wav' => 143_732_461 })
         end
       end
     end
 
     describe 'with an associated user' do
-      let!(:user) { FactoryBot.create(:user, name: 'Zeke', institution_id: subject.id)  }
+      let!(:user) { FactoryBot.create(:user, name: 'Zeke', institution_id: subject.id) }
       it 'should contain the appropriate User' do
         subject.users.should eq [user]
       end
@@ -131,7 +131,7 @@ RSpec.describe SubscriptionInstitution, :type => :model do
 
       it 'should be able to generate a snapshot' do
         snapshot = subject.snapshot
-        #snapshot.cost.should == (file.size * 0.000000000381988).round(2) # sometimes fails because of finicky rounding / storage
+        # snapshot.cost.should == (file.size * 0.000000000381988).round(2) # sometimes fails because of finicky rounding / storage
         snapshot.snapshot_type.should == 'Individual'
         snapshot.apt_bytes.should == file.size
         snapshot.institution_id.should == subject.id

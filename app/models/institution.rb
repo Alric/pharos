@@ -19,7 +19,7 @@
 #
 #  index_institutions_on_name  (name)
 #
-class Institution < ActiveRecord::Base
+class Institution < ApplicationRecord
   require 'csv'
   require 'zlib'
   require 'rubygems'
@@ -40,7 +40,7 @@ class Institution < ActiveRecord::Base
   validates :name, :identifier, :type, presence: true
   validate :name_is_unique
   validate :domain_is_allowed
-  validates_uniqueness_of :identifier
+  validates :identifier, uniqueness: true
 
   before_save :set_bucket_names
 
@@ -72,7 +72,7 @@ class Institution < ActiveRecord::Base
 
   def apt_users
     apt_users = []
-    apt = Institution.where(identifier: "aptrust.org").first
+    apt = Institution.where(identifier: 'aptrust.org').first
     users = User.where(institution_id: apt.id)
     users.each { |user| apt_users.push(user) if user.admin? }
     apt_users
@@ -83,49 +83,49 @@ class Institution < ActiveRecord::Base
   end
 
   def new_deletion_items
-    time = Time.now - 1.month
+    time = Time.zone.now - 1.month
     deletion_items = WorkItem.with_institution(self.id)
-                         .created_after(time)
-                         .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
-                         .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
-                         .with_status(Pharos::Application::PHAROS_STATUSES['success'])
+                             .created_after(time)
+                             .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
+                             .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
+                             .with_status(Pharos::Application::PHAROS_STATUSES['success'])
     deletion_items
   end
 
   def generate_deletion_csv(deletion_items)
     directory = "./tmp/deletions_#{Rails.env}"
     inst_name = deletion_items.first.institution.name.split(' ').join('_')
-    Dir.mkdir("#{directory}") unless Dir.exist?("#{directory}")
-    Dir.mkdir("#{directory}/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}") unless Dir.exist?("#{directory}/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}")
-    Dir.mkdir("#{directory}/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}/#{inst_name}") unless Dir.exist?("#{directory}/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}/#{inst_name}")
+    Dir.mkdir(directory.to_s) unless Dir.exist?(directory.to_s)
+    Dir.mkdir("#{directory}/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}") unless Dir.exist?("#{directory}/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}")
+    Dir.mkdir("#{directory}/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}/#{inst_name}") unless Dir.exist?("#{directory}/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}/#{inst_name}")
     attributes = ['Generic File Identifier', 'Date Deleted', 'Requested By', 'Approved By', 'APTrust Approver']
-    CSV.open("#{directory}/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}/#{inst_name}/#{inst_name}.csv", 'w', write_headers: true, headers: attributes) do |csv|
+    CSV.open("#{directory}/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}/#{inst_name}/#{inst_name}.csv", 'w', write_headers: true, headers: attributes) do |csv|
       deletion_items.each do |item|
-        unless item.generic_file_identifier.nil?
-          item.inst_approver.nil? ? inst_app = 'NA' : inst_app = item.inst_approver
-          item.aptrust_approver.nil? ? apt_app = 'NA' : apt_app = item.aptrust_approver
-          row = [item.generic_file_identifier, item.date.to_s, item.user, inst_app, apt_app]
-          csv << row
-        end
+        next if item.generic_file_identifier.nil?
+
+        inst_app = item.inst_approver.nil? ? 'NA' : item.inst_approver
+        apt_app = item.aptrust_approver.nil? ? 'NA' : item.aptrust_approver
+        row = [item.generic_file_identifier, item.date.to_s, item.user, inst_app, apt_app]
+        csv << row
       end
     end
   end
 
   def generate_deletion_zipped_csv(deletion_items)
     inst_name = deletion_items.first.institution.name.split(' ').join('_')
-    directory = "./tmp/deletions_#{Rails.env}/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}/#{inst_name}"
+    directory = "./tmp/deletions_#{Rails.env}/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}/#{inst_name}"
     csv = generate_deletion_csv(deletion_items)
     output_file = "#{directory}/#{inst_name}.zip"
     zf = ZipFileGenerator.new(directory, output_file)
-    zf.write()
+    zf.write
   end
 
   def self.remove_directory(env)
-    if env == 'test'
-      directory = "./tmp/deletions_#{env}/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}"
-    else
-      directory = "./tmp/deletions_#{env}/#{Time.now.month - 3.months}-#{Time.now.day}-#{Time.now.year}"
-    end
+    directory = if env == 'test'
+                  "./tmp/deletions_#{env}/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}"
+                else
+                  "./tmp/deletions_#{env}/#{Time.zone.now.month - 3.months}-#{Time.zone.now.day}-#{Time.zone.now.year}"
+                end
     FileUtils.rm_rf(directory)
   end
 
@@ -166,7 +166,7 @@ class Institution < ActiveRecord::Base
     confirming_users
   end
 
-  def serializable_hash(options={})
+  def serializable_hash(_options = {})
     {
       id: id,
       identifier: identifier,
@@ -183,26 +183,22 @@ class Institution < ActiveRecord::Base
       cross_tab['all'] = stats
       cross_tab
     else
-      {'all' => 0}
+      { 'all' => 0 }
     end
   end
 
   def deactivate
     update_attribute(:deactivated_at, Time.current)
-    self.users.each do |user|
-      user.soft_delete
-    end
+    self.users.each(&:soft_delete)
   end
 
   def reactivate
     update_attribute(:deactivated_at, nil)
-    self.users.each do |user|
-      user.reactivate
-    end
+    self.users.each(&:reactivate)
   end
 
   def deactivated?
-    return !self.deactivated_at.nil?
+    !self.deactivated_at.nil?
   end
 
   def average_file_size
@@ -305,8 +301,8 @@ class Institution < ActiveRecord::Base
     monthly_labels = []
     monthly_data = []
     earliest_date = '2014-12-1T00:00:00+00:00'
-    iterative_date = (DateTime.current+1.month).beginning_of_month
-    while iterative_date.to_s > earliest_date do
+    iterative_date = (DateTime.current + 1.month).beginning_of_month
+    while iterative_date.to_s > earliest_date
       before_date = iterative_date - 1.month
       monthly_labels.push(convert_datetime_to_label(before_date))
       if self.name == 'APTrust'
@@ -366,17 +362,20 @@ class Institution < ActiveRecord::Base
 
   def name_is_unique
     return if self.name.nil?
-    errors.add(:name, 'has already been taken') if Institution.where(name: self.name).reject{|r| r == self}.any?
+
+    errors.add(:name, 'has already been taken') if Institution.where(name: self.name).reject { |r| r == self }.any?
   end
 
   def domain_is_allowed
     return if self.identifier.nil?
+
     errors.add(:identifier, 'must be a valid domain name') unless self.identifier.include?('.')
     errors.add(:identifier, "must end in '.com', '.org', '.edu', or .museum") unless Pharos::Application::VALID_DOMAINS.include?(self.identifier.split('.').last)
   end
 
   def set_bucket_names
     return if self.identifier.nil?
+
     self.receiving_bucket = "#{Pharos::Application.config.pharos_receiving_bucket_prefix}#{self.identifier}"
     self.restore_bucket = "#{Pharos::Application.config.pharos_restore_bucket_prefix}#{self.identifier}"
   end
@@ -409,5 +408,4 @@ class Institution < ActiveRecord::Base
       throw(:abort)
     end
   end
-
 end

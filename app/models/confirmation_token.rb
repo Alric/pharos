@@ -9,7 +9,7 @@
 #  intellectual_object_id :integer
 #  user_id                :integer
 #
-class ConfirmationToken < ActiveRecord::Base
+class ConfirmationToken < ApplicationRecord
   self.primary_key = 'id'
   belongs_to :institution
   belongs_to :intellectual_object
@@ -21,6 +21,7 @@ class ConfirmationToken < ActiveRecord::Base
   before_save :init_token
 
   private
+
   def init_token
     self.token = SecureRandom.hex if self.token.nil?
   end

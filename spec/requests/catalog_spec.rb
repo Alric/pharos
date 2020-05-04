@@ -1,12 +1,11 @@
 require 'spec_helper'
 
 describe 'Catalog' do
-
   after do
     Institution.destroy_all
   end
 
-  describe 'GET #search', :type => :feature do
+  describe 'GET #search', type: :feature do
     before(:each) do
       visit('/')
     end
@@ -38,7 +37,7 @@ describe 'Catalog' do
         it 'should present the users name' do
           inject_session verified: true
           login_as(@user)
-          expect(page).to have_content("#{@user.name}")
+          expect(page).to have_content(@user.name.to_s)
         end
       end
 
@@ -57,7 +56,7 @@ describe 'Catalog' do
         it 'should present the users name' do
           inject_session verified: true
           login_as(@user)
-          expect(page).to have_content("#{@user.name}")
+          expect(page).to have_content(@user.name.to_s)
         end
       end
 
@@ -74,7 +73,7 @@ describe 'Catalog' do
 
         it 'should present the users name' do
           login_as(@user)
-          expect(page).to have_content("#{@user.name}")
+          expect(page).to have_content(@user.name.to_s)
         end
       end
     end

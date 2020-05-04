@@ -6,25 +6,21 @@ class ReportsController < ApplicationController
 
   def index
     authorize @institution
-    (@institution.name == 'APTrust') ?
-        @overview_report = Institution.generate_overview_apt :
-        @overview_report = @institution.generate_overview
+    @overview_report = @institution.name == 'APTrust' ? Institution.generate_overview_apt : @institution.generate_overview
     @indiv_timeline_breakdown = @institution.generate_timeline_report
     @inst_breakdown_report = Institution.breakdown if policy(current_user).institution_breakdown?
     respond_to do |format|
       format.json { render json: { overview_report: @overview_report, timeline_report: @indiv_timeline_breakdown, institution_breakdown: @inst_breakdown_report } }
-      format.html { }
+      format.html {}
     end
   end
 
   def overview
     authorize @institution
-    (@institution.name == 'APTrust') ?
-        @overview_report = Institution.generate_overview_apt :
-        @overview_report = @institution.generate_overview
+    @overview_report = @institution.name == 'APTrust' ? Institution.generate_overview_apt : @institution.generate_overview
     respond_to do |format|
       format.json { render json: { report: @overview_report } }
-      format.html { }
+      format.html {}
       format.pdf do
         html = render_to_string(action: :overview, layout: false)
         pdf = WickedPdf.new.pdf_from_string(html)
@@ -45,7 +41,7 @@ class ReportsController < ApplicationController
     @nav_type = 'general'
     respond_to do |format|
       format.json { render json: { report: @basic_report } }
-      format.html { }
+      format.html {}
       # format.pdf do
       #   html = render_to_string(action: :general, layout: false)
       #   pdf = WickedPdf.new.pdf_from_string(html)
@@ -60,7 +56,7 @@ class ReportsController < ApplicationController
     @nav_type = 'subscriber'
     respond_to do |format|
       format.json { render json: { report: @subscriber_report } }
-      format.html { }
+      format.html {}
       # format.pdf do
       #   html = render_to_string(action: :subscribers, layout: false)
       #   pdf = WickedPdf.new.pdf_from_string(html)
@@ -75,7 +71,7 @@ class ReportsController < ApplicationController
     @nav_type = 'cost'
     respond_to do |format|
       format.json { render json: { report: @cost_report } }
-      format.html { }
+      format.html {}
       # format.pdf do
       #   html = render_to_string(action: :cost, layout: false)
       #   pdf = WickedPdf.new.pdf_from_string(html)
@@ -90,7 +86,7 @@ class ReportsController < ApplicationController
     @nav_type = 'timeline'
     respond_to do |format|
       format.json { render json: { report: @timeline_report } }
-      format.html { }
+      format.html {}
       # format.pdf do
       #   html = render_to_string(action: :timeline, layout: false)
       #   pdf = WickedPdf.new.pdf_from_string(html)
@@ -101,13 +97,11 @@ class ReportsController < ApplicationController
 
   def mimetype
     authorize @institution, :overview?
-    (@institution.name == 'APTrust') ?
-        @mimetype_report = GenericFile.bytes_by_format :
-        @mimetype_report = @institution.bytes_by_format
+    @mimetype_report = @institution.name == 'APTrust' ? GenericFile.bytes_by_format : @institution.bytes_by_format
     @nav_type = 'mimetype'
     respond_to do |format|
       format.json { render json: { report: @mimetype_report } }
-      format.html { }
+      format.html {}
       # format.pdf do
       #   html = render_to_string(action: :mimetype, layout: false)
       #   pdf = WickedPdf.new.pdf_from_string(html)
@@ -120,11 +114,11 @@ class ReportsController < ApplicationController
     authorize current_user
     @institution = current_user.institution
     @inst_breakdown_report = Institution.breakdown
-    @report_time = Time.now
+    @report_time = Time.zone.now
     @nav_type = 'breakdown'
     respond_to do |format|
       format.json { render json: { report: @inst_breakdown_report } }
-      format.html { }
+      format.html {}
       format.pdf do
         html = render_to_string(action: :institution_breakdown, layout: false)
         pdf = WickedPdf.new.pdf_from_string(html)
@@ -144,7 +138,7 @@ class ReportsController < ApplicationController
     @institution = @intellectual_object.institution unless @intellectual_object.nil?
     if @intellectual_object.nil?
       respond_to do |format|
-        format.json { render :nothing => true, :status => 404 }
+        format.json { render nothing: true, status: :not_found }
         format.html
       end
     else
@@ -167,11 +161,10 @@ class ReportsController < ApplicationController
       @intellectual_object = IntellectualObject.where(identifier: params[:intellectual_object_identifier]).first
       if @intellectual_object.nil?
         msg = "IntellectualObject '#{params[:intellectual_object_identifier]}' not found"
-        raise ActionController::RoutingError.new(msg)
+        fail ActionController::RoutingError, msg
       end
     else
       @intellectual_object ||= IntellectualObject.readable(current_user).find(params[:id])
     end
   end
-
 end

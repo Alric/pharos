@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 describe 'Faceting' do
-
   before :all do
     Institution.destroy_all
     GenericFile.destroy_all
@@ -55,8 +54,6 @@ describe 'Faceting' do
         page.should have_css('dd', text: @event1.event_type)
         page.should_not have_css('dd', text: @event3.event_type)
       end
-
     end
   end
-
 end

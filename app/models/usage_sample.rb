@@ -8,7 +8,7 @@
 #  institution_id :string
 #  data           :text
 #
-class UsageSample < ActiveRecord::Base
+class UsageSample < ApplicationRecord
   self.primary_key = 'id'
   serialize :data, Hash
 
@@ -16,19 +16,19 @@ class UsageSample < ActiveRecord::Base
 
   def institution
     unless institution_id
-      $stderr.puts 'No institution_id set'
+      warn 'No institution_id set'
       return nil
     end
     @institution ||= Institution.find(institution_id)
   end
 
-  def institution= inst
+  def institution=(inst)
     self.institution_id = inst.id
     @institution = inst
   end
 
   def to_flot
-    [created_at.to_i, data['all'] ]
+    [created_at.to_i, data['all']]
   end
 
   protected

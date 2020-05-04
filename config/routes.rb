@@ -1,5 +1,4 @@
 Rails.application.routes.draw do
-
   # INSTITUTION ROUTES
   institution_ptrn = /(\w+\.)*\w+(\.edu|\.com|\.org|\.museum)/
   resources :institutions, format: [:json, :html], param: :institution_identifier, institution_identifier: institution_ptrn
@@ -25,7 +24,7 @@ Rails.application.routes.draw do
   get 'api/v2/:institution_identifier/mass_forced_password_update', to: 'institutions#mass_forced_password_update', as: :api_mass_forced_password_update, format: [:html, :json], institution_identifier: institution_ptrn
 
   # INTELLECTUAL OBJECT ROUTES
-  object_ptrn = /(\w+\.)*\w+(\.edu|\.com|\.org|\.museum)(\%|\/)[\w\-\.\%\?\=\(\)\:\#\[\]\!\$\&\'\*\+\,\;\_\~\ \p{L}]+/
+  object_ptrn = %r{(\w+\.)*\w+(\.edu|\.com|\.org|\.museum)(\%|/)[\w\-\.\%\?\=\(\)\:\#\[\]\!\$\&\'\*\+\,\;\_\~\ \p{L}]+}
   resources :intellectual_objects, only: [:show, :edit, :update, :destroy], format: [:json, :html], param: :intellectual_object_identifier, intellectual_object_identifier: object_ptrn, path: 'objects'
   get 'objects/:intellectual_object_identifier/restore', to: 'intellectual_objects#restore', format: [:json, :html], intellectual_object_identifier: object_ptrn, as: :intellectual_object_restore
   get 'objects', to: 'intellectual_objects#index', format: [:json, :html]
@@ -47,7 +46,7 @@ Rails.application.routes.draw do
   get 'api/v2/objects/:intellectual_object_identifier/finish_delete', to: 'intellectual_objects#finished_destroy', format: :json, intellectual_object_identifier: object_ptrn, as: :get_api_object_finish_destroy
 
   # GENERIC FILE ROUTES
-  file_ptrn = /(\w+\.)*\w+(\.edu|\.com|\.org|\.museum)(\%2[Ff]|\/)+[\w\-\/\.\%\?\=\(\)\:\#\[\]\!\$\&\'\*\+\,\;\_\~\ \p{L}]+(\%2[fF]|\/)+[\w\-\/\.\%\@\?\=\(\)\:\#\[\]\!\$\&\'\*\+\,\;\_\~\ \p{L}]+/
+  file_ptrn = %r{(\w+\.)*\w+(\.edu|\.com|\.org|\.museum)(\%2[Ff]|/)+[\w\-/\.\%\?\=\(\)\:\#\[\]\!\$\&\'\*\+\,\;\_\~\ \p{L}]+(\%2[fF]|/)+[\w\-/\.\%\@\?\=\(\)\:\#\[\]\!\$\&\'\*\+\,\;\_\~\ \p{L}]+}
   resources :generic_files, only: [:show, :update, :destroy], format: [:json, :html], defaults: { format: :html }, param: :generic_file_identifier, generic_file_identifier: file_ptrn, path: 'files'
   resources :generic_files, only: [:show, :update, :destroy], format: [:json, :html], defaults: { format: :json }, param: :generic_file_identifier, generic_file_identifier: file_ptrn, path: 'api/v2/files'
   get '/api/v2/files/:institution_identifier', to: 'generic_files#index', format: [:json, :html], institution_identifier: institution_ptrn, as: :institution_files_api
@@ -70,7 +69,6 @@ Rails.application.routes.draw do
   get 'files/restore/:generic_file_identifier', to: 'generic_files#restore', format: [:json, :html], generic_file_identifier: file_ptrn, as: :generic_file_restore
   get 'member-api/v2/files/restore/:generic_file_identifier', to: 'generic_files#restore', format: :json, generic_file_identifier: file_ptrn
   put 'api/v2/files/restore/:generic_file_identifier', to: 'generic_files#restore', format: :json, generic_file_identifier: file_ptrn
-
 
   # INSTITUTIONS (API)
   # resources :institutions doesn't like this route for #show, because it interprets .edu/.org/.com as an 'unknown format'
@@ -97,8 +95,8 @@ Rails.application.routes.draw do
   put 'items/', to: 'work_items#update', format: :json
   resources :work_items, path: '/api/v2/items'
   resources :work_items, only: [:index], path: 'member-api/v2/items', format: [:json, :html]
-  get '/api/v2/items/:etag/:name/:bag_date', to: 'work_items#show', as: :work_item_by_etag, name: /[^\/]*/, bag_date: /[^\/]*/
-  put '/api/v2/items/:etag/:name/:bag_date', to: 'work_items#update', format: 'json', as: :work_item_api_update_by_etag, name: /[^\/]*/, bag_date: /[^\/]*/
+  get '/api/v2/items/:etag/:name/:bag_date', to: 'work_items#show', as: :work_item_by_etag, name: %r{[^/]*}, bag_date: %r{[^/]*}
+  put '/api/v2/items/:etag/:name/:bag_date', to: 'work_items#update', format: 'json', as: :work_item_api_update_by_etag, name: %r{[^/]*}, bag_date: %r{[^/]*}
   get 'items/items_for_restore', to: 'work_items#items_for_restore', format: :json
   get 'items/items_for_delete', to: 'work_items#items_for_delete', format: :json
   get 'items/ingested_since', to: 'work_items#ingested_since', format: :json
@@ -111,8 +109,8 @@ Rails.application.routes.draw do
   get '/api/v2/notifications/spot_test_restoration/:id', to: 'work_items#spot_test_restoration', format: :json
 
   # WORK ITEM STATE ROUTES
-  #resources :work_item_states, path: 'item_state', only: [:show, :update, :create], format: :json, param: :work_item_id
-  #resources :work_item_states, path: '/api/v2/item_state', only: [:show, :update, :create], format: :json, param: :work_item_id
+  # resources :work_item_states, path: 'item_state', only: [:show, :update, :create], format: :json, param: :work_item_id
+  # resources :work_item_states, path: '/api/v2/item_state', only: [:show, :update, :create], format: :json, param: :work_item_id
   post '/api/v2/item_state', to: 'work_item_states#create', format: :json
   put '/api/v2/item_state/:id', to: 'work_item_states#update', format: :json
   get '/api/v2/item_state/:id', to: 'work_item_states#show', format: :json
@@ -155,11 +153,11 @@ Rails.application.routes.draw do
 
   # USER ROUTES
   devise_for :users,
-  pathnames: {
-      verify_authy: '/verify-token',
-      enable_authy: '/enable-authy',
-      verify_authy_installation: '/verify-installation'
-  }
+             pathnames: {
+               verify_authy: '/verify-token',
+               enable_authy: '/enable-authy',
+               verify_authy_installation: '/verify-installation'
+             }
 
   resources :users do
     patch 'update_password', on: :collection
@@ -195,13 +193,13 @@ Rails.application.routes.draw do
   get 'verifications/enter_backup/:id', to: 'verifications#enter_backup', as: :enter_backup_verification
   put 'verifications/check_backup/:id', to: 'verifications#check_backup', as: :check_backup_verification
 
-  #get '/verification_callback', to: 'application#callback', as: :verification_callback
+  # get '/verification_callback', to: 'application#callback', as: :verification_callback
 
   authenticated :user do
     root to: 'institutions#show', as: 'authenticated_root'
   end
 
-  root :to => 'institutions#show'
+  root to: 'institutions#show'
 
   match '*path', to: 'application#catch_404', via: :all
 end

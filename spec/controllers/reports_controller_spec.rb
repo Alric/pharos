@@ -8,7 +8,7 @@ RSpec.describe ReportsController, type: :controller do
     Institution.delete_all
 
     @institution_two = FactoryBot.create(:member_institution, identifier: 'aptrust.org')
-    @institution_one =  FactoryBot.create(:subscription_institution, member_institution_id: @institution_two.id)
+    @institution_one = FactoryBot.create(:subscription_institution, member_institution_id: @institution_two.id)
     @admin_user = FactoryBot.create(:user, :admin, institution: @institution_one)
     @institutional_user = FactoryBot.create(:user, :institutional_user, institution: @institution_two)
     @institutional_admin = FactoryBot.create(:user, :institutional_admin, institution: @institution_two)
@@ -77,7 +77,6 @@ RSpec.describe ReportsController, type: :controller do
         expect(response.status).to eq(403)
       end
     end
-
   end
 
   describe 'GET #overview' do
@@ -471,5 +470,4 @@ RSpec.describe ReportsController, type: :controller do
       end
     end
   end
-
 end

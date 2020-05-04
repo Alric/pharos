@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-RSpec.describe BulkDeleteJob, :type => :model do
-  it { should validate_presence_of (:requested_by) }
-  it { should validate_presence_of (:institution_id) }
+RSpec.describe BulkDeleteJob, type: :model do
+  it { should validate_presence_of :requested_by }
+  it { should validate_presence_of :institution_id }
 
   it 'should properly set a requested_by' do
     subject.requested_by = 'kelly.cobb@aptrust.org'

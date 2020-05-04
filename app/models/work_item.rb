@@ -43,7 +43,7 @@
 #  index_work_items_on_stage                    (stage)
 #  index_work_items_on_status                   (status)
 #
-class WorkItem < ActiveRecord::Base
+class WorkItem < ApplicationRecord
   self.primary_key = 'id'
   paginates_per 10
 
@@ -60,116 +60,116 @@ class WorkItem < ActiveRecord::Base
   before_save :set_object_identifier_if_ingested
 
   ### Scopes
-  scope :created_before, ->(param) { where('work_items.created_at < ?', param) unless param.blank? }
-  scope :created_after, ->(param) { where('work_items.created_at >= ?', param) unless param.blank? }
-  scope :updated_before, ->(param) { where('work_items.updated_at < ?', param) unless param.blank? }
-  scope :updated_after, ->(param) { where('work_items.updated_at >= ?', param) unless param.blank? }
+  scope :created_before, ->(param) { where('work_items.created_at < ?', param) if param.present? }
+  scope :created_after, ->(param) { where('work_items.created_at >= ?', param) if param.present? }
+  scope :updated_before, ->(param) { where('work_items.updated_at < ?', param) if param.present? }
+  scope :updated_after, ->(param) { where('work_items.updated_at >= ?', param) if param.present? }
   scope :with_bag_date, ->(param1, param2) { where('work_items.bag_date >= ? AND work_items.bag_date < ?', param1, param2) unless param1.blank? || param2.blank? }
-  scope :queued_before, ->(param) { where('Work_items.queued_at < ?', param) unless param.blank? }
-  scope :with_name, ->(param) { where(name: param) unless param.blank? }
+  scope :queued_before, ->(param) { where('Work_items.queued_at < ?', param) if param.present? }
+  scope :with_name, ->(param) { where(name: param) if param.present? }
   scope :with_name_like, ->(param) { where('work_items.name like ?', "%#{param}%") unless WorkItem.empty_param(param) }
-  scope :with_etag, ->(param) { where(etag: param) unless param.blank? }
+  scope :with_etag, ->(param) { where(etag: param) if param.present? }
   scope :with_etag_like, ->(param) { where('work_items.etag like ?', "%#{param}%") unless WorkItem.empty_param(param) }
-  scope :with_object_identifier, ->(param) { where(object_identifier: param) unless param.blank? }
+  scope :with_object_identifier, ->(param) { where(object_identifier: param) if param.present? }
   scope :with_object_identifier_like, ->(param) { where('work_items.object_identifier like ?', "%#{param}%") unless WorkItem.empty_param(param) }
-  scope :with_file_identifier, ->(param) { where(generic_file_identifier: param) unless param.blank? }
+  scope :with_file_identifier, ->(param) { where(generic_file_identifier: param) if param.present? }
   scope :with_file_identifier_like, ->(param) { where('work_items.generic_file_identifier like ?', "%#{param}%") unless WorkItem.empty_param(param) }
-  scope :with_status, ->(param) { where(status: param) unless param.blank? }
-  scope :with_stage, ->(param) { where(stage: param) unless param.blank? }
-  scope :with_action, ->(param) { where(action: param) unless param.blank? }
-  scope :with_institution, ->(param) { where(institution_id: param) unless param.blank? }
-  scope :with_node, ->(param) { where(node: param) unless param.blank? }
-  scope :with_pid, ->(param) { where(pid: param) unless param.blank? }
+  scope :with_status, ->(param) { where(status: param) if param.present? }
+  scope :with_stage, ->(param) { where(stage: param) if param.present? }
+  scope :with_action, ->(param) { where(action: param) if param.present? }
+  scope :with_institution, ->(param) { where(institution_id: param) if param.present? }
+  scope :with_node, ->(param) { where(node: param) if param.present? }
+  scope :with_pid, ->(param) { where(pid: param) if param.present? }
   scope :with_unempty_node, ->(param) { where("node is NOT NULL and node != ''") if param == 'true' }
   scope :with_empty_node, ->(param) { where("node is NULL or node = ''") if param == 'true' }
   scope :with_unempty_pid, ->(param) { where('pid is NOT NULL and pid != 0') if param == 'true' }
   scope :with_empty_pid, ->(param) { where('pid is NULL or pid = 0') if param == 'true' }
-  scope :with_retry, ->(param) {
-    unless param.blank?
-      if param == 'true'
-        where(retry: true)
-      elsif param == 'false'
-        where(retry: false)
-      end
-    end }
-  scope :with_access, ->(param) {
-    joins(:intellectual_object)
-        .where('intellectual_objects.access = ?', param) unless param.blank?
+  scope :with_retry, lambda { |param|
+                       if param.present?
+                         if param == 'true'
+                           where(retry: true)
+                         elsif param == 'false'
+                           where(retry: false)
+                         end
+                       end
+                     }
+  scope :with_access, lambda { |param|
+    if param.present?
+      joins(:intellectual_object)
+        .where('intellectual_objects.access = ?', param)
+    end
   }
   # We can't always check the permissions on the related IntellectualObject,
   # because some work items (such as in-progress Ingest items) have no object.
   # So for now, users can view work items belonging to their institutions.
   # The WorkItem does not give away info about title or description, only the
   # name of the bag/tar file, which is usually an opaque identifier.
-  scope :readable, ->(current_user) {
+  scope :readable, lambda { |current_user|
     where(institution: current_user.institution) unless current_user.admin?
   }
   # queued returns items that have or have not been queued
-  scope :queued, ->(param) {
-    if !param.blank?
-      if param == "false"
-        where("queued_at is null")
-      elsif param == "true"
-        where("queued_at is not null")
-      end
-    end
-    }
-
+  scope :queued, lambda { |param|
+                   if param.present?
+                     if param == 'false'
+                       where('queued_at is null')
+                     elsif param == 'true'
+                       where('queued_at is not null')
+                     end
+                   end
+                 }
 
   # def to_param
   #   #"#{etag}/#{name}"
   # end
 
   def self.empty_param(param)
-    (param.blank? || param.nil? || param == '*' || param == '' || param == '%') ? true : false
+    param.blank? || param.nil? || param == '*' || param == '' || param == '%' ? true : false
   end
 
-  def serializable_hash(options={})
+  def serializable_hash(options = {})
     data = super(options)
-    if self.work_item_state
-      data['work_item_state_id'] = self.work_item_state.id
-    else
-      data['work_item_state_id'] = nil
-    end
+    data['work_item_state_id'] = if self.work_item_state
+                                   self.work_item_state.id
+                                 end
     data
   end
 
   def self.pending_action(intellectual_object_identifier)
     item = WorkItem
-      .where('object_identifier = ? ' +
-             'and status not in (?, ?, ?) ' +
+           .where('object_identifier = ? ' \
+             'and status not in (?, ?, ?) ' \
              'and action in (?, ?, ?, ?)',
-             intellectual_object_identifier,
-             Pharos::Application::PHAROS_STATUSES['success'],
-             Pharos::Application::PHAROS_STATUSES['fail'],
-             Pharos::Application::PHAROS_STATUSES['cancel'],
-             Pharos::Application::PHAROS_ACTIONS['ingest'],
-             Pharos::Application::PHAROS_ACTIONS['restore'],
-             Pharos::Application::PHAROS_ACTIONS['delete'],
-             Pharos::Application::PHAROS_ACTIONS['glacier_restore'])
-      .order('date DESC')
-      .limit(1)
-      .first
+                  intellectual_object_identifier,
+                  Pharos::Application::PHAROS_STATUSES['success'],
+                  Pharos::Application::PHAROS_STATUSES['fail'],
+                  Pharos::Application::PHAROS_STATUSES['cancel'],
+                  Pharos::Application::PHAROS_ACTIONS['ingest'],
+                  Pharos::Application::PHAROS_ACTIONS['restore'],
+                  Pharos::Application::PHAROS_ACTIONS['delete'],
+                  Pharos::Application::PHAROS_ACTIONS['glacier_restore'])
+           .order('date DESC')
+           .limit(1)
+           .first
   end
 
   def self.pending_action_for_file(generic_file_identifier)
     item = WorkItem
-               .where('generic_file_identifier = ? ' +
-                          'and status not in (?, ?, ?) ' +
+           .where('generic_file_identifier = ? ' \
+                          'and status not in (?, ?, ?) ' \
                           'and action in (?, ?, ?)',
-                      generic_file_identifier,
-                      Pharos::Application::PHAROS_STATUSES['success'],
-                      Pharos::Application::PHAROS_STATUSES['fail'],
-                      Pharos::Application::PHAROS_STATUSES['cancel'],
-                      Pharos::Application::PHAROS_ACTIONS['ingest'],
-                      Pharos::Application::PHAROS_ACTIONS['restore'],
-                      Pharos::Application::PHAROS_ACTIONS['delete'])
-               .order('date DESC')
-               .limit(1)
-               .first
+                  generic_file_identifier,
+                  Pharos::Application::PHAROS_STATUSES['success'],
+                  Pharos::Application::PHAROS_STATUSES['fail'],
+                  Pharos::Application::PHAROS_STATUSES['cancel'],
+                  Pharos::Application::PHAROS_ACTIONS['ingest'],
+                  Pharos::Application::PHAROS_ACTIONS['restore'],
+                  Pharos::Application::PHAROS_ACTIONS['delete'])
+           .order('date DESC')
+           .limit(1)
+           .first
   end
 
-  def requeue_item(options={})
+  def requeue_item(options = {})
     self.status = Pharos::Application::PHAROS_STATUSES['pend']
     self.retry = true
     self.needs_admin_review = false
@@ -193,7 +193,7 @@ class WorkItem < ActiveRecord::Base
         if options[:stage] == Pharos::Application::PHAROS_STAGES['fetch']
           self.stage = Pharos::Application::PHAROS_STAGES['receive']
           self.note = 'Item is pending ingest'
-          self.work_item_state.delete if self.work_item_state
+          self.work_item_state&.delete
         elsif options[:stage] == Pharos::Application::PHAROS_STAGES['store']
           self.stage = Pharos::Application::PHAROS_STAGES['store']
           self.note = 'Item is pending storage'
@@ -212,8 +212,8 @@ class WorkItem < ActiveRecord::Base
     result = 'true'
     items.each do |item|
       if item.status == Pharos::Application::PHAROS_STATUSES['success'] ||
-          item.status == Pharos::Application::PHAROS_STATUSES['fail'] ||
-          item.status == Pharos::Application::PHAROS_STATUSES['cancel']
+         item.status == Pharos::Application::PHAROS_STATUSES['fail'] ||
+         item.status == Pharos::Application::PHAROS_STATUSES['cancel']
         result = 'true'
       else
         if item.action == Pharos::Application::PHAROS_ACTIONS['ingest']
@@ -242,8 +242,8 @@ class WorkItem < ActiveRecord::Base
   # * Stage is Clean or (Stage is Record and Status is Success)
   # * Has the latest date of any record with the above characteristics
   def self.last_ingested_version(intellectual_object_identifier)
-    conditions = "object_identifier = ? and action = 'Ingest' and " +
-      "(stage = 'Record' or stage = 'Cleanup') and status = 'Success'"
+    conditions = "object_identifier = ? and action = 'Ingest' and " \
+                 "(stage = 'Record' or stage = 'Cleanup') and status = 'Success'"
     WorkItem.where(conditions, intellectual_object_identifier).order('date DESC').first
   end
 
@@ -253,8 +253,9 @@ class WorkItem < ActiveRecord::Base
   def self.create_restore_request(intellectual_object_identifier, requested_by)
     item = WorkItem.last_ingested_version(intellectual_object_identifier)
     if item.nil?
-      raise ActiveRecord::RecordNotFound
+      fail ActiveRecord::RecordNotFound
     end
+
     obj = IntellectualObject.with_identifier(intellectual_object_identifier).first
     restore_item = item.dup
     restore_item.size = obj.gf_size
@@ -266,8 +267,9 @@ class WorkItem < ActiveRecord::Base
   def self.create_glacier_restore_request(intellectual_object_identifier, requested_by)
     item = WorkItem.last_ingested_version(intellectual_object_identifier)
     if item.nil?
-      raise ActiveRecord::RecordNotFound
+      fail ActiveRecord::RecordNotFound
     end
+
     obj = IntellectualObject.with_identifier(intellectual_object_identifier).first
     restore_item = item.dup
     restore_item.size = obj.gf_size
@@ -276,14 +278,14 @@ class WorkItem < ActiveRecord::Base
     restore_item
   end
 
-  def self.finish_restore_request(restore_item, requested_by, orig_item)
+  def self.finish_restore_request(restore_item, requested_by, _orig_item)
     restore_item.stage = Pharos::Application::PHAROS_STAGES['requested']
     restore_item.status = Pharos::Application::PHAROS_STATUSES['pend']
     restore_item.note = 'Restore requested'
     restore_item.outcome = 'Not started'
     restore_item.user = requested_by
     restore_item.retry = true
-    restore_item.date = Time.now
+    restore_item.date = Time.zone.now
     restore_item.work_item_state.state = nil unless restore_item.work_item_state.nil?
     restore_item.node = nil
     restore_item.pid = 0
@@ -300,8 +302,9 @@ class WorkItem < ActiveRecord::Base
   def self.create_restore_request_for_file(generic_file, requested_by)
     item = WorkItem.last_ingested_version(generic_file.intellectual_object.identifier)
     if item.nil?
-      raise ActiveRecord::RecordNotFound
+      fail ActiveRecord::RecordNotFound
     end
+
     action = Pharos::Application::PHAROS_ACTIONS['restore']
     if generic_file.storage_option != 'Standard'
       action = Pharos::Application::PHAROS_ACTIONS['glacier_restore']
@@ -315,7 +318,7 @@ class WorkItem < ActiveRecord::Base
     restore_item.outcome = 'Not started'
     restore_item.user = requested_by
     restore_item.retry = true
-    restore_item.date = Time.now
+    restore_item.date = Time.zone.now
     restore_item.work_item_state.state = nil unless restore_item.work_item_state.nil?
     restore_item.node = nil
     restore_item.pid = 0
@@ -333,10 +336,11 @@ class WorkItem < ActiveRecord::Base
   def self.create_delete_request(intellectual_object_identifier, generic_file_identifier, requested_by, inst_app, apt_app)
     item = WorkItem.last_ingested_version(intellectual_object_identifier)
     if item.nil?
-      raise ActiveRecord::RecordNotFound
+      fail ActiveRecord::RecordNotFound
     end
+
     file = GenericFile.with_identifier(generic_file_identifier).first
-    file ? size = file.size : size = 0
+    size = file ? file.size : 0
     delete_item = item.dup
     delete_item.action = Pharos::Application::PHAROS_ACTIONS['delete']
     delete_item.stage = Pharos::Application::PHAROS_STAGES['requested']
@@ -345,7 +349,7 @@ class WorkItem < ActiveRecord::Base
     delete_item.outcome = 'Not started'
     delete_item.user = requested_by
     delete_item.retry = true
-    delete_item.date = Time.now
+    delete_item.date = Time.zone.now
     delete_item.generic_file_identifier = generic_file_identifier
     delete_item.work_item_state.state = nil unless delete_item.work_item_state.nil?
     delete_item.node = nil
@@ -362,32 +366,32 @@ class WorkItem < ActiveRecord::Base
 
   def self.deletion_finished?(intellectual_object_identifier)
     item = WorkItem.with_object_identifier(intellectual_object_identifier)
-               .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
-               .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
-               .with_status(Pharos::Application::PHAROS_STATUSES['success']).first
-    item.nil? ? result = false : result = true
+                   .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
+                   .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
+                   .with_status(Pharos::Application::PHAROS_STATUSES['success']).first
+    result = item.nil? ? false : true
     result
   end
 
   def self.deletion_finished_for_file?(generic_file_identifier)
     item = WorkItem.with_file_identifier(generic_file_identifier)
-               .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
-               .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
-               .with_status(Pharos::Application::PHAROS_STATUSES['success']).first
-    item.nil? ? result = false : result = true
+                   .with_action(Pharos::Application::PHAROS_ACTIONS['delete'])
+                   .with_stage(Pharos::Application::PHAROS_STAGES['resolve'])
+                   .with_status(Pharos::Application::PHAROS_STATUSES['success']).first
+    result = item.nil? ? false : true
     result
   end
 
   def self.failed_action(datetime, action, user)
     if user.admin?
       WorkItem.with_action(action)
-          .with_status(Pharos::Application::PHAROS_STATUSES['fail'])
-          .updated_after(datetime)
+              .with_status(Pharos::Application::PHAROS_STATUSES['fail'])
+              .updated_after(datetime)
     else
       WorkItem.with_action(action)
-          .with_status(Pharos::Application::PHAROS_STATUSES['fail'])
-          .updated_after(datetime)
-          .with_institution(user.institution_id)
+              .with_status(Pharos::Application::PHAROS_STATUSES['fail'])
+              .updated_after(datetime)
+              .with_institution(user.institution_id)
     end
   end
 
@@ -397,12 +401,12 @@ class WorkItem < ActiveRecord::Base
 
   def self.stalled_items(user)
     if user.admin?
-      WorkItem.where('queued_at < ? AND (status = ? OR status = ?)', (Time.now - 12.hours),
+      WorkItem.where('queued_at < ? AND (status = ? OR status = ?)', (Time.zone.now - 12.hours),
                      Pharos::Application::PHAROS_STATUSES['pend'], Pharos::Application::PHAROS_STATUSES['start']).order('date DESC')
     else
-      WorkItem.where('queued_at < ? AND (status = ? OR status = ?)', (Time.now - 12.hours),
+      WorkItem.where('queued_at < ? AND (status = ? OR status = ?)', (Time.zone.now - 12.hours),
                      Pharos::Application::PHAROS_STATUSES['pend'], Pharos::Application::PHAROS_STATUSES['start'])
-                     .with_institution(user.institution_id).order('date DESC')
+              .with_institution(user.institution_id).order('date DESC')
     end
   end
 
@@ -429,7 +433,8 @@ class WorkItem < ActiveRecord::Base
     state_item = self.work_item_state
     unzipped_state = state_item.unzipped_state unless state_item.nil? || state_item.state.nil?
     return nil if unzipped_state.nil? || unzipped_state.strip == ''
-    return JSON.pretty_generate(JSON.parse(unzipped_state))
+
+    JSON.pretty_generate(JSON.parse(unzipped_state))
   end
 
   def ingested?
@@ -448,9 +453,10 @@ class WorkItem < ActiveRecord::Base
       # we finished ingest and processor is cleaning up
       return true
     end
+
     # if we get here, we're in some stage of the ingest process,
     # but ingest is not yet complete
-    return false
+    false
   end
 
   private
@@ -465,7 +471,7 @@ class WorkItem < ActiveRecord::Base
       bag_basename = self.name.sub(re_single, '').sub(re_multi, '')
       self.object_identifier = "#{self.institution.identifier}/#{bag_basename}"
     end
-    if self.intellectual_object_id.blank? && !self.object_identifier.blank?
+    if self.intellectual_object_id.blank? && self.object_identifier.present?
       # When importing data from Fluctus, we have ~215 items for
       # which Fedora produced no IntellectualObject record, despite
       # saying the items were ingested. In these cases, the query
@@ -475,10 +481,9 @@ class WorkItem < ActiveRecord::Base
       intel_obj = IntellectualObject.where(identifier: self.object_identifier).first
       self.intellectual_object_id = intel_obj.id unless intel_obj.nil?
     end
-    if self.generic_file_id.blank? && !self.generic_file_identifier.blank?
+    if self.generic_file_id.blank? && self.generic_file_identifier.present?
       generic_file = GenericFile.where(identifier: self.generic_file_identifier).first
       self.generic_file_id = generic_file.id unless generic_file.nil?
     end
   end
-
 end

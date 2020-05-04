@@ -4,7 +4,6 @@
 module Devise
   module Strategies
     class ApiKeyAuthenticatable < Base
-
       include ApiAuth
 
       def valid?
@@ -20,9 +19,9 @@ module Devise
 
       # Authenticate API user via email and API key.
       def authenticate!
-        api_user = request.headers["X-Pharos-API-User"]
-        api_key = request.headers["X-Pharos-API-Key"]
-        user = User.find_by_email(api_user)
+        api_user = request.headers['X-Pharos-API-User']
+        api_key = request.headers['X-Pharos-API-Key']
+        user = User.find_by(email: api_user)
         unless user
           fail!
           return
@@ -30,7 +29,6 @@ module Devise
         authenticated = api_key.nil? == false && user.valid_api_key?(api_key)
         authenticated ? success!(user) : fail!
       end
-
     end
   end
 end

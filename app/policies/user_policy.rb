@@ -1,5 +1,4 @@
 class UserPolicy < ApplicationPolicy
-
   def create?
     user.admin? || user.institutional_admin?
   end
@@ -26,7 +25,7 @@ class UserPolicy < ApplicationPolicy
 
   def index?
     user.admin? ||
-        (user.institutional_admin? && (user.institution_id == record.institution_id))
+      (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
   def snapshot?
@@ -118,8 +117,8 @@ class UserPolicy < ApplicationPolicy
   end
 
   def show?
-    user == record ||  user.admin? ||
-        (user.institutional_admin? && (user.institution_id == record.institution_id))
+    user == record || user.admin? ||
+      (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
   def verify_email?
@@ -132,22 +131,22 @@ class UserPolicy < ApplicationPolicy
 
   def enable_otp?
     user == record ||  user.admin? ||
-        (user.institutional_admin? && (user.institution_id == record.institution_id))
+      (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
   def disable_otp?
     user == record ||  user.admin? ||
-        (user.institutional_admin? && (user.institution_id == record.institution_id))
+      (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
   def change_authy_phone_number?
     user == record ||  user.admin? ||
-        (user.institutional_admin? && (user.institution_id == record.institution_id))
+      (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
   def register_authy_user?
     user == record ||  user.admin? ||
-        (user.institutional_admin? && (user.institution_id == record.institution_id))
+      (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
   def verify_twofa?
@@ -155,8 +154,8 @@ class UserPolicy < ApplicationPolicy
   end
 
   def generate_backup_codes?
-    user == record ||  user.admin? ||
-        (user.institutional_admin? && (user.institution_id == record.institution_id))
+    user == record || user.admin? ||
+      (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
   def stale_user_notification?
@@ -168,9 +167,10 @@ class UserPolicy < ApplicationPolicy
   end
 
   def update?
-    return false if (user.institutional_admin? && record.admin?)
+    return false if user.institutional_admin? && record.admin?
+
     user == record || user.admin? ||
-        (user.institutional_admin? && (user.institution_id == record.institution_id))
+      (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
   # institutional_admin cannot generate key for institutional user
@@ -191,7 +191,8 @@ class UserPolicy < ApplicationPolicy
   end
 
   def forced_password_update?
-    return false if (user.institutional_admin? && record.admin?)
+    return false if user.institutional_admin? && record.admin?
+
     user.admin? || (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
@@ -200,7 +201,8 @@ class UserPolicy < ApplicationPolicy
   end
 
   def deactivate?
-    return false if (user.institutional_admin? && record.admin?)
+    return false if user.institutional_admin? && record.admin?
+
     user.admin? || (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
@@ -222,9 +224,10 @@ class UserPolicy < ApplicationPolicy
 
   def destroy?
     return false if user == record
-    return false if (user.institutional_admin? && record.admin?)
+    return false if user.institutional_admin? && record.admin?
+
     user.admin? ||
-        (user.institutional_admin? && (user.institution_id == record.institution_id))
+      (user.institutional_admin? && (user.institution_id == record.institution_id))
   end
 
   class Scope

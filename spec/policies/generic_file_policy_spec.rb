@@ -6,7 +6,7 @@ describe GenericFilePolicy do
 
   context 'for an admin user' do
     let(:user) { FactoryBot.create(:user, :admin, institution_id: institution.id) }
-    let(:generic_file) { FactoryBot.build(:generic_file)}
+    let(:generic_file) { FactoryBot.build(:generic_file) }
 
     it 'access any generic file' do
       should permit(:add_event)
@@ -21,8 +21,10 @@ describe GenericFilePolicy do
   end
 
   context 'for an institutional admin user' do
-    let(:user) { FactoryBot.create(:user, :institutional_admin,
-                                    institution_id: institution.id) }
+    let(:user) do
+      FactoryBot.create(:user, :institutional_admin,
+                        institution_id: institution.id)
+    end
     context 'access file in my institution' do
       let(:intellectual_object) { FactoryBot.create(:intellectual_object, institution: institution) }
       let(:generic_file) { FactoryBot.create(:generic_file, intellectual_object: intellectual_object) }
@@ -70,8 +72,10 @@ describe GenericFilePolicy do
   end
 
   context 'for an institutional user' do
-    let(:user) { FactoryBot.create(:user, :institutional_user,
-                                    institution_id: institution.id) }
+    let(:user) do
+      FactoryBot.create(:user, :institutional_user,
+                        institution_id: institution.id)
+    end
     describe 'when the file is' do
       describe 'in my institution' do
         describe 'and it belongs to a consortial accessible object' do
@@ -88,15 +92,19 @@ describe GenericFilePolicy do
           end
         end
         describe 'and it belongs to an institutional accessible object' do
-          let(:intellectual_object) { FactoryBot.create(:institutional_intellectual_object,
-                                                         institution: institution) }
+          let(:intellectual_object) do
+            FactoryBot.create(:institutional_intellectual_object,
+                              institution: institution)
+          end
           let(:generic_file) { FactoryBot.create(:generic_file, intellectual_object: intellectual_object) }
 
           it { should permit(:show) }
         end
         describe 'and is it belongs to a restricted accessible object' do
-          let(:intellectual_object) { FactoryBot.create(:restricted_intellectual_object,
-                                                         institution: institution) }
+          let(:intellectual_object) do
+            FactoryBot.create(:restricted_intellectual_object,
+                              institution: institution)
+          end
           let(:generic_file) { FactoryBot.create(:generic_file, intellectual_object: intellectual_object) }
 
           it { should_not permit(:show) }
@@ -135,7 +143,7 @@ describe GenericFilePolicy do
 
   context 'with an authenticated user without a user group' do
     let(:user) { FactoryBot.build(:user) }
-    let(:generic_file) { FactoryBot.build(:generic_file)}
+    let(:generic_file) { FactoryBot.build(:generic_file) }
 
     it do
       should_not permit(:show)

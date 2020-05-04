@@ -1,7 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe GenericFile, :type => :model do
-
+RSpec.describe GenericFile, type: :model do
   it 'delegates institution to the intellectual object' do
     file = FactoryBot.create(:generic_file)
     institution = file.intellectual_object.institution
@@ -78,7 +77,7 @@ RSpec.describe GenericFile, :type => :model do
       let(:intellectual_object) { FactoryBot.create(:intellectual_object) }
       subject { FactoryBot.create(:generic_file, intellectual_object: intellectual_object) }
       describe 'its intellectual_object' do
-        after(:all)do # Must use after(:all) to avoid 'can't modify frozen Class' bug in rspec-mocks
+        after(:all) do # Must use after(:all) to avoid 'can't modify frozen Class' bug in rspec-mocks
           subject.destroy
           intellectual_object.destroy
         end
@@ -90,10 +89,10 @@ RSpec.describe GenericFile, :type => :model do
         before do
           file.save!
           @parent_work_item = FactoryBot.create(:work_item,
-                                                      object_identifier: file.intellectual_object.identifier,
-                                                      action: Pharos::Application::PHAROS_ACTIONS['ingest'],
-                                                      stage: Pharos::Application::PHAROS_STAGES['record'],
-                                                      status: Pharos::Application::PHAROS_STATUSES['success'])
+                                                object_identifier: file.intellectual_object.identifier,
+                                                action: Pharos::Application::PHAROS_ACTIONS['ingest'],
+                                                stage: Pharos::Application::PHAROS_STAGES['record'],
+                                                status: Pharos::Application::PHAROS_STATUSES['success'])
         end
         after do
           file.destroy
@@ -106,12 +105,12 @@ RSpec.describe GenericFile, :type => :model do
         it 'should set the state to deleted and index the object state' do
           attributes = { requestor: 'user@example.com',
                          inst_app: 'other_user@example.com' }
-          expect {
+          expect do
             # A.D. 1/29/2017: Don't create the file delete event.
             # Let the Go services code do that when the actual
             # deletion occurs.
             file.soft_delete(attributes)
-          }.to change { file.premis_events.count}.by(0)
+          end.to change { file.premis_events.count }.by(0)
           expect(file.state).to eq 'A' # no longer marked as deleted until final step
         end
 
@@ -128,7 +127,6 @@ RSpec.describe GenericFile, :type => :model do
           expect(pi.user).to eq 'user@example.com'
           expect(pi.inst_approver).to eq 'other_user@example.com'
         end
-
       end
 
       describe 'serializable_hash' do
@@ -140,33 +138,33 @@ RSpec.describe GenericFile, :type => :model do
 
         it 'should set the state to deleted and index the object state' do
           h1 = subject.serializable_hash
-          expect(h1.has_key?('id')).to be true
-          expect(h1.has_key?('uri')).to be true
-          expect(h1.has_key?('size')).to be true
-          expect(h1.has_key?('created_at')).to be true
-          expect(h1.has_key?('updated_at')).to be true
-          expect(h1.has_key?('file_format')).to be true
-          expect(h1.has_key?('identifier')).to be true
-          expect(h1.has_key?('state')).to be true
-          expect(h1.has_key?('intellectual_object_identifier')).to be true
-          expect(h1.has_key?('institution_id')).to be true
-          expect(h1.has_key?('storage_option')).to be true
+          expect(h1.key?('id')).to be true
+          expect(h1.key?('uri')).to be true
+          expect(h1.key?('size')).to be true
+          expect(h1.key?('created_at')).to be true
+          expect(h1.key?('updated_at')).to be true
+          expect(h1.key?('file_format')).to be true
+          expect(h1.key?('identifier')).to be true
+          expect(h1.key?('state')).to be true
+          expect(h1.key?('intellectual_object_identifier')).to be true
+          expect(h1.key?('institution_id')).to be true
+          expect(h1.key?('storage_option')).to be true
 
           h2 = subject.serializable_hash(include: [:checksums, :premis_events, :ingest_state])
-          expect(h2.has_key?('id')).to be true
-          expect(h2.has_key?('uri')).to be true
-          expect(h2.has_key?('size')).to be true
-          expect(h2.has_key?('created_at')).to be true
-          expect(h2.has_key?('updated_at')).to be true
-          expect(h2.has_key?('file_format')).to be true
-          expect(h2.has_key?('identifier')).to be true
-          expect(h2.has_key?('state')).to be true
-          expect(h2.has_key?('checksums')).to be true
-          expect(h2.has_key?('premis_events')).to be true
-          expect(h2.has_key?('intellectual_object_identifier')).to be true
-          expect(h2.has_key?('ingest_state')).to be true
-          expect(h1.has_key?('institution_id')).to be true
-          expect(h1.has_key?('storage_option')).to be true
+          expect(h2.key?('id')).to be true
+          expect(h2.key?('uri')).to be true
+          expect(h2.key?('size')).to be true
+          expect(h2.key?('created_at')).to be true
+          expect(h2.key?('updated_at')).to be true
+          expect(h2.key?('file_format')).to be true
+          expect(h2.key?('identifier')).to be true
+          expect(h2.key?('state')).to be true
+          expect(h2.key?('checksums')).to be true
+          expect(h2.key?('premis_events')).to be true
+          expect(h2.key?('intellectual_object_identifier')).to be true
+          expect(h2.key?('ingest_state')).to be true
+          expect(h1.key?('institution_id')).to be true
+          expect(h1.key?('storage_option')).to be true
         end
       end
 
@@ -191,7 +189,6 @@ RSpec.describe GenericFile, :type => :model do
           expect(subject.has_checksum?(' :( ')).to be false
         end
       end
-
     end
   end
 
@@ -221,15 +218,15 @@ RSpec.describe GenericFile, :type => :model do
     it 'should find by identifier' do
       subject.save!
       subject_two.save!
-      gf1 = GenericFile.find_by_identifier('abc/123')
+      gf1 = GenericFile.find_by(identifier: 'abc/123')
       expect(gf1).to eq subject
-      gf1 = GenericFile.find_by_identifier('abc%2f123')
+      gf1 = GenericFile.find_by(identifier: 'abc%2f123')
       expect(gf1).to eq subject
-      gf1 = GenericFile.find_by_identifier('abc%2F123')
+      gf1 = GenericFile.find_by(identifier: 'abc%2F123')
       expect(gf1).to eq subject
-      gf2 = GenericFile.find_by_identifier('xyz/789')
+      gf2 = GenericFile.find_by(identifier: 'xyz/789')
       expect(gf2).to eq subject_two
-      gf2 = GenericFile.find_by_identifier('i_dont_exist')
+      gf2 = GenericFile.find_by(identifier: 'i_dont_exist')
       expect(gf2).to be_nil
     end
   end
@@ -273,29 +270,45 @@ RSpec.describe GenericFile, :type => :model do
     let!(:inst) { FactoryBot.create(:member_institution) }
     let!(:other_inst) { FactoryBot.create(:subscription_institution) }
 
-    let!(:inst_user) { FactoryBot.create(:user, :institutional_user,
-                                          institution: inst) }
-    let!(:inst_admin) { FactoryBot.create(:user, :institutional_admin,
-                                           institution: inst) }
+    let!(:inst_user) do
+      FactoryBot.create(:user, :institutional_user,
+                        institution: inst)
+    end
+    let!(:inst_admin) do
+      FactoryBot.create(:user, :institutional_admin,
+                        institution: inst)
+    end
     let!(:sys_admin) { FactoryBot.create(:user, :admin) }
 
-    let!(:obj_own_consortia) { FactoryBot.create(:intellectual_object,
-                                                  access: 'consortia', institution: inst) }
+    let!(:obj_own_consortia) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'consortia', institution: inst)
+    end
     let!(:gf_own_consortia) { FactoryBot.create(:generic_file, intellectual_object: obj_own_consortia) }
-    let!(:obj_own_inst) { FactoryBot.create(:intellectual_object,
-                                             access: 'institution', institution: inst) }
+    let!(:obj_own_inst) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'institution', institution: inst)
+    end
     let!(:gf_own_inst) { FactoryBot.create(:generic_file, intellectual_object: obj_own_inst) }
-    let!(:obj_own_restricted) { FactoryBot.create(:intellectual_object,
-                                                   access: 'restricted', institution: inst) }
+    let!(:obj_own_restricted) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'restricted', institution: inst)
+    end
     let!(:gf_own_restricted) { FactoryBot.create(:generic_file, intellectual_object: obj_own_restricted) }
-    let!(:obj_other_consortia) { FactoryBot.create(:intellectual_object,
-                                                    access: 'consortia', institution: other_inst) }
+    let!(:obj_other_consortia) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'consortia', institution: other_inst)
+    end
     let!(:gf_other_consortia) { FactoryBot.create(:generic_file, intellectual_object: obj_other_consortia) }
-    let!(:obj_other_inst) { FactoryBot.create(:intellectual_object,
-                                               access: 'institution', institution: other_inst) }
+    let!(:obj_other_inst) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'institution', institution: other_inst)
+    end
     let!(:gf_other_inst) { FactoryBot.create(:generic_file, intellectual_object: obj_other_inst) }
-    let!(:obj_other_restricted) { FactoryBot.create(:intellectual_object,
-                                                     access: 'restricted', institution: other_inst) }
+    let!(:obj_other_restricted) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'restricted', institution: other_inst)
+    end
     let!(:gf_other_restricted) { FactoryBot.create(:generic_file, intellectual_object: obj_other_restricted) }
 
     # ----------- CONSORTIA --------------
@@ -523,62 +536,76 @@ RSpec.describe GenericFile, :type => :model do
     let!(:inst) { FactoryBot.create(:member_institution) }
     let!(:other_inst) { FactoryBot.create(:subscription_institution) }
 
-    let!(:inst_admin) { FactoryBot.create(:user, :institutional_admin,
-                                           institution: inst) }
-    let!(:obj1) { FactoryBot.create(:intellectual_object,
-                                     institution: inst,
-                                     identifier: 'test.edu/first',
-                                     alt_identifier: 'first alt identifier',
-                                     created_at: '2011-01-01',
-                                     updated_at: '2011-01-01',
-                                     description: 'Description of first item',
-                                     bag_name: 'first_item',
-                                     title: 'Title of first item',
-                                     state: 'A') }
-    let!(:obj2) { FactoryBot.create(:intellectual_object,
-                                     institution: inst,
-                                     identifier: 'test.edu/second',
-                                     alt_identifier: 'second alt identifier',
-                                     created_at: '2017-01-01',
-                                     updated_at: '2017-01-01',
-                                     description: 'Description of second item',
-                                     bag_name: 'second_item',
-                                     title: 'Title of second item',
-                                     state: 'A') }
-    let!(:obj3) { FactoryBot.create(:intellectual_object,
-                                     institution: other_inst,
-                                     identifier: 'xxx',
-                                     alt_identifier: 'xxx',
-                                     created_at: '2016-01-01',
-                                     updated_at: '2016-01-01',
-                                     description: 'xxx',
-                                     bag_name: 'xxx',
-                                     title: 'xxx',
-                                     state: 'D') }
-    let!(:gf1) { FactoryBot.create(:generic_file,
-                                    intellectual_object: obj1,
-                                    uri: "https://s3.kom/uri1",
-                                    identifier: 'test.edu/bag/first',
-                                    file_format: 'text/plain',
-                                    created_at: '2011-01-01',
-                                    updated_at: '2011-01-01',
-                                    state: 'A') }
-    let!(:gf2) { FactoryBot.create(:generic_file,
-                                    intellectual_object: obj2,
-                                    uri: "https://s3.kom/uri2",
-                                    identifier: 'test.edu/bag/second',
-                                    file_format: 'application/pdf',
-                                    created_at: '2017-12-31',
-                                    updated_at: '2017-12-31',
-                                    state: 'A') }
-    let!(:gf3) { FactoryBot.create(:generic_file,
-                                    intellectual_object: obj3,
-                                    uri: "https://s3.kom/uri2",
-                                    identifier: 'test.edu/bag/third',
-                                    file_format: 'application/xml',
-                                    created_at: '2011-01-01',
-                                    updated_at: '2011-01-01',
-                                    state: 'D') }
+    let!(:inst_admin) do
+      FactoryBot.create(:user, :institutional_admin,
+                        institution: inst)
+    end
+    let!(:obj1) do
+      FactoryBot.create(:intellectual_object,
+                        institution: inst,
+                        identifier: 'test.edu/first',
+                        alt_identifier: 'first alt identifier',
+                        created_at: '2011-01-01',
+                        updated_at: '2011-01-01',
+                        description: 'Description of first item',
+                        bag_name: 'first_item',
+                        title: 'Title of first item',
+                        state: 'A')
+    end
+    let!(:obj2) do
+      FactoryBot.create(:intellectual_object,
+                        institution: inst,
+                        identifier: 'test.edu/second',
+                        alt_identifier: 'second alt identifier',
+                        created_at: '2017-01-01',
+                        updated_at: '2017-01-01',
+                        description: 'Description of second item',
+                        bag_name: 'second_item',
+                        title: 'Title of second item',
+                        state: 'A')
+    end
+    let!(:obj3) do
+      FactoryBot.create(:intellectual_object,
+                        institution: other_inst,
+                        identifier: 'xxx',
+                        alt_identifier: 'xxx',
+                        created_at: '2016-01-01',
+                        updated_at: '2016-01-01',
+                        description: 'xxx',
+                        bag_name: 'xxx',
+                        title: 'xxx',
+                        state: 'D')
+    end
+    let!(:gf1) do
+      FactoryBot.create(:generic_file,
+                        intellectual_object: obj1,
+                        uri: 'https://s3.kom/uri1',
+                        identifier: 'test.edu/bag/first',
+                        file_format: 'text/plain',
+                        created_at: '2011-01-01',
+                        updated_at: '2011-01-01',
+                        state: 'A')
+    end
+    let!(:gf2) do
+      FactoryBot.create(:generic_file,
+                        intellectual_object: obj2,
+                        uri: 'https://s3.kom/uri2',
+                        identifier: 'test.edu/bag/second',
+                        file_format: 'application/pdf',
+                        created_at: '2017-12-31',
+                        updated_at: '2017-12-31',
+                        state: 'A')
+    end
+    let!(:gf3) do
+      FactoryBot.create(:generic_file,
+                        intellectual_object: obj3,
+                        uri: 'https://s3.kom/uri2',
+                        identifier: 'test.edu/bag/third',
+                        file_format: 'application/xml',
+                        created_at: '2011-01-01',
+                        updated_at: '2011-01-01',
+                        state: 'D')
+    end
 
     it 'should find items created before' do
       results = GenericFile.created_before('2016-07-29')
@@ -649,16 +676,15 @@ RSpec.describe GenericFile, :type => :model do
 
     it 'should allow chained scopes' do
       results = GenericFile
-        .created_before('2016-01-01')
-        .updated_before('2016-01-01')
-        .with_identifier_like('edu')
-        .with_file_format('text/plain')
-        .with_state('A')
-        .with_institution(inst)
-        .readable(inst_admin)
+                .created_before('2016-01-01')
+                .updated_before('2016-01-01')
+                .with_identifier_like('edu')
+                .with_file_format('text/plain')
+                .with_state('A')
+                .with_institution(inst)
+                .readable(inst_admin)
       expect(results).to include gf1
       expect(results.count).to eq 1
     end
-
   end
 end

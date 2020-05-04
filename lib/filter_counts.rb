@@ -1,5 +1,4 @@
 module FilterCounts
-
   def get_institution_counts(results)
     @selected[:institution] = params[:institution] if params[:institution]
     counts = results.group(:institution_id).count
@@ -11,12 +10,12 @@ module FilterCounts
     @inst_counts = Hash[@inst_counts.sort]
   end
 
-  def get_event_institution_counts(results)
+  def get_event_institution_counts(_results)
     @selected[:institution] = params[:institution] if params[:institution]
-    params[:institution] ? @institutions = Institution.where("id = ?", params[:institution]) : @institutions = Institution.all.order(:name)
+    @institutions = params[:institution] ? Institution.where('id = ?', params[:institution]) : Institution.all.order(:name)
     @sorted_institutions = {}
     @institutions.each do |inst|
-      #name = Institution.find(id).name
+      # name = Institution.find(id).name
       @sorted_institutions[inst.name] = inst.id
     end
     @sorted_institutions = Hash[@sorted_institutions.sort]
@@ -31,7 +30,7 @@ module FilterCounts
   end
 
   def get_state_counts(results)
-    @selected[:state] = params[:state] if params[:state] unless (params[:state].blank? || params[:state] == 'all' || params[:state] == 'All')
+    @selected[:state] = params[:state] unless (params[:state].blank? || params[:state] == 'all' || params[:state] == 'All') || !params[:state]
     @state_counts = results.group(:state).count
     @state_counts = Hash[@state_counts.sort]
   end
@@ -87,15 +86,15 @@ module FilterCounts
     @retry_counts['f'] = results.with_retry('false').count
   end
 
-  def get_event_type_counts(results)
+  def get_event_type_counts(_results)
     @selected[:event_type] = params[:event_type] if params[:event_type]
-    params[:event_type] ? @event_types = [params[:event_type]] : @event_types = Pharos::Application::PHAROS_EVENT_TYPES.values.sort
+    @event_types = params[:event_type] ? [params[:event_type]] : Pharos::Application::PHAROS_EVENT_TYPES.values.sort
     # @event_type_counts = results.group(:event_type).size # Can be turned on if efficiency improves to the point where filter counts are plausible
   end
 
-  def get_outcome_counts(results)
+  def get_outcome_counts(_results)
     @selected[:outcome] = params[:outcome] if params[:outcome]
-    params[:outcome] ? @outcomes = [params[:outcome]] : @outcomes = %w(Failure Success)
+    @outcomes = params[:outcome] ? [params[:outcome]] : %w(Failure Success)
     # @outcome_counts = results.group(:outcome).size # Can be turned on if efficiency improves to the point where filter counts are plausible
   end
 
@@ -104,8 +103,8 @@ module FilterCounts
     begin
       @node_counts = results.group(:remote_node).count
       @node_counts = Hash[@node_counts.sort]
-    rescue Exception => ex
-      logger.error ex.backtrace
+    rescue Exception => e
+      logger.error e.backtrace
     end
   end
 
@@ -120,5 +119,4 @@ module FilterCounts
     @queued_counts[:is_not_queued] = results.queued('is_not_queued').count
     @queued_counts[:is_queued] = results.queued('is_queued').count
   end
-
 end

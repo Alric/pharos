@@ -1,54 +1,75 @@
 require 'spec_helper'
 
 RSpec.describe IntellectualObjectsController, type: :controller do
-
   let(:inst1) { FactoryBot.create(:member_institution) }
   let(:inst2) { FactoryBot.create(:subscription_institution) }
   let(:apt) { FactoryBot.create(:aptrust) }
-  let(:inst_user) { FactoryBot.create(:user, :institutional_user,
-                                       institution: inst1) }
-  let(:inst_admin) { FactoryBot.create(:user, :institutional_admin,
-                                       institution: inst1) }
+  let(:inst_user) do
+    FactoryBot.create(:user, :institutional_user,
+                      institution: inst1)
+  end
+  let(:inst_admin) do
+    FactoryBot.create(:user, :institutional_admin,
+                      institution: inst1)
+  end
   let(:sys_admin) { FactoryBot.create(:user, :admin, institution: apt) }
-  let!(:obj1) { FactoryBot.create(:consortial_intellectual_object,
-                                   institution: inst2) }
-  let!(:obj2) { FactoryBot.create(:institutional_intellectual_object,
-                                   institution: inst1,
-                                   identifier: 'test.edu/baggie?c=152',
-                                   title: 'Aberdeen Wanderers',
-                                   description: 'Founded in Aberdeen in 1928.',
-                                   etag: '4d05dc2aa07e411a55ef11bc6ade5ec1',
-                                   bag_group_identifier: 'This is a collection.',
-                                   source_organization: 'University of Colorado',
-                                   internal_sender_identifier: '1234-5678-9018-8362',
-                                   internal_sender_description: 'This is a paragraph. Of sorts.') }
-  let!(:obj3) { FactoryBot.create(:institutional_intellectual_object,
-                                   institution: inst2) }
-  let!(:obj4) { FactoryBot.create(:restricted_intellectual_object,
-                                   institution: inst1,
-                                   title: 'Manchester City',
-                                   description: 'The other Manchester team.',
-                                   etag: '4d05dc2aa07e411a55ef11bc6ade5ec2',
-                                   bag_group_identifier: 'collection two',
-                                   source_organization: 'Colorado School of Mines',
-                                   internal_sender_identifier: '1234-5678-9018-9274',
-                                   internal_sender_description: 'This is another paragraph. Kind of.') }
-  let!(:obj5) { FactoryBot.create(:restricted_intellectual_object,
-                                   institution: inst2) }
-  let!(:obj6) { FactoryBot.create(:institutional_intellectual_object,
-                                   institution: inst1,
-                                   bag_name: '12345-abcde',
-                                   alt_identifier: 'test.edu/some-bag',
-                                   created_at: '2011-10-10T10:00:00Z',
-                                   updated_at: '2011-10-10T10:00:00Z',
-                                   etag: '4d05dc2aa07e411a55ef11bc6ade5ec3',
-                                   internal_sender_identifier: '31337') }
-  let!(:file1) { FactoryBot.create(:generic_file,
-                                    intellectual_object: obj2) }
-  let!(:event1) { FactoryBot.create(:premis_event_ingest,
-                                     intellectual_object: obj2) }
-  let!(:event2) { FactoryBot.create(:premis_event_ingest,
-                                     generic_file: file1) }
+  let!(:obj1) do
+    FactoryBot.create(:consortial_intellectual_object,
+                      institution: inst2)
+  end
+  let!(:obj2) do
+    FactoryBot.create(:institutional_intellectual_object,
+                      institution: inst1,
+                      identifier: 'test.edu/baggie?c=152',
+                      title: 'Aberdeen Wanderers',
+                      description: 'Founded in Aberdeen in 1928.',
+                      etag: '4d05dc2aa07e411a55ef11bc6ade5ec1',
+                      bag_group_identifier: 'This is a collection.',
+                      source_organization: 'University of Colorado',
+                      internal_sender_identifier: '1234-5678-9018-8362',
+                      internal_sender_description: 'This is a paragraph. Of sorts.')
+  end
+  let!(:obj3) do
+    FactoryBot.create(:institutional_intellectual_object,
+                      institution: inst2)
+  end
+  let!(:obj4) do
+    FactoryBot.create(:restricted_intellectual_object,
+                      institution: inst1,
+                      title: 'Manchester City',
+                      description: 'The other Manchester team.',
+                      etag: '4d05dc2aa07e411a55ef11bc6ade5ec2',
+                      bag_group_identifier: 'collection two',
+                      source_organization: 'Colorado School of Mines',
+                      internal_sender_identifier: '1234-5678-9018-9274',
+                      internal_sender_description: 'This is another paragraph. Kind of.')
+  end
+  let!(:obj5) do
+    FactoryBot.create(:restricted_intellectual_object,
+                      institution: inst2)
+  end
+  let!(:obj6) do
+    FactoryBot.create(:institutional_intellectual_object,
+                      institution: inst1,
+                      bag_name: '12345-abcde',
+                      alt_identifier: 'test.edu/some-bag',
+                      created_at: '2011-10-10T10:00:00Z',
+                      updated_at: '2011-10-10T10:00:00Z',
+                      etag: '4d05dc2aa07e411a55ef11bc6ade5ec3',
+                      internal_sender_identifier: '31337')
+  end
+  let!(:file1) do
+    FactoryBot.create(:generic_file,
+                      intellectual_object: obj2)
+  end
+  let!(:event1) do
+    FactoryBot.create(:premis_event_ingest,
+                      intellectual_object: obj2)
+  end
+  let!(:event2) do
+    FactoryBot.create(:premis_event_ingest,
+                      generic_file: file1)
+  end
 
   before(:all) do
     WorkItem.delete_all
@@ -69,7 +90,6 @@ RSpec.describe IntellectualObjectsController, type: :controller do
   end
 
   describe 'GET #index' do
-
     describe 'when not signed in' do
       it 'should redirect to login' do
         get :index, params: { institution_identifier: 'apt.edu' }
@@ -86,7 +106,7 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         get :index, params: { institution_identifier: inst1.identifier }
         expect(response).to be_successful
         expect(assigns(:intellectual_objects).size).to eq 3
-        expect(assigns(:intellectual_objects).map &:id).to match_array [obj2.id, obj4.id, obj6.id]
+        expect(assigns(:intellectual_objects).map(&:id)).to match_array [obj2.id, obj4.id, obj6.id]
       end
     end
 
@@ -99,7 +119,7 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         get :index, params: { institution_identifier: inst1.identifier }
         expect(response).to be_successful
         expect(assigns(:intellectual_objects).size).to eq 3
-        expect(assigns(:intellectual_objects).map &:id).to match_array [obj2.id, obj4.id, obj6.id]
+        expect(assigns(:intellectual_objects).map(&:id)).to match_array [obj2.id, obj4.id, obj6.id]
       end
 
       it 'should have an etag for JSON calls' do
@@ -107,9 +127,9 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         expect(response).to be_successful
         expect(assigns(:intellectual_objects).size).to eq 3
         data = JSON.parse(response.body)
-        expect(data['results'][0].has_key?('etag')).to be true
+        expect(data['results'][0].key?('etag')).to be true
         expect(data['results'][0]['etag']).not_to eq 'null'
-        #expect(data['results'][0]['etag']).to eq '4d05dc2aa07e411a55ef11bc6ade5ec1'
+        # expect(data['results'][0]['etag']).to eq '4d05dc2aa07e411a55ef11bc6ade5ec1'
       end
     end
 
@@ -122,8 +142,8 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         get :index, params: {}
         expect(response).to be_successful
         expect(assigns(:intellectual_objects).size).to eq 6
-        expect(assigns(:intellectual_objects).map &:id).to match_array [obj1.id, obj2.id, obj3.id,
-                                                                        obj4.id, obj5.id, obj6.id]
+        expect(assigns(:intellectual_objects).map(&:id)).to match_array [obj1.id, obj2.id, obj3.id,
+                                                                         obj4.id, obj5.id, obj6.id]
       end
     end
 
@@ -189,11 +209,9 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         end
       end
     end
-
   end
 
   describe 'GET #show' do
-
     describe 'when not signed in' do
       it 'should redirect to login' do
         get :show, params: { intellectual_object_identifier: obj1 }
@@ -236,11 +254,11 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         expect(response).to be_successful
         expect(assigns(:intellectual_object)).to eq obj2
         data = JSON.parse(response.body)
-        expect(data.has_key?('bagit_profile_identifier')).to be false
-        expect(data.has_key?('bag_group_identifier')).to be true
-        expect(data.has_key?('source_organization')).to be true
-        expect(data.has_key?('internal_sender_identifier')).to be true
-        expect(data.has_key?('internal_sender_description')).to be true
+        expect(data.key?('bagit_profile_identifier')).to be false
+        expect(data.key?('bag_group_identifier')).to be true
+        expect(data.key?('source_organization')).to be true
+        expect(data.key?('internal_sender_identifier')).to be true
+        expect(data.key?('internal_sender_description')).to be true
       end
     end
 
@@ -298,9 +316,9 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         expect(response).to be_successful
         expect(assigns(:intellectual_object)).to eq obj2
         data = JSON.parse(response.body)
-        expect(data.has_key?('generic_files')).to be true
-        expect(data['generic_files'][0].has_key?('checksums')).to be true
-        expect(data.has_key?('premis_events')).to be false
+        expect(data.key?('generic_files')).to be true
+        expect(data['generic_files'][0].key?('checksums')).to be true
+        expect(data.key?('premis_events')).to be false
       end
 
       it 'should serialize events when asked' do
@@ -308,8 +326,8 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         expect(response).to be_successful
         expect(assigns(:intellectual_object)).to eq obj2
         data = JSON.parse(response.body)
-        expect(data.has_key?('premis_events')).to be true
-        expect(data.has_key?('generic_files')).to be false
+        expect(data.key?('premis_events')).to be true
+        expect(data.key?('generic_files')).to be false
       end
 
       it 'should serialize files and events when asked' do
@@ -317,10 +335,10 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         expect(response).to be_successful
         expect(assigns(:intellectual_object)).to eq obj2
         data = JSON.parse(response.body)
-        expect(data.has_key?('premis_events')).to be true
-        expect(data.has_key?('generic_files')).to be true
-        expect(data['generic_files'][0].has_key?('checksums')).to be true
-        expect(data['generic_files'][0].has_key?('premis_events')).to be true
+        expect(data.key?('premis_events')).to be true
+        expect(data.key?('generic_files')).to be true
+        expect(data['generic_files'][0].key?('checksums')).to be true
+        expect(data['generic_files'][0].key?('premis_events')).to be true
       end
 
       it 'should serialize files, events, and state when asked' do
@@ -328,19 +346,17 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         expect(response).to be_successful
         expect(assigns(:intellectual_object)).to eq obj2
         data = JSON.parse(response.body)
-        expect(data.has_key?('premis_events')).to be true
-        expect(data.has_key?('generic_files')).to be true
-        expect(data['generic_files'][0].has_key?('checksums')).to be true
-        expect(data['generic_files'][0].has_key?('premis_events')).to be true
-        expect(data.has_key?('bagit_profile_identifier')).to be true
-        expect(data.has_key?('bag_group_identifier')).to be true
-        expect(data.has_key?('source_organization')).to be true
-        expect(data.has_key?('internal_sender_identifier')).to be true
-        expect(data.has_key?('internal_sender_description')).to be true
+        expect(data.key?('premis_events')).to be true
+        expect(data.key?('generic_files')).to be true
+        expect(data['generic_files'][0].key?('checksums')).to be true
+        expect(data['generic_files'][0].key?('premis_events')).to be true
+        expect(data.key?('bagit_profile_identifier')).to be true
+        expect(data.key?('bag_group_identifier')).to be true
+        expect(data.key?('source_organization')).to be true
+        expect(data.key?('internal_sender_identifier')).to be true
+        expect(data.key?('internal_sender_description')).to be true
       end
-
     end
-
   end
 
   describe 'GET #edit' do
@@ -408,15 +424,16 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
     end
-
   end
 
   describe 'POST #create' do
     let(:exp) { Faker::Lorem.paragraph }
-    let(:simple_obj) { FactoryBot.build(:intellectual_object, institution: inst1, ingest_state: '{[]}',
-                                        bag_group_identifier: 'collection_one', storage_option: 'Glacier-VA',
-                                        source_organization: 'University of Virginia', bagit_profile_identifier: 'bagit/profile/identifier',
-                                        internal_sender_identifier: 'internal/sender/identifier', internal_sender_description: exp) }
+    let(:simple_obj) do
+      FactoryBot.build(:intellectual_object, institution: inst1, ingest_state: '{[]}',
+                                             bag_group_identifier: 'collection_one', storage_option: 'Glacier-VA',
+                                             source_organization: 'University of Virginia', bagit_profile_identifier: 'bagit/profile/identifier',
+                                             internal_sender_identifier: 'internal/sender/identifier', internal_sender_description: exp)
+    end
     let(:bad_obj) { FactoryBot.build(:intellectual_object, institution: inst1, ingest_state: '{[]}', bag_group_identifier: 'collection_two', storage_option: 'somewhere-else') }
 
     after do
@@ -428,12 +445,12 @@ RSpec.describe IntellectualObjectsController, type: :controller do
     describe 'when not signed in' do
       it 'should respond with redirect (html)' do
         post(:create, params: { institution_identifier: inst1.identifier,
-             intellectual_object: simple_obj.attributes }, format: 'html')
+                                intellectual_object: simple_obj.attributes }, format: 'html')
         expect(response).to redirect_to root_url + 'users/sign_in'
       end
       it 'should respond unauthorized (json)' do
         post(:create, params: { institution_identifier: inst1.identifier,
-             intellectual_object: simple_obj.attributes }, format: 'json')
+                                intellectual_object: simple_obj.attributes }, format: 'json')
         expect(response.code).to eq '401'
       end
     end
@@ -445,13 +462,13 @@ RSpec.describe IntellectualObjectsController, type: :controller do
       end
       it 'should respond with redirect (html)' do
         post(:create, params: { institution_identifier: inst1.identifier,
-             intellectual_object: simple_obj.attributes }, format: 'html')
+                                intellectual_object: simple_obj.attributes }, format: 'html')
         expect(response).to redirect_to root_url
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
       it 'should respond forbidden (json)' do
         post(:create, params: { institution_identifier: inst1.identifier,
-             intellectual_object: simple_obj.attributes }, format: 'json')
+                                intellectual_object: simple_obj.attributes }, format: 'json')
         expect(response.code).to eq '403'
       end
     end
@@ -463,13 +480,13 @@ RSpec.describe IntellectualObjectsController, type: :controller do
       end
       it 'should respond with redirect (html)' do
         post(:create, params: { institution_identifier: inst1.identifier,
-             intellectual_object: simple_obj.attributes }, format: 'html')
+                                intellectual_object: simple_obj.attributes }, format: 'html')
         expect(response).to redirect_to root_url
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
       it 'should respond forbidden (json)' do
         post(:create, params: { institution_identifier: inst1.identifier,
-             intellectual_object: simple_obj.attributes }, format: 'json')
+                                intellectual_object: simple_obj.attributes }, format: 'json')
         expect(response.code).to eq '403'
       end
     end
@@ -482,7 +499,7 @@ RSpec.describe IntellectualObjectsController, type: :controller do
       it 'should create a simple object' do
         simple_obj.etag = '90908111'
         post(:create, params: { institution_identifier: inst1.identifier,
-             intellectual_object: simple_obj.attributes }, format: 'json')
+                                intellectual_object: simple_obj.attributes }, format: 'json')
         expect(response.code).to eq '201'
         saved_obj = IntellectualObject.where(identifier: simple_obj.identifier).first
         expect(saved_obj).to be_truthy
@@ -498,15 +515,13 @@ RSpec.describe IntellectualObjectsController, type: :controller do
       it 'should reject a storage_option that is not allowed' do
         post(:create, params: { institution_identifier: inst1.identifier,
                                 intellectual_object: bad_obj.attributes }, format: 'json')
-        expect(response.code).to eq '422' #Unprocessable Entity
-        expect(JSON.parse(response.body)).to eq( { 'storage_option' => ['Storage Option is not one of the allowed options']})
+        expect(response.code).to eq '422' # Unprocessable Entity
+        expect(JSON.parse(response.body)).to eq({ 'storage_option' => ['Storage Option is not one of the allowed options'] })
       end
     end
-
   end
 
   describe 'PATCH #update' do
-
     after do
       PremisEvent.delete_all
       GenericFile.delete_all
@@ -515,7 +530,7 @@ RSpec.describe IntellectualObjectsController, type: :controller do
 
     describe 'when not signed in' do
       it 'should redirect to login' do
-        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: {title: 'Foo'} }
+        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: { title: 'Foo' } }
         expect(response).to redirect_to root_url + 'users/sign_in'
       end
     end
@@ -526,12 +541,12 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         session[:verified] = true
       end
       it 'should respond with redirect (html)' do
-        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: {title: 'Foo'} }
+        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: { title: 'Foo' } }
         expect(response).to redirect_to root_url
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
       it 'should respond forbidden (json)' do
-        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: {title: 'Foo'} }, format: :json
+        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: { title: 'Foo' } }, format: :json
         expect(response.code).to eq '403'
       end
     end
@@ -542,12 +557,12 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         session[:verified] = true
       end
       it 'should respond with redirect (html)' do
-        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: {title: 'Foo'} }
+        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: { title: 'Foo' } }
         expect(response).to redirect_to root_url
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
       it 'should respond forbidden (json)' do
-        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: {title: 'Foo'} }, format: :json
+        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: { title: 'Foo' } }, format: :json
         expect(response.code).to eq '403'
       end
     end
@@ -558,12 +573,12 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         session[:verified] = true
       end
       it 'should update the object and respond with redirect (html)' do
-        exp_two =  Faker::Lorem.paragraph
-        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: {title: 'Foo', storage_option: 'Glacier-VA', ingest_state: '{[A]}',
-                                                                                             source_organization: 'University of Arizona',
-                                                                                             bagit_profile_identifier: 'bagit/profile/something',
-                                                                                             internal_sender_identifier: 'internal/sender/something',
-                                                                                             internal_sender_description: exp_two} }
+        exp_two = Faker::Lorem.paragraph
+        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: { title: 'Foo', storage_option: 'Glacier-VA', ingest_state: '{[A]}',
+                                                                                              source_organization: 'University of Arizona',
+                                                                                              bagit_profile_identifier: 'bagit/profile/something',
+                                                                                              internal_sender_identifier: 'internal/sender/something',
+                                                                                              internal_sender_description: exp_two } }
         expect(response).to redirect_to intellectual_object_path(obj1.identifier)
         saved_obj = IntellectualObject.where(identifier: obj1.identifier).first
         expect(saved_obj.title).to eq 'Foo'
@@ -576,9 +591,9 @@ RSpec.describe IntellectualObjectsController, type: :controller do
       end
 
       it 'should update the object and respond with json (json)' do
-        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: {title: 'Food', ingest_state: '{[D]}',
-                                                                                             etag: '12345678', bag_group_identifier: 'collection_two'} }, format: :json
-        expect(response.status).to eq (200)
+        patch :update, params: { intellectual_object_identifier: obj1, intellectual_object: { title: 'Food', ingest_state: '{[D]}',
+                                                                                              etag: '12345678', bag_group_identifier: 'collection_two' } }, format: :json
+        expect(response.status).to eq 200
         saved_obj = IntellectualObject.where(identifier: obj1.identifier).first
         expect(saved_obj.title).to eq 'Food'
         expect(saved_obj.ingest_state).to eq '{[D]}'
@@ -586,27 +601,36 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         expect(saved_obj.bag_group_identifier).to eq 'collection_two'
       end
     end
-
   end
 
   describe 'DELETE #destroy' do
-    let!(:deletable_obj) { FactoryBot.create(:institutional_intellectual_object,
-                                              institution: inst1,
-                                              state: 'A') }
-    let!(:deleted_obj) { FactoryBot.create(:institutional_intellectual_object,
-                                            institution: inst1,
-                                            state: 'D') }
-    let!(:obj_pending) { FactoryBot.create(:institutional_intellectual_object,
-                                            institution: inst1,
-                                            state: 'A',
-                                            identifier: 'college.edu/item') }
-    let!(:work_item) { FactoryBot.create(:work_item,
-                                          object_identifier: 'college.edu/item',
-                                          action: 'Restore',
-                                          stage: 'Requested',
-                                          status: 'Pending') }
-    let!(:deletable_obj_2) { FactoryBot.create(:institutional_intellectual_object,
-                                                institution: inst1, state: 'A') }
+    let!(:deletable_obj) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'A')
+    end
+    let!(:deleted_obj) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'D')
+    end
+    let!(:obj_pending) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'A',
+                        identifier: 'college.edu/item')
+    end
+    let!(:work_item) do
+      FactoryBot.create(:work_item,
+                        object_identifier: 'college.edu/item',
+                        action: 'Restore',
+                        stage: 'Requested',
+                        status: 'Pending')
+    end
+    let!(:deletable_obj_2) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1, state: 'A')
+    end
     let!(:assc_file) { FactoryBot.create(:generic_file, intellectual_object: deletable_obj_2) }
 
     after(:all) do
@@ -694,32 +718,40 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         delete :destroy, params: { intellectual_object_identifier: obj_pending }, format: :json
         expect(response.status).to eq(409)
         data = JSON.parse(response.body)
-        expect(data['status']).to eq ('error')
+        expect(data['status']).to eq 'error'
         expect(data['message']).to include 'Your object cannot be deleted'
       end
-
     end
-
   end
 
   describe 'DELETE #confirm_destroy' do
-    let!(:deletable_obj) { FactoryBot.create(:institutional_intellectual_object,
-                                             institution: inst1,
-                                             state: 'A') }
-    let!(:deleted_obj) { FactoryBot.create(:institutional_intellectual_object,
-                                           institution: inst1,
-                                           state: 'D') }
-    let!(:obj_pending) { FactoryBot.create(:institutional_intellectual_object,
-                                           institution: inst1,
-                                           state: 'A',
-                                           identifier: 'college.edu/item') }
-    let!(:work_item) { FactoryBot.create(:work_item,
-                                         object_identifier: 'college.edu/item',
-                                         action: 'Restore',
-                                         stage: 'Requested',
-                                         status: 'Pending') }
-    let!(:deletable_obj_2) { FactoryBot.create(:institutional_intellectual_object,
-                                               institution: inst1, state: 'A') }
+    let!(:deletable_obj) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'A')
+    end
+    let!(:deleted_obj) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'D')
+    end
+    let!(:obj_pending) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'A',
+                        identifier: 'college.edu/item')
+    end
+    let!(:work_item) do
+      FactoryBot.create(:work_item,
+                        object_identifier: 'college.edu/item',
+                        action: 'Restore',
+                        stage: 'Requested',
+                        status: 'Pending')
+    end
+    let!(:deletable_obj_2) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1, state: 'A')
+    end
     let!(:assc_file) { FactoryBot.create(:generic_file, intellectual_object: deletable_obj_2) }
 
     after(:all) do
@@ -823,27 +855,36 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         expect(email.body.encoded).to include('has been successfully queued for deletion')
       end
     end
-
   end
 
   describe 'GET #finished_destroy' do
-    let!(:deletable_obj) { FactoryBot.create(:institutional_intellectual_object,
-                                             institution: inst1,
-                                             state: 'A') }
-    let!(:deleted_obj) { FactoryBot.create(:institutional_intellectual_object,
-                                           institution: inst1,
-                                           state: 'D') }
-    let!(:obj_pending) { FactoryBot.create(:institutional_intellectual_object,
-                                           institution: inst1,
-                                           state: 'A',
-                                           identifier: 'college.edu/item') }
-    let!(:work_item) { FactoryBot.create(:work_item,
-                                         object_identifier: 'college.edu/item',
-                                         action: 'Restore',
-                                         stage: 'Requested',
-                                         status: 'Pending') }
-    let!(:deletable_obj_2) { FactoryBot.create(:institutional_intellectual_object,
-                                               institution: inst1, state: 'A') }
+    let!(:deletable_obj) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'A')
+    end
+    let!(:deleted_obj) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'D')
+    end
+    let!(:obj_pending) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'A',
+                        identifier: 'college.edu/item')
+    end
+    let!(:work_item) do
+      FactoryBot.create(:work_item,
+                        object_identifier: 'college.edu/item',
+                        action: 'Restore',
+                        stage: 'Requested',
+                        status: 'Pending')
+    end
+    let!(:deletable_obj_2) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1, state: 'A')
+    end
     let!(:assc_file) { FactoryBot.create(:generic_file, intellectual_object: deletable_obj_2) }
 
     after(:all) do
@@ -868,7 +909,7 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         it 'should be forbidden' do
           get :finished_destroy, params: { intellectual_object_identifier: obj1 }, format: 'json'
           expect(response.code).to eq '403' # forbidden
-          expect(JSON.parse(response.body)).to eq({'status'=>'error','message'=>'You are not authorized to access this page.'})
+          expect(JSON.parse(response.body)).to eq({ 'status' => 'error', 'message' => 'You are not authorized to access this page.' })
         end
       end
 
@@ -893,9 +934,8 @@ RSpec.describe IntellectualObjectsController, type: :controller do
           deletion_item = FactoryBot.create(:work_item, action: Pharos::Application::PHAROS_ACTIONS['delete'], object_identifier: dobj.identifier, user: user.email, inst_approver: inst_user.email)
           dobj.add_event(FactoryBot.attributes_for(:premis_event_ingest, date_time: '2010-01-01T12:00:00Z'))
           active_file = FactoryBot.create(:generic_file, intellectual_object_id: dobj.id, state: 'A')
-          expect{get :finished_destroy, params: { intellectual_object_identifier: dobj, requesting_user_id: user.id, inst_approver_id: inst_user.id }, format: 'json'}.to raise_error("Object cannot be marked deleted until all of its files have been marked deleted.")
+          expect { get :finished_destroy, params: { intellectual_object_identifier: dobj, requesting_user_id: user.id, inst_approver_id: inst_user.id }, format: 'json' }.to raise_error('Object cannot be marked deleted until all of its files have been marked deleted.')
         end
-
 
         it 'should delete the object with html response' do
           dobj = FactoryBot.create(:intellectual_object)
@@ -925,28 +965,38 @@ RSpec.describe IntellectualObjectsController, type: :controller do
   end
 
   describe 'PUT #restore' do
-    let!(:obj_for_restore) { FactoryBot.create(:institutional_intellectual_object,
-                                                institution: inst1,
-                                                state: 'A',
-                                                identifier: 'college.edu/for_restore') }
-    let!(:deleted_obj) { FactoryBot.create(:institutional_intellectual_object,
-                                            institution: inst1,
-                                            state: 'D',
-                                            identifier: 'college.edu/deleted') }
-    let!(:obj_pending) { FactoryBot.create(:institutional_intellectual_object,
-                                            institution: inst1,
-                                            state: 'A',
-                                            identifier: 'college.edu/pending') }
-    let!(:ingest) { FactoryBot.create(:work_item,
-                                       object_identifier: 'college.edu/for_restore',
-                                       action: 'Ingest',
-                                       stage: 'Cleanup',
-                                       status: 'Success') }
-    let!(:pending_restore) { FactoryBot.create(:work_item,
-                                                object_identifier: 'college.edu/pending',
-                                                action: 'Restore',
-                                                stage: 'Requested',
-                                                status: 'Pending') }
+    let!(:obj_for_restore) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'A',
+                        identifier: 'college.edu/for_restore')
+    end
+    let!(:deleted_obj) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'D',
+                        identifier: 'college.edu/deleted')
+    end
+    let!(:obj_pending) do
+      FactoryBot.create(:institutional_intellectual_object,
+                        institution: inst1,
+                        state: 'A',
+                        identifier: 'college.edu/pending')
+    end
+    let!(:ingest) do
+      FactoryBot.create(:work_item,
+                        object_identifier: 'college.edu/for_restore',
+                        action: 'Ingest',
+                        stage: 'Cleanup',
+                        status: 'Success')
+    end
+    let!(:pending_restore) do
+      FactoryBot.create(:work_item,
+                        object_identifier: 'college.edu/pending',
+                        action: 'Restore',
+                        stage: 'Requested',
+                        status: 'Pending')
+    end
 
     after do
       IntellectualObject.delete_all
@@ -1051,7 +1101,5 @@ RSpec.describe IntellectualObjectsController, type: :controller do
         expect(data['work_item_id']).to eq 0
       end
     end
-
   end
-
 end

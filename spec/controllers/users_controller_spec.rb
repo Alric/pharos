@@ -8,7 +8,7 @@ RSpec.describe UsersController, type: :controller do
 
   describe 'An APTrust Administrator' do
     let(:admin_user) { FactoryBot.create(:user, :admin) }
-    let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin)}
+    let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin) }
     let(:stale_user) { FactoryBot.create(:user) }
 
     before do
@@ -17,8 +17,8 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'who gets a list of users' do
-      let!(:institutional_admin) { FactoryBot.create(:user, :institutional_admin)}
-      let!(:institutional_user) { FactoryBot.create(:user, :institutional_user)}
+      let!(:institutional_admin) { FactoryBot.create(:user, :institutional_admin) }
+      let!(:institutional_user) { FactoryBot.create(:user, :institutional_user) }
       it 'should see all the users' do
         get :index
         response.should be_successful
@@ -31,13 +31,13 @@ RSpec.describe UsersController, type: :controller do
       expect(response.status).to eq(302)
       expect(flash[:notice]).to eq('All users except admins have been sent their yearly account confirmation email.')
       User.all.each do |user|
-        unless user.admin?
-          expect(user.account_confirmed).to eq false
-          token = ConfirmationToken.where(user_id: user.id).first
-          expect(token).not_to be_nil
-          email = ActionMailer::Base.deliveries.last
-          expect(email.body.encoded).to include("You will have two weeks to confirm your account on the #{Rails.env.capitalize} system before your account will be deactivated.")
-        end
+        next if user.admin?
+
+        expect(user.account_confirmed).to eq false
+        token = ConfirmationToken.where(user_id: user.id).first
+        expect(token).not_to be_nil
+        email = ActionMailer::Base.deliveries.last
+        expect(email.body.encoded).to include("You will have two weeks to confirm your account on the #{Rails.env.capitalize} system before your account will be deactivated.")
       end
     end
 
@@ -65,29 +65,29 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'can create Institutional Administrators' do
-      let(:institutional_admin_role_id) { Role.where(name: 'institutional_admin').first_or_create.id}
+      let(:institutional_admin_role_id) { Role.where(name: 'institutional_admin').first_or_create.id }
       let(:attributes) { FactoryBot.attributes_for(:user, role_ids: institutional_admin_role_id, grace_period: nil) }
       let(:other_attributes) { FactoryBot.attributes_for(:user, role_ids: institutional_admin_role_id) }
 
       it 'unless no parameters are passed' do
-        expect {
+        expect do
           post :create, params: {}
-        }.to_not change(User, :count)
+        end.to_not change(User, :count)
       end
 
       it 'when the parameters are valid' do
-        expect {
+        expect do
           post :create, params: { user: attributes }
-        }.to change(User, :count).by(1)
+        end.to change(User, :count).by(1)
         response.should redirect_to user_url(assigns[:user])
         expect(assigns[:user]).to be_institutional_admin
         expect(assigns[:user].grace_period).not_to be_nil
       end
 
       it 'and will send a welcome email to the new user' do
-        expect{
+        expect do
           post :create, params: { user: other_attributes }
-        }.to change(User, :count).by(1)
+        end.to change(User, :count).by(1)
         email = ActionMailer::Base.deliveries.last
         expect(email.body.encoded).to include('An account with a temporary password has been created for you.')
         expect(email.body.encoded).to include('Temporary password: ABCabc-')
@@ -125,8 +125,8 @@ RSpec.describe UsersController, type: :controller do
 
     describe 'enabling two factor authentication' do
       let(:admin_user) { FactoryBot.create(:user, :admin) }
-      let(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: admin_user.institution_id) }
-      let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+      let(:user_at_institution) { FactoryBot.create(:user, :institutional_user, institution_id: admin_user.institution_id) }
+      let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
       it 'for myself should succeed' do
         admin_user.enabled_two_factor = false
         admin_user.save!
@@ -157,10 +157,10 @@ RSpec.describe UsersController, type: :controller do
 
     describe 'disabling two factor authentication' do
       let(:admin_user) { FactoryBot.create(:user, :admin) }
-      let(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: admin_user.institution_id) }
-      let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+      let(:user_at_institution) { FactoryBot.create(:user, :institutional_user, institution_id: admin_user.institution_id) }
+      let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
 
-      it 'for myself should fail' do  # admins are required to use two factor authentication
+      it 'for myself should fail' do # admins are required to use two factor authentication
         admin_user.enabled_two_factor = true
         admin_user.save!
         get :disable_otp, params: { id: admin_user.id }, format: :html
@@ -187,8 +187,8 @@ RSpec.describe UsersController, type: :controller do
 
     describe 'generating backup two factor authentication codes' do
       let(:admin_user) { FactoryBot.create(:user, :admin) }
-      let(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: admin_user.institution_id) }
-      let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+      let(:user_at_institution) { FactoryBot.create(:user, :institutional_user, institution_id: admin_user.institution_id) }
+      let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
 
       it 'for myself should succeed' do
         old_codes = admin_user.generate_otp_backup_codes!
@@ -216,16 +216,16 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'can update Institutional Administrators' do
-      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin)}
+      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin) }
 
       it 'when the parameters are valid' do
-        put :update, params: { id: institutional_admin, user: {name: 'Frankie'} }
+        put :update, params: { id: institutional_admin, user: { name: 'Frankie' } }
         response.should redirect_to user_url(institutional_admin)
         expect(flash[:notice]).to eq 'User was successfully updated.'
         expect(assigns[:user].name).to eq 'Frankie'
       end
       it 'when the parameters are invalid' do
-        put :update, params: { id: institutional_admin, user: {phone_number: 'f121'} }
+        put :update, params: { id: institutional_admin, user: { phone_number: 'f121' } }
         response.should be_successful
         expect(assigns[:user].errors.include?(:phone_number)).to be true
       end
@@ -254,10 +254,12 @@ RSpec.describe UsersController, type: :controller do
     describe 'while testing forced_redirections' do
       let(:admin_user_two) { FactoryBot.create(:user, :admin, account_confirmed: false) }
       let(:valid_key) { '123' }
-      let(:api_user) { FactoryBot.create(:user, :admin, account_confirmed: false, api_secret_key: valid_key, enabled_two_factor: false,
+      let(:api_user) do
+        FactoryBot.create(:user, :admin, account_confirmed: false, api_secret_key: valid_key, enabled_two_factor: false,
                                          confirmed_two_factor: false, email_verified: false, initial_password_updated: false,
-                                         force_password_update: true) }
-      let(:initial_headers) {{ 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json' }}
+                                         force_password_update: true)
+      end
+      let(:initial_headers) { { 'CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json' } }
 
       it 'for non API calls should get caught' do
         sign_in admin_user_two
@@ -267,7 +269,7 @@ RSpec.describe UsersController, type: :controller do
       end
 
       describe 'for API calls' do
-        let(:login_headers) {{ 'X-Pharos-API-User' => api_user.email, 'X-Pharos-API-Key' => valid_key }}
+        let(:login_headers) { { 'X-Pharos-API-User' => api_user.email, 'X-Pharos-API-Key' => valid_key } }
         it 'should not get caught' do
           get :index
           response.should be_successful
@@ -286,11 +288,10 @@ RSpec.describe UsersController, type: :controller do
       expect(email.body.encoded).to include(stale_user.email)
       expect(flash[:notice]).to eq 'The stale user notification email has been sent to the team.'
     end
-
   end
 
   describe 'An Institutional Administrator' do
-    let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin)}
+    let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin) }
     let(:institutional_user) { FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution.id) }
     let(:other_user) { FactoryBot.create(:user, :institutional_user) }
 
@@ -300,8 +301,8 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'who gets a list of users' do
-      let!(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
-      let!(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+      let!(:user_at_institution) { FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
+      let!(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
       it 'can only see users in their institution' do
         get :index
         response.should be_successful
@@ -312,7 +313,7 @@ RSpec.describe UsersController, type: :controller do
 
     describe 'show an Institutional User' do
       describe 'at my institution' do
-        let(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
+        let(:user_at_institution) { FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
         it 'can show the Institutional Users for my institution' do
           get :show, params: { id: user_at_institution }
           response.should be_successful
@@ -321,7 +322,7 @@ RSpec.describe UsersController, type: :controller do
       end
 
       describe 'at a different institution' do
-        let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+        let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
         it "can't show" do
           get :show, params: { id: user_of_different_institution }
           response.should redirect_to root_url
@@ -337,13 +338,12 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'creating a User' do
-
       describe 'at another institution' do
         let(:attributes) { FactoryBot.attributes_for(:user) }
         it "shouldn't work" do
-          expect {
+          expect do
             post :create, params: { user: attributes }
-          }.not_to change(User, :count)
+          end.not_to change(User, :count)
           response.should redirect_to root_path
           expect(flash[:alert]).to eq 'You are not authorized to access this page.'
         end
@@ -351,7 +351,7 @@ RSpec.describe UsersController, type: :controller do
 
       describe 'at my institution' do
         describe 'with institutional_user role' do
-          let(:institutional_user_role_id) { Role.where(name: 'institutional_user').first_or_create.id}
+          let(:institutional_user_role_id) { Role.where(name: 'institutional_user').first_or_create.id }
           let(:attributes) { FactoryBot.attributes_for(:user, institution_id: institutional_admin.institution_id, role_ids: institutional_user_role_id) }
           let(:no_capital) { FactoryBot.attributes_for(:user, institution_id: institutional_admin.institution_id, role_ids: institutional_user_role_id, password: 'password15') }
           let(:no_lowercase) { FactoryBot.attributes_for(:user, institution_id: institutional_admin.institution_id, role_ids: institutional_user_role_id, password: 'PASSWORD15') }
@@ -361,52 +361,51 @@ RSpec.describe UsersController, type: :controller do
           let(:long_enough) { FactoryBot.attributes_for(:user, institution_id: institutional_admin.institution_id, role_ids: institutional_user_role_id, password: 'afunnythinghappenedonthewaytotheforum') }
 
           it 'should be successful' do
-            expect {
+            expect do
               post :create, params: { user: attributes }
-            }.to change(User, :count).by(1)
+            end.to change(User, :count).by(1)
             response.should redirect_to user_url(assigns[:user])
             expect(assigns[:user]).to be_institutional_user
           end
 
           it 'should reject a password that is too short' do
-            expect {
+            expect do
               post :create, params: { user: too_short }
-            }.to_not change(User, :count)
+            end.to_not change(User, :count)
           end
 
           it 'should accept a password that is short but has capitals, lowercase, and digits' do
-            expect {
+            expect do
               post :create, params: { user: complicated }
-            }.to change(User, :count).by(1)
+            end.to change(User, :count).by(1)
           end
 
           it 'should accept a password that has no capitals, lowercase, or digits but is long' do
-            expect {
+            expect do
               post :create, params: { user: long_enough }
-            }.to change(User, :count).by(1)
+            end.to change(User, :count).by(1)
           end
-
         end
 
         describe 'with institutional_admin role' do
-          let(:institutional_admin_role_id) {Role.where(name: 'institutional_admin').first_or_create.id}
+          let(:institutional_admin_role_id) { Role.where(name: 'institutional_admin').first_or_create.id }
           let(:attributes) { FactoryBot.attributes_for(:user, institution_id: institutional_admin.institution_id, role_ids: institutional_admin_role_id) }
           it 'should be successful' do
-            expect {
+            expect do
               post :create, params: { user: attributes }
-            }.to change(User, :count).by(1)
+            end.to change(User, :count).by(1)
             response.should redirect_to user_url(assigns[:user])
             expect(assigns[:user]).to be_institutional_admin
           end
         end
 
         describe 'with admin role' do
-          let(:admin_role_id) { Role.where(name: 'admin').first_or_create.id}
+          let(:admin_role_id) { Role.where(name: 'admin').first_or_create.id }
           let(:attributes) { FactoryBot.attributes_for(:user, institution_id: institutional_admin.institution_id, role_ids: admin_role_id) }
           it 'should be forbidden' do
-            expect {
+            expect do
               post :create, params: { user: attributes }
-            }.not_to change(User, :count)
+            end.not_to change(User, :count)
             response.should redirect_to root_path
             expect(flash[:alert]).to eq 'You are not authorized to access this page.'
           end
@@ -424,7 +423,7 @@ RSpec.describe UsersController, type: :controller do
         end
       end
       describe 'from another institution' do
-        let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+        let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
         it 'should show an error' do
           get :edit, params: { id: user_of_different_institution }
           response.should be_redirect
@@ -434,19 +433,19 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'can update Institutional users' do
-      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin)}
+      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin) }
       describe 'from my institution' do
         let(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
         it 'should be successful' do
-          patch :update, params: { id: user_at_institution, user: {name: 'Frankie'} }
+          patch :update, params: { id: user_at_institution, user: { name: 'Frankie' } }
           response.should redirect_to user_url(user_at_institution)
           expect(assigns[:user]).to eq user_at_institution
         end
       end
       describe 'from another institution' do
-        let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+        let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
         it 'should show an error message' do
-          patch :update, params: { id: user_of_different_institution, user: {name: 'Frankie'} }
+          patch :update, params: { id: user_of_different_institution, user: { name: 'Frankie' } }
           response.should be_redirect
           expect(flash[:alert]).to eq 'You are not authorized to access this page.'
         end
@@ -454,7 +453,7 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'can deactivate users' do
-      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin)}
+      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin) }
       describe 'from my institution' do
         let(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
         it 'should be successful' do
@@ -465,7 +464,7 @@ RSpec.describe UsersController, type: :controller do
         end
       end
       describe 'from another institution' do
-        let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+        let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
         it 'should not succeed' do
           get :deactivate, params: { id: user_of_different_institution }, format: :json
           response.should be_redirect
@@ -474,7 +473,7 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'can reactivate users' do
-      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin)}
+      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin) }
       describe 'from my institution' do
         let(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
         it 'should be successful' do
@@ -485,7 +484,7 @@ RSpec.describe UsersController, type: :controller do
         end
       end
       describe 'from another institution' do
-        let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+        let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
         it 'should not succeed' do
           get :reactivate, params: { id: user_of_different_institution }, format: :json
           response.should be_redirect
@@ -525,9 +524,9 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'enabling two factor authentication' do
-      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin)}
-      let(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
-      let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin) }
+      let(:user_at_institution) { FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
+      let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
       it 'for myself should succeed' do
         institutional_admin.enabled_two_factor = false
         institutional_admin.save!
@@ -555,9 +554,9 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'disabling two factor authentication' do
-      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin)}
-      let(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
-      let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin) }
+      let(:user_at_institution) { FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
+      let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
       it 'for myself should fail' do # admins are required to use two factor authentication
         institutional_admin.enabled_two_factor = true
         institutional_admin.save!
@@ -583,9 +582,9 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'generating backup two factor authentication codes' do
-      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin)}
-      let(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
-      let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user) }
+      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin) }
+      let(:user_at_institution) { FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id) }
+      let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user) }
 
       it 'for myself should succeed' do
         old_codes = institutional_admin.generate_otp_backup_codes!
@@ -612,7 +611,7 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'updating password' do
-      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin, initial_password_updated: false, password: 'testpassword')}
+      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin, initial_password_updated: false, password: 'testpassword') }
 
       it 'for myself should succeed and update initial_password_updated if false' do
         get :update_password, params: { id: institutional_admin.id, user: { password: 'newpassword', password_confirmation: 'newpassword', current_password: 'testpassword' } }
@@ -630,7 +629,7 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'verifying email' do
-      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin, email_verified: false)}
+      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin, email_verified: false) }
 
       it '#GET verify email should send an email with instructions on verifying my email address' do
         get :verify_email, params: { id: institutional_admin.id }
@@ -660,9 +659,9 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'forcing a user to update their password' do
-      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin, force_password_update: false)}
-      let(:user_at_institution) {  FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id, force_password_update: false) }
-      let(:user_of_different_institution) {  FactoryBot.create(:user, :institutional_user, force_password_update: false) }
+      let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin, force_password_update: false) }
+      let(:user_at_institution) { FactoryBot.create(:user, :institutional_user, institution_id: institutional_admin.institution_id, force_password_update: false) }
+      let(:user_of_different_institution) { FactoryBot.create(:user, :institutional_user, force_password_update: false) }
 
       it 'at my own institution should succeed' do
         get :forced_password_update, params: { id: user_at_institution.id }
@@ -676,11 +675,10 @@ RSpec.describe UsersController, type: :controller do
         expect(response.status).to eq(403)
       end
     end
-
   end
 
   describe 'An Institutional User' do
-    let!(:user) { FactoryBot.create(:user, :institutional_user)}
+    let!(:user) { FactoryBot.create(:user, :institutional_user) }
     let!(:other_user) { FactoryBot.create(:user, :institutional_user) }
     before do
       sign_in user
@@ -820,11 +818,10 @@ RSpec.describe UsersController, type: :controller do
         get :generate_backup_codes, params: { id: other_user.id }, format: :json
         expect(response.status).to eq(403)
       end
-
     end
 
     describe 'updating password' do
-      let(:user) { FactoryBot.create(:user, :institutional_admin, initial_password_updated: false, password: 'testpassword')}
+      let(:user) { FactoryBot.create(:user, :institutional_admin, initial_password_updated: false, password: 'testpassword') }
 
       it 'for myself should succeed and update initial_password_updated if false' do
         get :update_password, params: { id: user.id, user: { password: 'newpassword', password_confirmation: 'newpassword', current_password: 'testpassword' } }
@@ -835,7 +832,7 @@ RSpec.describe UsersController, type: :controller do
     end
 
     describe 'verifying email' do
-      let(:user) { FactoryBot.create(:user, :institutional_admin, email_verified: false)}
+      let(:user) { FactoryBot.create(:user, :institutional_admin, email_verified: false) }
 
       it '#GET verify email should send an email with instructions on verifying my email address' do
         get :verify_email, params: { id: user.id }
@@ -863,6 +860,5 @@ RSpec.describe UsersController, type: :controller do
         expect(flash[:error]).to eq 'Invalid confirmation token.'
       end
     end
-
   end
 end

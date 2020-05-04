@@ -1,5 +1,4 @@
 class EmailPolicy < ApplicationPolicy
-
   def index?
     user.admin?
   end
@@ -7,5 +6,4 @@ class EmailPolicy < ApplicationPolicy
   def show?
     user.admin?
   end
-
 end

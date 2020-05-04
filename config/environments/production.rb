@@ -39,26 +39,26 @@ Rails.application.configure do
 
   # Specifies the header that your server uses for sending files.
   # config.action_dispatch.x_sendfile_header = 'X-Sendfile' # for Apache
-# config.action_dispatch.x_sendfile_header = 'X-Accel-Redirect' # for NGINX
+  # config.action_dispatch.x_sendfile_header = 'X-Accel-Redirect' # for NGINX
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = true
 
   # Use the lowest log level to ensure availability of diagnostic information
   # when problems arise.
-  if ENV['PHAROS_LOG_LEVEL'].present?
-    config.log_level = ENV['PHAROS_LOG_LEVEL'].downcase.strip.to_sym
-  else
-	config.log_level = :warn
-  end
+  config.log_level = if ENV['PHAROS_LOG_LEVEL'].present?
+                       ENV['PHAROS_LOG_LEVEL'].downcase.strip.to_sym
+                     else
+                       :warn
+                     end
 
-   # Semantic logger
+  # Semantic logger
   config.colorize_logging = false
-  if ENV["DOCKERIZED"] == 'true'
+  if ENV['DOCKERIZED'] == 'true'
     STDOUT.sync = true
     config.semantic_logger.add_appender(io: STDOUT, level: config.log_level, formatter: config.rails_semantic_logger.format)
   else
-    config.semantic_logger.add_appender(file_name: ENV['RAILS_ENV'] + ".log")
+    config.semantic_logger.add_appender(file_name: ENV['RAILS_ENV'] + '.log')
   end
 
   config.rails_semantic_logger.semantic   = false
@@ -67,18 +67,17 @@ Rails.application.configure do
   config.rails_semantic_logger.rendered   = true
 
   # Prepend all log lines with the following tags.
-  config.log_tags = [ :subdomain, :uuid ]
+  config.log_tags = [:subdomain, :uuid]
 
   # Use a different logger for distributed setups.
   # config.logger = ActiveSupport::TaggedLogging.new(SyslogLogger.new)
-	if ENV['PHAROS_LOGSERVER'].present?
-#    config.logger = GELF::Logger.new( ENV['PHAROS_LOGSERVER'], ENV['PHAROS_LOGSERVER_PORT'], "WAN", { :facility => "PHAROS", :environment => ENV['RAILS_ENV'] })
+  if ENV['PHAROS_LOGSERVER'].present?
+    #    config.logger = GELF::Logger.new( ENV['PHAROS_LOGSERVER'], ENV['PHAROS_LOGSERVER_PORT'], "WAN", { :facility => "PHAROS", :environment => ENV['RAILS_ENV'] })
     config.semantic_logger.add_appender(
-    	appender: :graylog,
-        url: "udp://#{ENV['PHAROS_LOGSERVER']}:#{ENV['PHAROS_LOGSERVER_PORT']}"
+      appender: :graylog,
+      url: "udp://#{ENV['PHAROS_LOGSERVER']}:#{ENV['PHAROS_LOGSERVER_PORT']}"
     )
   end
-
 
   # Use a different cache store in production.
   # config.cache_store = :mem_cache_store
@@ -92,20 +91,20 @@ Rails.application.configure do
 
   # send password reset emails to a file
   config.action_mailer.default_url_options = {
-	:host => ENV['PHAROS_HOST'] || 'repo.aptrust.org',
-    :protocol => 'https'
+    host: ENV['PHAROS_HOST'] || 'repo.aptrust.org',
+    protocol: 'https'
   }
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.perform_deliveries = true
   config.action_mailer.raise_delivery_errors = true
-  config.action_mailer.default :charset => "utf-8"
+  config.action_mailer.default charset: 'utf-8'
   config.action_mailer.smtp_settings = {
-    :address => "email-smtp.us-east-1.amazonaws.com",
-    :authentication => :login,
-    :enable_starttls_auto => true,
-    :port    => 587,
-    :user_name => ENV['AWS_SES_USER'],
-    :password => ENV['AWS_SES_PWD']
+    address: 'email-smtp.us-east-1.amazonaws.com',
+    authentication: :login,
+    enable_starttls_auto: true,
+    port: 587,
+    user_name: ENV['AWS_SES_USER'],
+    password: ENV['AWS_SES_PWD']
   }
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).

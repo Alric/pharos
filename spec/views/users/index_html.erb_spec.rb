@@ -9,15 +9,15 @@ describe 'users/index.html.erb' do
     assign(:user, user)
     assign(:institution, institution)
     assign(:users, [
-                            stub_model(User, name: 'Kelly Cobb', id: 1, institution: institution),
-                            stub_model(User, name: 'Andrew Diamond', id: 2, institution: institution)
-                        ])
+             stub_model(User, name: 'Kelly Cobb', id: 1, institution: institution),
+             stub_model(User, name: 'Andrew Diamond', id: 2, institution: institution)
+           ])
     controller.stub(:current_user).and_return user
   end
 
   describe 'A user with access' do
     before do
-      allow(view).to receive(:policy).and_return double(show?:true, edit?:true, create?:true, destroy?:true, deactivate?:true, enable_otp?: true, disable_otp?: true)
+      allow(view).to receive(:policy).and_return double(show?: true, edit?: true, create?: true, destroy?: true, deactivate?: true, enable_otp?: true, disable_otp?: true)
       render
     end
 
@@ -34,7 +34,7 @@ describe 'users/index.html.erb' do
 
   describe 'A user without access' do
     before do
-      allow(view).to receive(:policy).and_return double(show?:false, edit?:false, create?:false, destroy?:false, deactivate?:false, enable_otp?: false, disable_otp?: false)
+      allow(view).to receive(:policy).and_return double(show?: false, edit?: false, create?: false, destroy?: false, deactivate?: false, enable_otp?: false, disable_otp?: false)
       render
     end
 

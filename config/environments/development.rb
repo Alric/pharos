@@ -16,13 +16,13 @@ Rails.application.configure do
   # Don't care if the mailer can't send.
   # config.action_mailer.raise_delivery_errors = false
   config.action_mailer.default_url_options = {
-	:host => ENV['PHAROS_HOST'] || 'localhost:3000'
+    host: ENV['PHAROS_HOST'] || 'localhost:3000'
   }
 
   # output to tmp/mails directory
   config.action_mailer.delivery_method = :file
   # ... and to specify output location
-  config.action_mailer.file_settings = { :location => Rails.root.join('tmp/mail') }
+  config.action_mailer.file_settings = { location: Rails.root.join('tmp/mail') }
   config.action_mailer.perform_deliveries = true
   config.action_mailer.raise_delivery_errors = true
 
@@ -51,7 +51,7 @@ Rails.application.configure do
 
   # Check if we use Docker to allow docker ip through web-console
   if ENV['DOCKERIZED'] == 'true'
-      config.web_console.whitelisted_ips = ENV['DOCKER_HOST_IP']
+    config.web_console.whitelisted_ips = ENV['DOCKER_HOST_IP']
   end
 
   config.pharos_receiving_bucket_prefix = 'aptrust.receiving.development.'

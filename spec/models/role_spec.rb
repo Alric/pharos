@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe Role, :type => :model do
+RSpec.describe Role, type: :model do
   before(:all) do
     Role.delete_all
   end

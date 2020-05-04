@@ -9,7 +9,7 @@ class ChecksumsController < ApplicationController
     filter_sort_and_count
     page_results(@checksums)
     respond_to do |format|
-      format.json { render json: { count: @count, next: @next, previous: @previous, results: @paged_results.map{ |cs| cs.serializable_hash } } }
+      format.json { render json: { count: @count, next: @next, previous: @previous, results: @paged_results.map(&:serializable_hash) } }
     end
   end
 
@@ -45,7 +45,7 @@ class ChecksumsController < ApplicationController
   def load_generic_file
     if params[:generic_file_identifier]
       @generic_file ||= GenericFile.where(identifier: params[:generic_file_identifier]).first
-      @generic_file = GenericFile.find_by_identifier(params[:generic_file_identifier]) if @generic_file.nil?
+      @generic_file = GenericFile.find_by(identifier: params[:generic_file_identifier]) if @generic_file.nil?
     elsif params[:generic_file_id]
       @generic_file = GenericFile.readable(current_user).find(params[:generic_file_id])
     end
@@ -53,12 +53,11 @@ class ChecksumsController < ApplicationController
 
   def filter_sort_and_count
     @checksums = @checksums
-      .with_generic_file_identifier(params[:generic_file_identifier])
-      .with_algorithm(params[:algorithm])
-      .with_digest(params[:digest])
+                 .with_generic_file_identifier(params[:generic_file_identifier])
+                 .with_algorithm(params[:algorithm])
+                 .with_digest(params[:digest])
     count = @checksums.count
     set_page_counts(count)
     @checksums = @checksums.order('datetime DESC')
   end
-
 end

@@ -18,15 +18,15 @@ def setup_item(subject)
   subject.name = 'sample_bag.tar'
   subject.etag = '12345'
   subject.institution = FactoryBot.build(:member_institution, identifier: 'hardknocks.edu')
-  subject.bag_date = Time.now()
+  subject.bag_date = Time.zone.now
   subject.bucket = 'aptrust.receiving.hardknocks.edu'
-  subject.date = Time.now()
+  subject.date = Time.zone.now
   subject.note = 'Note'
   subject.outcome = 'Outcome'
   subject.user = 'user'
 end
 
-RSpec.describe WorkItem, :type => :model do
+RSpec.describe WorkItem, type: :model do
   before(:all) do
     WorkItem.delete_all
     IntellectualObject.delete_all
@@ -36,11 +36,11 @@ RSpec.describe WorkItem, :type => :model do
   it { should validate_presence_of(:name) }
   it { should validate_presence_of(:etag) }
   it { should validate_presence_of(:bag_date) }
-  it { should validate_presence_of(:bucket)}
+  it { should validate_presence_of(:bucket) }
   it { should validate_presence_of(:user) }
   it { should validate_presence_of(:institution) }
   it { should validate_presence_of(:date) }
-  it { should validate_presence_of(:note)}
+  it { should validate_presence_of(:note) }
   it { should validate_presence_of(:action) }
   it { should validate_presence_of(:stage) }
   it { should validate_presence_of(:status) }
@@ -82,7 +82,7 @@ RSpec.describe WorkItem, :type => :model do
     subject.stage = receive
     subject.status = success
     subject.save!
-    subject.object_identifier.should == nil
+    subject.object_identifier.should.nil?
   end
 
   it 'should set object identifier in before_save if not ingested (single part bag)' do
@@ -108,19 +108,19 @@ RSpec.describe WorkItem, :type => :model do
 
   it 'should set queue fields' do
     subject.work_item_state = FactoryBot.create(:work_item_state, work_item: subject, action: 'Success')
-    ts = Time.now
+    ts = Time.zone.now
     setup_item(subject)
     subject.action = ingest
     subject.stage = record
     subject.status = pending
-    subject.node = "10.11.12.13"
+    subject.node = '10.11.12.13'
     subject.pid = 808
     subject.needs_admin_review = true
 
     subject.save!
     subject.reload
 
-    subject.node.should == "10.11.12.13"
+    subject.node.should == '10.11.12.13'
     subject.pid.should == 808
     subject.needs_admin_review.should == true
   end
@@ -129,30 +129,30 @@ RSpec.describe WorkItem, :type => :model do
     subject.work_item_state = FactoryBot.create(:work_item_state, work_item: subject, action: 'Success')
     setup_item(subject)
     subject.work_item_state.state = nil
-    subject.pretty_state.should == nil
+    subject.pretty_state.should.nil?
   end
 
   it 'pretty_state should not choke on empty string' do
     subject.work_item_state = FactoryBot.create(:work_item_state, work_item: subject, action: 'Success')
     setup_item(subject)
     subject.work_item_state.state = Zlib::Deflate.deflate('')
-    subject.pretty_state.should == nil
+    subject.pretty_state.should.nil?
   end
 
   it 'pretty_state should produce formatted JSON' do
     subject.work_item_state = FactoryBot.create(:work_item_state, work_item: subject, action: 'Success')
     setup_item(subject)
     subject.work_item_state.state = Zlib::Deflate.deflate('{ "here": "is", "some": ["j","s","o","n"] }')
-    pretty_json = <<-eos
-{
-  "here": "is",
-  "some": [
-    "j",
-    "s",
-    "o",
-    "n"
-  ]
-}
+    pretty_json = <<~eos
+      {
+        "here": "is",
+        "some": [
+          "j",
+          "s",
+          "o",
+          "n"
+        ]
+      }
     eos
     subject.pretty_state.should == pretty_json.strip
   end
@@ -191,23 +191,22 @@ RSpec.describe WorkItem, :type => :model do
     subject.status.should == Pharos::Application::PHAROS_STATUSES['pend']
     subject.action.should == Pharos::Application::PHAROS_ACTIONS['ingest']
     subject.stage.should ==  Pharos::Application::PHAROS_STAGES['receive']
-
   end
 
   describe 'work queue methods' do
-    ingest_date = Time.parse('2014-06-01')
+    ingest_date = Time.zone.parse('2014-06-01')
     before do
       test_obj = FactoryBot.create(:intellectual_object, identifier: 'abc/123')
       FactoryBot.create(:generic_file, identifier: 'abc/123/doc.pdf', intellectual_object_id: test_obj.id)
       FactoryBot.create(:generic_file, identifier: 'abc/123/txt.pdf', intellectual_object_id: test_obj.id)
       FactoryBot.create(:generic_file, identifier: 'abc/123/ppt.pdf', intellectual_object_id: test_obj.id)
       3.times do
-        ingest_date = ingest_date + 1.days
+        ingest_date += 1.day
         FactoryBot.create(:work_item, object_identifier: 'abc/123',
-                           action: Pharos::Application::PHAROS_ACTIONS['ingest'],
-                           stage: Pharos::Application::PHAROS_STAGES['record'],
-                           status: Pharos::Application::PHAROS_STATUSES['success'],
-                           date: ingest_date)
+                                      action: Pharos::Application::PHAROS_ACTIONS['ingest'],
+                                      stage: Pharos::Application::PHAROS_STAGES['record'],
+                                      status: Pharos::Application::PHAROS_STATUSES['success'],
+                                      date: ingest_date)
       end
     end
 
@@ -347,7 +346,7 @@ RSpec.describe WorkItem, :type => :model do
     end
 
     it 'should find ingest by name, etag, bag_date' do
-      bag_date = Time.parse('2016-08-31T19:39:39Z')
+      bag_date = Time.zone.parse('2016-08-31T19:39:39Z')
       setup_item(subject)
       subject.action = ingest
       subject.stage = clean
@@ -359,36 +358,36 @@ RSpec.describe WorkItem, :type => :model do
       subject.save!
 
       bag_date_1 = subject.bag_date
-      bag_date_2 = subject.bag_date + 1.seconds
+      bag_date_2 = subject.bag_date + 1.second
 
       item = WorkItem
-        .with_name(subject.object_identifier)
-        .with_etag(subject.etag)
-        .with_bag_date(bag_date_1, bag_date_2)
+             .with_name(subject.object_identifier)
+             .with_etag(subject.etag)
+             .with_bag_date(bag_date_1, bag_date_2)
       item.should_not be_nil
     end
 
     it 'should find by queued' do
       WorkItem.update_all(queued_at: nil)
-      items = WorkItem.queued("true")
+      items = WorkItem.queued('true')
       items.should be_empty
-      items = WorkItem.queued("false")
+      items = WorkItem.queued('false')
       items.should_not be_empty
 
       WorkItem.update_all(queued_at: ingest_date)
-      items = WorkItem.queued("true")
+      items = WorkItem.queued('true')
       items.should_not be_empty
-      items = WorkItem.queued("false")
+      items = WorkItem.queued('false')
       items.should be_empty
     end
 
     it 'should find by node not empty' do
       WorkItem.update_all(node: 'xyz')
-      items = WorkItem.with_unempty_node("true")
+      items = WorkItem.with_unempty_node('true')
       items.should_not be_empty
       items.count.should == WorkItem.all.count
       WorkItem.update_all(node: '')
-      items = WorkItem.with_unempty_node("true")
+      items = WorkItem.with_unempty_node('true')
       items.should be_empty
       items = WorkItem.with_unempty_node(nil)
       items.should_not be_empty
@@ -396,23 +395,23 @@ RSpec.describe WorkItem, :type => :model do
 
     it 'should find by node empty' do
       WorkItem.update_all(node: 'xyz')
-      items = WorkItem.with_empty_node("true")
+      items = WorkItem.with_empty_node('true')
       items.should be_empty
       items = WorkItem.with_empty_node(nil)
       items.should_not be_empty
       WorkItem.update_all(node: '')
-      items = WorkItem.with_empty_node("true")
+      items = WorkItem.with_empty_node('true')
       items.should_not be_empty
       items.count.should == WorkItem.all.count
     end
 
     it 'should find by pid not empty' do
       WorkItem.update_all(pid: 15)
-      items = WorkItem.with_unempty_pid("true")
+      items = WorkItem.with_unempty_pid('true')
       items.should_not be_empty
       items.count.should == WorkItem.all.count
       WorkItem.update_all(pid: 0)
-      items = WorkItem.with_unempty_pid("true")
+      items = WorkItem.with_unempty_pid('true')
       items.should be_empty
       items = WorkItem.with_unempty_pid(nil)
       items.should_not be_empty
@@ -420,16 +419,15 @@ RSpec.describe WorkItem, :type => :model do
 
     it 'should find by pid empty' do
       WorkItem.update_all(pid: 15)
-      items = WorkItem.with_empty_pid("true")
+      items = WorkItem.with_empty_pid('true')
       items.should be_empty
       items = WorkItem.with_empty_pid(nil)
       items.should_not be_empty
       WorkItem.update_all(pid: 0)
-      items = WorkItem.with_empty_pid("true")
+      items = WorkItem.with_empty_pid('true')
       items.should_not be_empty
       items.count.should == WorkItem.all.count
     end
-
   end
 
   describe 'alert methods' do
@@ -437,21 +435,21 @@ RSpec.describe WorkItem, :type => :model do
       it 'failed_ingest should return a list of work items that have failed a specific action' do
         user = FactoryBot.create(:user, :admin)
         item = FactoryBot.create(:work_item, action: ingest, status: failed)
-        items = WorkItem.failed_action(Time.now - 24.hours, ingest, user)
+        items = WorkItem.failed_action(Time.zone.now - 24.hours, ingest, user)
         expect(items.first).to eq item
       end
 
       it 'failed_ingest_count should return the number of work items that have failed a specific action' do
         user = FactoryBot.create(:user, :admin)
         item = FactoryBot.create(:work_item, action: ingest, status: failed)
-        count = WorkItem.failed_action_count(Time.now - 24.hours, ingest, user)
+        count = WorkItem.failed_action_count(Time.zone.now - 24.hours, ingest, user)
         expect(count).to eq 1
       end
 
       it 'stalled_items should return a list of work items queued 12+ hours ago that have not succeeded, failed, or cancelled' do
         user = FactoryBot.create(:user, :admin)
-        item1 = FactoryBot.create(:work_item, queued_at: Time.now - 13.hours, status: pending)
-        item2 = FactoryBot.create(:work_item, queued_at: Time.now - 13.hours, status: started)
+        item1 = FactoryBot.create(:work_item, queued_at: Time.zone.now - 13.hours, status: pending)
+        item2 = FactoryBot.create(:work_item, queued_at: Time.zone.now - 13.hours, status: started)
         items = WorkItem.stalled_items(user)
         expect(items.last.id).to eq item1.id
         expect(items.first.id).to eq item2.id
@@ -459,8 +457,8 @@ RSpec.describe WorkItem, :type => :model do
 
       it 'stalled_item_counts should return the number of work items queued 12+ hours ago that have not succeeded, failed, or cancelled' do
         user = FactoryBot.create(:user, :admin)
-        item1 = FactoryBot.create(:work_item, queued_at: Time.now - 13.hours, status: pending)
-        item2 = FactoryBot.create(:work_item, queued_at: Time.now - 13.hours, status: started)
+        item1 = FactoryBot.create(:work_item, queued_at: Time.zone.now - 13.hours, status: pending)
+        item2 = FactoryBot.create(:work_item, queued_at: Time.zone.now - 13.hours, status: started)
         count = WorkItem.stalled_items_count(user)
         expect(count).to eq 2
       end

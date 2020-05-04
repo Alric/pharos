@@ -25,9 +25,9 @@ RSpec.describe InstitutionsController, type: :controller do
   let(:admin_user) { FactoryBot.create(:user, :admin, institution_id: institution_one.id, encrypted_api_secret_key: '1234-5678') }
   let(:institutional_user) { FactoryBot.create(:user, :institutional_user, institution_id: institution_two.id) }
   let(:institutional_admin) { FactoryBot.create(:user, :institutional_admin, institution_id: institution_three.id) }
-  let(:object_one) { FactoryBot.create(:intellectual_object, institution: institution_one)}
-  let(:object_two) { FactoryBot.create(:intellectual_object, institution: institution_two)}
-  let(:object_three) { FactoryBot.create(:intellectual_object, institution: institution_three)}
+  let(:object_one) { FactoryBot.create(:intellectual_object, institution: institution_one) }
+  let(:object_two) { FactoryBot.create(:intellectual_object, institution: institution_two) }
+  let(:object_three) { FactoryBot.create(:intellectual_object, institution: institution_three) }
   let(:file_one) { FactoryBot.create(:generic_file, intellectual_object: object_one) }
   let(:file_two) { FactoryBot.create(:generic_file, intellectual_object: object_two) }
   let(:file_three) { FactoryBot.create(:generic_file, intellectual_object: object_three) }
@@ -68,8 +68,8 @@ RSpec.describe InstitutionsController, type: :controller do
         assigns(:institutions).should include(admin_user.institution)
         data = JSON.parse(response.body)
         data['results'].each do |inst|
-          expect(inst['receiving_bucket']).to include(".receiving.")
-          expect(inst['restore_bucket']).to include(".restore.")
+          expect(inst['receiving_bucket']).to include('.receiving.')
+          expect(inst['restore_bucket']).to include('.restore.')
         end
       end
 
@@ -82,10 +82,8 @@ RSpec.describe InstitutionsController, type: :controller do
         assigns(:institutions).should include(institutional_admin.institution)
         assigns(:institutions).should_not include(admin_user.institution)
       end
-
     end
   end
-
 
   describe 'GET #new' do
     describe 'for admin users' do
@@ -121,9 +119,8 @@ RSpec.describe InstitutionsController, type: :controller do
 
       it 'assigns the requested institution as @institution' do
         get :show, params: { institution_identifier: admin_user.institution.to_param }
-        assigns(:institution).should eq( admin_user.institution)
+        assigns(:institution).should eq(admin_user.institution)
       end
-
     end
 
     describe 'for institutional_admin user' do
@@ -259,7 +256,7 @@ RSpec.describe InstitutionsController, type: :controller do
         let(:inst4) { FactoryBot.create(:subscription_institution) }
         let(:user) { FactoryBot.create(:user, :institutional_admin, institution_id: inst1.id) }
         let(:user2) { FactoryBot.create(:user, :institutional_admin, institution_id: inst3.id) }
-        #before do
+        # before do
         #   sign_in user
         #   session[:verified] = true
         # }
@@ -322,17 +319,16 @@ RSpec.describe InstitutionsController, type: :controller do
   end
 
   describe 'PATCH update' do
-
     describe 'when not signed in' do
       let(:inst1) { FactoryBot.create(:member_institution) }
       let(:inst2) { FactoryBot.create(:subscription_institution) }
       it 'should redirect to login for member institutions' do
-        patch :update, params: { institution_identifier: inst1, institution: {name: 'Foo' } }
+        patch :update, params: { institution_identifier: inst1, institution: { name: 'Foo' } }
         expect(response).to redirect_to root_url + 'users/sign_in'
       end
 
       it 'should redirect to login for subscription institutions' do
-        patch :update, params: { institution_identifier: inst2, institution: {name: 'Foo' } }
+        patch :update, params: { institution_identifier: inst2, institution: { name: 'Foo' } }
         expect(response).to redirect_to root_url + 'users/sign_in'
       end
     end
@@ -347,22 +343,22 @@ RSpec.describe InstitutionsController, type: :controller do
       end
 
       it 'should update fields for member institutions' do
-        patch :update, params: { institution_identifier: inst1, institution: {name: 'Foo'} }
+        patch :update, params: { institution_identifier: inst1, institution: { name: 'Foo' } }
         expect(response).to redirect_to institution_path(inst1)
         expect(assigns(:institution).name).to eq 'Foo'
       end
 
       it 'should update fields for subscription institutions' do
-        patch :update, params: { institution_identifier: inst2, institution: {name: 'Foo'} }
+        patch :update, params: { institution_identifier: inst2, institution: { name: 'Foo' } }
         expect(response).to redirect_to institution_path(inst2)
         expect(assigns(:institution).name).to eq 'Foo'
       end
 
       it 'should ignore updates to read only fields' do
         test_inst = FactoryBot.create(:member_institution, identifier: 'test.edu')
-        patch :update, params: { institution_identifier: test_inst, institution: {name: 'Foo', identifier: 'foo.edu',
-                                                                                  receiving_bucket: 'something.else.foo.edu',
-                                                                                  restore_bucket: 'something.restore.foo.edu' } }
+        patch :update, params: { institution_identifier: test_inst, institution: { name: 'Foo', identifier: 'foo.edu',
+                                                                                   receiving_bucket: 'something.else.foo.edu',
+                                                                                   restore_bucket: 'something.restore.foo.edu' } }
         expect(assigns(:institution).name).to eq 'Foo'
         expect(assigns(:institution).identifier).not_to eq 'foo.edu'
         expect(assigns(:institution).receiving_bucket).not_to eq 'something.else.foo.edu'
@@ -384,35 +380,35 @@ RSpec.describe InstitutionsController, type: :controller do
       before do
         sign_in admin_user
         session[:verified] = true
-        current_member.save! #needs to be instantiated before the test below
+        current_member.save! # needs to be instantiated before the test below
       end
 
       it 'should reject when there are no parameters' do
-        expect {
+        expect do
           post :create, params: {}
-        }.to raise_error ActionController::ParameterMissing
+        end.to raise_error ActionController::ParameterMissing
       end
 
       it 'should accept good parameters for member institutions' do
-        expect {
+        expect do
           post :create, params: { institution: attributes }
-        }.to change(Institution, :count).by(1)
+        end.to change(Institution, :count).by(1)
         response.should redirect_to institution_url(assigns[:institution])
         assigns[:institution].should be_kind_of Institution
       end
 
       it 'should accept good parameters for subscription institutions' do
-        expect {
+        expect do
           post :create, params: { institution: attributes2 }
-        }.to change(Institution, :count).by(1)
+        end.to change(Institution, :count).by(1)
         response.should redirect_to institution_url(assigns[:institution])
         assigns[:institution].should be_kind_of Institution
       end
 
       it 'should successfully set bucket names when none are given in the creation params' do
-        expect {
+        expect do
           post :create, params: { institution: attributes3 }
-        }.to change(Institution, :count).by(1)
+        end.to change(Institution, :count).by(1)
         response.should redirect_to institution_url(assigns[:institution])
         assigns[:institution].should be_kind_of Institution
         inst = assigns[:institution]
@@ -421,9 +417,9 @@ RSpec.describe InstitutionsController, type: :controller do
       end
 
       it 'should override bucket names given in the parameters and set expected ones' do
-        expect {
+        expect do
           post :create, params: { institution: attributes4 }
-        }.to change(Institution, :count).by(1)
+        end.to change(Institution, :count).by(1)
         response.should redirect_to institution_url(assigns[:institution])
         assigns[:institution].should be_kind_of Institution
         inst = assigns[:institution]
@@ -441,22 +437,22 @@ RSpec.describe InstitutionsController, type: :controller do
       before do
         sign_in institutional_admin
         session[:verified] = true
-        #current_member.save! #needs to be instantiated before the test below
+        # current_member.save! #needs to be instantiated before the test below
       end
 
       it 'should be unauthorized for member institutions' do
-        expect {
+        expect do
           post :create, params: { institution: attributes }
-        }.to_not change(Institution, :count)
+        end.to_not change(Institution, :count)
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
 
       it 'should be unauthorized for subscription institutions' do
         current_member.save!
-        expect {
+        expect do
           post :create, params: { institution: attributes2 }
-        }.to_not change(Institution, :count)
+        end.to_not change(Institution, :count)
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
@@ -472,13 +468,12 @@ RSpec.describe InstitutionsController, type: :controller do
 
       it 'responds successfully and creates a snapshot' do
         get :single_snapshot, params: { institution_identifier: admin_user.institution.to_param }
-        #expect(response).to be_successful
+        # expect(response).to be_successful
         expect(response.status).to eq(302)
         expect(flash[:notice]).to eq "A snapshot of #{admin_user.institution.name} has been taken and archived on #{assigns(:snapshots).first.audit_date}. Please see the reports page for that analysis."
         expect(assigns(:snapshots).first.apt_bytes).to eq 0
         expect(assigns(:snapshots).first.cost).to eq 0.00
       end
-
     end
 
     describe 'for institutional_admin user' do
@@ -492,7 +487,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
-
     end
 
     describe 'for institutional_user user' do
@@ -517,7 +511,7 @@ RSpec.describe InstitutionsController, type: :controller do
       end
 
       it 'responds successfully and creates a snapshot' do
-        get :group_snapshot, params: { }
+        get :group_snapshot, params: {}
         expect(response.status).to eq(302)
         expect(flash[:notice]).to eq "A snapshot of all Member Institutions has been taken and archived on #{assigns(:snapshots).first.first.audit_date}. Please see the reports page for that analysis."
         expect(assigns(:snapshots).first.first.apt_bytes).to eq 0
@@ -527,13 +521,13 @@ RSpec.describe InstitutionsController, type: :controller do
       end
 
       it 'responds successfully and creates a snapshot (JSON)' do
-        get :group_snapshot, params: { }, format: :json
+        get :group_snapshot, params: {}, format: :json
         expect(response).to be_successful
         expect(assigns(:snapshots).first.first.apt_bytes).to eq 0
         expect(assigns(:snapshots).first.first.cost).to eq 0.00
         data = JSON.parse(response.body)
-        expect(data['snapshots'][0][0].has_key?('institution_id')).to be true
-        expect(data['snapshots'][0][1].has_key?('institution_id')).to be true
+        expect(data['snapshots'][0][0].key?('institution_id')).to be true
+        expect(data['snapshots'][0][1].key?('institution_id')).to be true
         email = ActionMailer::Base.deliveries.last
         expect(email.body.encoded).to include("Here are the latest snapshot results for the #{Rails.env.capitalize} repository broken down by institution.")
       end
@@ -546,11 +540,10 @@ RSpec.describe InstitutionsController, type: :controller do
       end
 
       it 'responds unauthorized' do
-        get :group_snapshot, params: { }
+        get :group_snapshot, params: {}
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
-
     end
 
     describe 'for institutional_user user' do
@@ -560,7 +553,7 @@ RSpec.describe InstitutionsController, type: :controller do
       end
 
       it 'responds unauthorized' do
-        get :group_snapshot, params: { }
+        get :group_snapshot, params: {}
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
@@ -587,7 +580,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(assigns[:institution].users.first.deactivated_at).not_to be_nil
         expect(assigns[:institution].users.first.encrypted_api_secret_key).to eq ''
       end
-
     end
 
     describe 'for institutional_admin user' do
@@ -601,7 +593,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
-
     end
 
     describe 'for institutional_user user' do
@@ -643,7 +634,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(assigns[:institution].users.first.deactivated_at).to be_nil
         expect(assigns[:institution].users.first.encrypted_api_secret_key).to eq ''
       end
-
     end
 
     describe 'for institutional_admin user' do
@@ -657,7 +647,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
-
     end
 
     describe 'for institutional_user user' do
@@ -705,7 +694,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(response).to redirect_to institution_path(institutional_admin.institution)
         expect(flash[:notice]).to eq "All users at #{institutional_admin.institution.name} will be forced to change their password upon next login. If you forced password changes at your own institution, you will not be forced to change your own password but it is highly encouraged."
       end
-
     end
 
     describe 'for institutional_user user' do
@@ -799,9 +787,9 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(assigns[:institution]).to eq institution_one
         expect(assigns[:ident_list].count).to eq 6
         expect(assigns[:bulk_job].intellectual_objects.count).to eq 2
-        expect(assigns[:bulk_job].intellectual_objects.map &:identifier).to eq [obj1.identifier, obj2.identifier]
+        expect(assigns[:bulk_job].intellectual_objects.map(&:identifier)).to eq [obj1.identifier, obj2.identifier]
         expect(assigns[:bulk_job].generic_files.count).to eq 2
-        expect(assigns[:bulk_job].generic_files.map &:identifier).to eq [file1.identifier, file2.identifier]
+        expect(assigns[:bulk_job].generic_files.map(&:identifier)).to eq [file1.identifier, file2.identifier]
         expect(assigns[:forbidden_idents].count).to eq 2
         expect(assigns[:forbidden_idents][obj3.identifier]).to eq 'This item has already been deleted.'
         expect(assigns[:forbidden_idents][file3.identifier]).to eq 'This item has already been deleted.'
@@ -811,7 +799,6 @@ RSpec.describe InstitutionsController, type: :controller do
         email = ActionMailer::Base.deliveries.last
         expect(email.body.encoded).to include("http://localhost:3000/#{CGI.escape(institution_one.identifier)}/confirm_bulk_delete_institution?bulk_delete_job_id=#{assigns[:bulk_job].id}&confirmation_token=#{token.token}")
       end
-
     end
 
     describe 'for institutional_admin user' do
@@ -825,7 +812,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
-
     end
 
     describe 'for institutional_user user' do
@@ -854,7 +840,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
-
     end
 
     describe 'for institutional_admin user' do
@@ -907,13 +892,12 @@ RSpec.describe InstitutionsController, type: :controller do
         bulk_job.intellectual_objects.push(obj2)
         bulk_job.generic_files.push(file1)
         bulk_job.generic_files.push(file2)
-        post :partial_confirmation_bulk_delete, params: { institution_identifier: institution_three.identifier, confirmation_token: SecureRandom.hex, bulk_delete_job_id: bulk_job.id}
+        post :partial_confirmation_bulk_delete, params: { institution_identifier: institution_three.identifier, confirmation_token: SecureRandom.hex, bulk_delete_job_id: bulk_job.id }
         expect(assigns[:institution]).to eq institution_three
         expect(response).to redirect_to institution_url(institution_three)
-        expect(flash[:alert]).to eq 'Your bulk deletion event cannot be queued at this time due to an invalid confirmation token. ' +
-                                          'Please contact your APTrust administrator for more information.'
+        expect(flash[:alert]).to eq 'Your bulk deletion event cannot be queued at this time due to an invalid confirmation token. ' \
+                                    'Please contact your APTrust administrator for more information.'
       end
-
     end
 
     describe 'for institutional_user user' do
@@ -1040,10 +1024,9 @@ RSpec.describe InstitutionsController, type: :controller do
         post :final_confirmation_bulk_delete, params: { institution_identifier: institution_three.identifier, confirmation_token: SecureRandom.hex, bulk_delete_job_id: bulk_job.id }
         expect(assigns[:institution]).to eq institution_three
         expect(response).to redirect_to root_path
-        expect(flash[:alert]).to eq 'This bulk deletion request cannot be completed at this time due to an invalid confirmation token. ' +
-                                        'Please contact your APTrust administrator for more information.'
+        expect(flash[:alert]).to eq 'This bulk deletion request cannot be completed at this time due to an invalid confirmation token. ' \
+                                    'Please contact your APTrust administrator for more information.'
       end
-
     end
 
     describe 'for institutional_admin user' do
@@ -1057,7 +1040,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
-
     end
 
     describe 'for institutional_user user' do
@@ -1075,7 +1057,6 @@ RSpec.describe InstitutionsController, type: :controller do
   end
 
   describe 'POST finished_bulk_delete' do
-
     describe 'for admin user' do
       before do
         sign_in admin_user
@@ -1140,7 +1121,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
-
     end
 
     describe 'for institutional_user user' do
@@ -1155,7 +1135,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
     end
-
   end
 
   describe 'GET deletion_notifications' do
@@ -1177,7 +1156,7 @@ RSpec.describe InstitutionsController, type: :controller do
         item1 = FactoryBot.create(:work_item, object_identifier: obj1.identifier, intellectual_object: obj1, generic_file_identifier: file1.identifier, generic_file: file1, action: 'Delete', status: 'Success', stage: 'Resolve', institution_id: institution_three.id)
         item2 = FactoryBot.create(:work_item, object_identifier: obj2.identifier, intellectual_object: obj2, generic_file_identifier: file2.identifier, generic_file: file2, action: 'Delete', status: 'Success', stage: 'Resolve', institution_id: institution_three.id)
         item3 = FactoryBot.create(:work_item, object_identifier: obj3.identifier, intellectual_object: obj3, generic_file_identifier: file3.identifier, generic_file: file3, action: 'Delete', status: 'Success', stage: 'Resolve', institution_id: institution_three.id)
-        item3.created_at = Time.now - 2.month
+        item3.created_at = Time.zone.now - 2.months
         item3.save!
         count_before = Email.all.count
         get :deletion_notifications
@@ -1203,7 +1182,6 @@ RSpec.describe InstitutionsController, type: :controller do
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
-
     end
 
     describe 'for institutional_user user' do

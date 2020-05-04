@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 describe 'Searching' do
-
   let(:user) { FactoryBot.create(:user, :institutional_user) }
   it 'should work' do
     login_as user

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe IntellectualObject, :type => :model do
+RSpec.describe IntellectualObject, type: :model do
   after(:all) do
     WorkItem.delete_all
     PremisEvent.delete_all
@@ -12,11 +12,10 @@ RSpec.describe IntellectualObject, :type => :model do
   it { should validate_presence_of(:title) }
   it { should validate_presence_of(:identifier) }
   it { should validate_presence_of(:institution) }
-  it { should validate_presence_of(:access)}
+  it { should validate_presence_of(:access) }
   it { should validate_presence_of(:storage_option) }
 
   describe 'An instance' do
-
     it 'should properly set a title' do
       subject.title = 'War and Peace'
       subject.title.should == 'War and Peace'
@@ -95,31 +94,46 @@ RSpec.describe IntellectualObject, :type => :model do
       subject.storage_option = 'Glacier-OH'
       subject.glacier_only?.should == true
     end
-
   end
 
   describe 'permission scopes and checks' do
     let!(:inst) { FactoryBot.create(:member_institution) }
     let!(:other_inst) { FactoryBot.create(:subscription_institution) }
 
-    let!(:inst_user) { FactoryBot.create(:user, :institutional_user,
-                                          institution: inst) }
-    let!(:inst_admin) { FactoryBot.create(:user, :institutional_admin,
-                                           institution: inst) }
+    let!(:inst_user) do
+      FactoryBot.create(:user, :institutional_user,
+                        institution: inst)
+    end
+    let!(:inst_admin) do
+      FactoryBot.create(:user, :institutional_admin,
+                        institution: inst)
+    end
     let!(:sys_admin) { FactoryBot.create(:user, :admin) }
 
-    let!(:obj_own_consortia) { FactoryBot.create(:intellectual_object,
-                                                  access: 'consortia', institution: inst) }
-    let!(:obj_own_inst) { FactoryBot.create(:intellectual_object,
-                                             access: 'institution', institution: inst) }
-    let!(:obj_own_restricted) { FactoryBot.create(:intellectual_object,
-                                                   access: 'restricted', institution: inst) }
-    let!(:obj_other_consortia) { FactoryBot.create(:intellectual_object,
-                                                    access: 'consortia', institution: other_inst) }
-    let!(:obj_other_inst) { FactoryBot.create(:intellectual_object,
-                                               access: 'institution', institution: other_inst) }
-    let!(:obj_other_restricted) { FactoryBot.create(:intellectual_object,
-                                                     access: 'restricted', institution: other_inst) }
+    let!(:obj_own_consortia) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'consortia', institution: inst)
+    end
+    let!(:obj_own_inst) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'institution', institution: inst)
+    end
+    let!(:obj_own_restricted) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'restricted', institution: inst)
+    end
+    let!(:obj_other_consortia) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'consortia', institution: other_inst)
+    end
+    let!(:obj_other_inst) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'institution', institution: other_inst)
+    end
+    let!(:obj_other_restricted) do
+      FactoryBot.create(:intellectual_object,
+                        access: 'restricted', institution: other_inst)
+    end
 
     # ----------- CONSORTIA --------------
 
@@ -340,39 +354,37 @@ RSpec.describe IntellectualObject, :type => :model do
       expect(results).to include(obj_own_restricted)
       expect(results).to include(obj_other_restricted)
     end
-
   end
 
   describe 'bytes_by_format' do
     subject { FactoryBot.create(:institutional_intellectual_object) }
     it 'should return a hash' do
-      expect(subject.bytes_by_format).to eq({"all"=>0})
+      expect(subject.bytes_by_format).to eq({ 'all' => 0 })
     end
 
     describe 'with attached files' do
       before do
         subject.generic_files << FactoryBot.build(:generic_file,
-                                                   intellectual_object: subject,
-                                                   size: 166311750,
-                                                   identifier: 'test.edu/123/data/file.xml')
+                                                  intellectual_object: subject,
+                                                  size: 166_311_750,
+                                                  identifier: 'test.edu/123/data/file.xml')
         subject.generic_files << FactoryBot.build(:generic_file,
-                                                   intellectual_object: subject,
-                                                   file_format: 'audio/wav',
-                                                   size: 143732461,
-                                                   identifier: 'test.edu/123/data/file.wav')
+                                                  intellectual_object: subject,
+                                                  file_format: 'audio/wav',
+                                                  size: 143_732_461,
+                                                  identifier: 'test.edu/123/data/file.wav')
         subject.save!
       end
 
       it 'should return a hash' do
-        expect(subject.bytes_by_format).to eq({'all'=>310044211,
-                                               'application/xml' => 166311750,
-                                               'audio/wav' => 143732461})
+        expect(subject.bytes_by_format).to eq({ 'all' => 310_044_211,
+                                                'application/xml' => 166_311_750,
+                                                'audio/wav' => 143_732_461 })
       end
     end
   end
 
   describe 'A saved instance' do
-
     describe 'with generic files' do
       subject { FactoryBot.create(:intellectual_object) }
 
@@ -395,13 +407,13 @@ RSpec.describe IntellectualObject, :type => :model do
       end
 
       describe 'soft_delete' do
-        before {
+        before do
           @work_item = FactoryBot.create(:work_item,
-                                          object_identifier: subject.identifier,
-                                          action: Pharos::Application::PHAROS_ACTIONS['ingest'],
-                                          stage: Pharos::Application::PHAROS_STAGES['record'],
-                                          status: Pharos::Application::PHAROS_STATUSES['success'])
-        }
+                                         object_identifier: subject.identifier,
+                                         action: Pharos::Application::PHAROS_ACTIONS['ingest'],
+                                         stage: Pharos::Application::PHAROS_STAGES['record'],
+                                         status: Pharos::Application::PHAROS_STATUSES['success'])
+        end
         # after {
         #   @work_item.delete
         # }
@@ -411,18 +423,18 @@ RSpec.describe IntellectualObject, :type => :model do
         it 'should set the state to deleted and index the object state' do
           attributes = { requestor: 'user@example.com',
                          inst_app: 'other_user@example.com' }
-          expect {
+          expect do
             subject.soft_delete(attributes)
-          }.to change { subject.premis_events.count}.by(0) # no longer create Premis Event until final step
+          end.to change { subject.premis_events.count }.by(0) # no longer create Premis Event until final step
           expect(subject.state).to eq 'A' # no longer marked as deleted until final step
-          subject.generic_files.all?{ |file| expect(file.state).to eq 'A' } # no longer marked as deleted until final step
+          subject.generic_files.all? { |file| expect(file.state).to eq 'A' } # no longer marked as deleted until final step
         end
 
         it 'should set the state to deleted and index the object state' do
           attributes = { requestor: 'user@example.com',
                          inst_app: 'other_user@example.com' }
           subject.soft_delete(attributes)
-          subject.generic_files.all?{ |file|
+          subject.generic_files.all? do |file|
             wi = WorkItem.where(generic_file_identifier: file.identifier).first
             expect(wi).not_to be_nil
             expect(wi.object_identifier).to eq subject.identifier
@@ -431,38 +443,36 @@ RSpec.describe IntellectualObject, :type => :model do
             expect(wi.status).to eq Pharos::Application::PHAROS_STATUSES['pend']
             expect(wi.user).to eq 'user@example.com'
             expect(wi.inst_approver).to eq 'other_user@example.com'
-          }
+          end
         end
-
       end
 
       describe 'mark_deleted' do
-        before {
+        before do
           @work_item = FactoryBot.create(:work_item,
                                          object_identifier: subject.identifier,
                                          action: Pharos::Application::PHAROS_ACTIONS['ingest'],
                                          stage: Pharos::Application::PHAROS_STAGES['record'],
                                          status: Pharos::Application::PHAROS_STATUSES['success'])
-        }
+        end
 
         it 'should create a PREMIS event and set the state to deleted' do
           attributes = FactoryBot.attributes_for(:premis_event_deletion, outcome_detail: 'joe@example.com')
           @file.state = 'D'
           @file.save!
-          expect {
+          expect do
             subject.mark_deleted(attributes)
-          }.to change { subject.premis_events.count}.by(1)
+          end.to change { subject.premis_events.count }.by(1)
           expect(subject.state).to eq 'D'
         end
       end
-
     end
 
     describe 'unique identifier' do
       let(:inst_id) { subject.institution.id }
       describe '#identifier_is_unique' do
         it 'should validate uniqueness of the identifier' do
-          #puts "here"
+          # puts "here"
           one = FactoryBot.create(:intellectual_object, identifier: 'test.edu/234')
           two = FactoryBot.build(:intellectual_object, identifier: 'test.edu/234')
           two.should_not be_valid
@@ -475,50 +485,58 @@ RSpec.describe IntellectualObject, :type => :model do
       let!(:inst) { FactoryBot.create(:member_institution) }
       let!(:other_inst) { FactoryBot.create(:subscription_institution) }
 
-      let!(:inst_admin) { FactoryBot.create(:user, :institutional_admin,
-                                             institution: inst) }
-      let!(:obj1) { FactoryBot.create(:intellectual_object,
-                                       institution: inst,
-                                       identifier: 'test.edu/first',
-                                       alt_identifier: 'first alt identifier',
-                                       created_at: '2011-01-01',
-                                       updated_at: '2011-01-01',
-                                       description: 'Description of first item',
-                                       bag_name: 'first_item',
-                                       title: 'Title of first item',
-                                       state: 'A',
-                                       bag_group_identifier: 'Group Two',
-                                       source_organization: 'University of Colorado',
-                                       internal_sender_identifier: '1234-5678-9018-8362',
-                                       internal_sender_description: 'This is a paragraph. Of sorts.') }
-      let!(:obj2) { FactoryBot.create(:intellectual_object,
-                                       institution: inst,
-                                       identifier: 'test.edu/second',
-                                       alt_identifier: 'second alt identifier',
-                                       created_at: '2017-01-01',
-                                       updated_at: '2017-01-01',
-                                       description: 'Description of second item',
-                                       bag_name: 'second_item',
-                                       title: 'Title of second item',
-                                       state: 'A',
-                                       bag_group_identifier: 'Collection One',
-                                       source_organization: 'University of Denver',
-                                       internal_sender_identifier: '1234-5678-9018-9463',
-                                       internal_sender_description: 'This is a another paragraph. It has two sentences.') }
-      let!(:obj3) { FactoryBot.create(:intellectual_object,
-                                       institution: other_inst,
-                                       identifier: 'xxx',
-                                       alt_identifier: 'xxx',
-                                       created_at: '2016-01-01',
-                                       updated_at: '2016-01-01',
-                                       description: 'xxx',
-                                       bag_name: 'xxx',
-                                       title: 'xxx',
-                                       state: 'D',
-                                       bag_group_identifier: 'Project Two',
-                                       source_organization: 'Nightmare on Elm Street Studios',
-                                       internal_sender_identifier: '0218-3823-3746-9463',
-                                       internal_sender_description: 'The quick brown fox jumped over the lazy dog.') }
+      let!(:inst_admin) do
+        FactoryBot.create(:user, :institutional_admin,
+                          institution: inst)
+      end
+      let!(:obj1) do
+        FactoryBot.create(:intellectual_object,
+                          institution: inst,
+                          identifier: 'test.edu/first',
+                          alt_identifier: 'first alt identifier',
+                          created_at: '2011-01-01',
+                          updated_at: '2011-01-01',
+                          description: 'Description of first item',
+                          bag_name: 'first_item',
+                          title: 'Title of first item',
+                          state: 'A',
+                          bag_group_identifier: 'Group Two',
+                          source_organization: 'University of Colorado',
+                          internal_sender_identifier: '1234-5678-9018-8362',
+                          internal_sender_description: 'This is a paragraph. Of sorts.')
+      end
+      let!(:obj2) do
+        FactoryBot.create(:intellectual_object,
+                          institution: inst,
+                          identifier: 'test.edu/second',
+                          alt_identifier: 'second alt identifier',
+                          created_at: '2017-01-01',
+                          updated_at: '2017-01-01',
+                          description: 'Description of second item',
+                          bag_name: 'second_item',
+                          title: 'Title of second item',
+                          state: 'A',
+                          bag_group_identifier: 'Collection One',
+                          source_organization: 'University of Denver',
+                          internal_sender_identifier: '1234-5678-9018-9463',
+                          internal_sender_description: 'This is a another paragraph. It has two sentences.')
+      end
+      let!(:obj3) do
+        FactoryBot.create(:intellectual_object,
+                          institution: other_inst,
+                          identifier: 'xxx',
+                          alt_identifier: 'xxx',
+                          created_at: '2016-01-01',
+                          updated_at: '2016-01-01',
+                          description: 'xxx',
+                          bag_name: 'xxx',
+                          title: 'xxx',
+                          state: 'D',
+                          bag_group_identifier: 'Project Two',
+                          source_organization: 'Nightmare on Elm Street Studios',
+                          internal_sender_identifier: '0218-3823-3746-9463',
+                          internal_sender_description: 'The quick brown fox jumped over the lazy dog.')
+      end
 
       it 'should find items created before' do
         results = IntellectualObject.created_before('2016-07-29')
@@ -666,17 +684,16 @@ RSpec.describe IntellectualObject, :type => :model do
 
       it 'should allow chained scopes' do
         results = IntellectualObject
-          .created_before('2016-01-01')
-          .updated_before('2016-01-01')
-          .with_identifier_like('edu')
-          .with_description_like('item')
-          .with_title_like('item')
-          .with_state('A')
-          .readable(inst_admin)
+                  .created_before('2016-01-01')
+                  .updated_before('2016-01-01')
+                  .with_identifier_like('edu')
+                  .with_description_like('item')
+                  .with_title_like('item')
+                  .with_state('A')
+                  .readable(inst_admin)
         expect(results).to include obj1
         expect(results.count).to eq 1
       end
-
     end
   end
 
@@ -686,15 +703,15 @@ RSpec.describe IntellectualObject, :type => :model do
     it 'should find by identifier' do
       subject.save!
       subject_two.save!
-      obj1 = IntellectualObject.find_by_identifier('abc.edu/123')
+      obj1 = IntellectualObject.find_by(identifier: 'abc.edu/123')
       expect(obj1).to eq subject
-      obj1 = IntellectualObject.find_by_identifier('abc.edu%2f123')
+      obj1 = IntellectualObject.find_by(identifier: 'abc.edu%2f123')
       expect(obj1).to eq subject
-      obj1 = IntellectualObject.find_by_identifier('abc.edu%2F123')
+      obj1 = IntellectualObject.find_by(identifier: 'abc.edu%2F123')
       expect(obj1).to eq subject
-      obj2 = IntellectualObject.find_by_identifier('xyz.edu/789')
+      obj2 = IntellectualObject.find_by(identifier: 'xyz.edu/789')
       expect(obj2).to eq subject_two
-      obj2 = IntellectualObject.find_by_identifier('i_dont_exist')
+      obj2 = IntellectualObject.find_by(identifier: 'i_dont_exist')
       expect(obj2).to be_nil
     end
   end
@@ -740,5 +757,4 @@ RSpec.describe IntellectualObject, :type => :model do
       expect(subject.deleted_since_last_ingest?).to eq true
     end
   end
-
 end

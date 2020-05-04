@@ -14,11 +14,11 @@ module AuthorizationForcedRedirects
 
   def generate_one_touch(msg)
     one_touch = Authy::OneTouch.send_approval_request(
-        id: current_user.authy_id,
-        message: msg,
-        details: {
-            'Email Address' => current_user.email,
-        }
+      id: current_user.authy_id,
+      message: msg,
+      details: {
+        'Email Address' => current_user.email
+      }
     )
     one_touch
   end
@@ -62,8 +62,8 @@ module AuthorizationForcedRedirects
   def send_sms
     sms = Aws::SNS::Client.new
     response = sms.publish({
-                               phone_number: current_user.phone_number,
-                               message: "Your new one time password is: #{current_user.current_otp}"
+                             phone_number: current_user.phone_number,
+                             message: "Your new one time password is: #{current_user.current_otp}"
                            })
   end
 
@@ -73,20 +73,20 @@ module AuthorizationForcedRedirects
 
   def right_action(type)
     case type
-      when 'password'
-        (params[:action] == 'edit_password' || params[:action] == 'update_password' || (params[:action] == 'show' && params[:id] == current_user.id.to_s))
-      when 'email'
-        params[:action] == 'verify_email' || params[:action] == 'email_confirmation' || params[:action] == 'show'
-      when 'account'
-        params[:action] == 'show' || params[:action] == 'indiv_confirmation_email' || params[:action] == 'confirm_account'
-      when 'release'
-        params[:action] == 'show'
-      when 'twofa_enable'
-        params[:action] == 'enable_otp'
-      when 'twofa_confirm'
-        params[:action] == 'verify_twofa'
-      when 'verification'
-        params[:action] == 'edit' || params[:action] == 'update'
+    when 'password'
+      (params[:action] == 'edit_password' || params[:action] == 'update_password' || (params[:action] == 'show' && params[:id] == current_user.id.to_s))
+    when 'email'
+      params[:action] == 'verify_email' || params[:action] == 'email_confirmation' || params[:action] == 'show'
+    when 'account'
+      params[:action] == 'show' || params[:action] == 'indiv_confirmation_email' || params[:action] == 'confirm_account'
+    when 'release'
+      params[:action] == 'show'
+    when 'twofa_enable'
+      params[:action] == 'enable_otp'
+    when 'twofa_confirm'
+      params[:action] == 'verify_twofa'
+    when 'verification'
+      params[:action] == 'edit' || params[:action] == 'update'
     end
   end
 
@@ -96,19 +96,20 @@ module AuthorizationForcedRedirects
 
   def forced_redirect_return(msg)
     respond_to do |format|
-      format.json {
-        render json: { status: 'error', message: msg }, status: :locked }
-      format.html {
+      format.json do
+        render json: { status: 'error', message: msg }, status: :locked
+      end
+      format.html do
         redirect_to current_user, flash: { error: msg }
-      }
+      end
     end
   end
 
   def generate_authy_account(usr)
     authy = Authy::API.register_user(
-        email: usr.email,
-        cellphone: usr.phone_number,
-        country_code: usr.phone_number[1]
+      email: usr.email,
+      cellphone: usr.phone_number,
+      country_code: usr.phone_number[1]
     )
     if authy.ok?
       usr.update(authy_id: authy.id)
@@ -168,5 +169,4 @@ module AuthorizationForcedRedirects
     token.save!
     token
   end
-
 end

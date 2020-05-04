@@ -1,5 +1,4 @@
 class IntellectualObjectPolicy < ApplicationPolicy
-
   def index?
     if user.admin?
       true
@@ -68,7 +67,7 @@ class IntellectualObjectPolicy < ApplicationPolicy
   # creates deletion events as part of the process of deletion
   def soft_delete?
     user.admin? ||
-        (user.institutional_admin? && user.institution_id == record.institution.id)
+      (user.institutional_admin? && user.institution_id == record.institution.id)
   end
 
   def restore?

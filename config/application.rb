@@ -1,4 +1,4 @@
-require File.expand_path('../boot', __FILE__)
+require File.expand_path('boot', __dir__)
 
 require 'rails/all'
 
@@ -9,7 +9,7 @@ Bundler.require(*Rails.groups)
 module Pharos
   class Application < Rails::Application
     config.generators do |g|
-      g.test_framework :rspec, :spec => true
+      g.test_framework :rspec, spec: true
     end
 
     config.autoload_paths += Dir["#{config.root}/lib/**/"]
@@ -28,80 +28,82 @@ module Pharos
     # config.i18n.load_path += Dir[Rails.root.join('my', 'locales', '*.{rb,yml}').to_s]
     # config.i18n.default_locale = :de
 
-	VERSION = "2.5"
+    VERSION = '2.5'.freeze
 
     config.i18n.enforce_available_locales = true
 
-	#config.public_file_server.enable = false
+    # config.public_file_server.enable = false
     config.assets.version = '1.0'
-	config.assets.precompile += %w(.svg)
+    config.assets.precompile += %w(.svg)
 
     config.before_configuration do
       env_file = File.join(Rails.root, 'config', 'dev_env.yml')
-      YAML.load(File.open(env_file)).each do |key, value|
-        ENV[key.to_s] = value
-      end if File.exists?(env_file)
+      if File.exist?(env_file)
+        YAML.safe_load(File.open(env_file)).each do |key, value|
+          ENV[key.to_s] = value
+        end
+      end
     end
 
-    #GLOBALS
+    # GLOBALS
     PHAROS_STATUSES = {
-        'pend' => 'Pending',
-        'start' => 'Started',
-        'success' => 'Success',
-        'fail' => 'Failed',
-        'cancel' => 'Cancelled'
-    }
+      'pend' => 'Pending',
+      'start' => 'Started',
+      'success' => 'Success',
+      'fail' => 'Failed',
+      'cancel' => 'Cancelled'
+    }.freeze
 
     PHAROS_STAGES = {
-        'requested' => 'Requested',
-        'receive' => 'Receive',
-        'fetch' => 'Fetch',
-        'unpack' => 'Unpack',
-        'validate' => 'Validate',
-        'store' => 'Store',
-        'record' => 'Record',
-        'clean' => 'Cleanup',
-        'resolve' => 'Resolve',
-        'package' => 'Package',
-        'restoring' => 'Restoring',
-        'available_in_s3' => 'Available in S3'
-    }
+      'requested' => 'Requested',
+      'receive' => 'Receive',
+      'fetch' => 'Fetch',
+      'unpack' => 'Unpack',
+      'validate' => 'Validate',
+      'store' => 'Store',
+      'record' => 'Record',
+      'clean' => 'Cleanup',
+      'resolve' => 'Resolve',
+      'package' => 'Package',
+      'restoring' => 'Restoring',
+      'available_in_s3' => 'Available in S3'
+    }.freeze
 
     PHAROS_ACTIONS = {
-        'ingest' => 'Ingest',
-        'fixity' => 'Fixity Check',
-        'restore' => 'Restore',
-		'glacier_restore' => 'Glacier Restore',
-        'delete' => 'Delete'
-    }
+      'ingest' => 'Ingest',
+      'fixity' => 'Fixity Check',
+      'restore' => 'Restore',
+      'glacier_restore' => 'Glacier Restore',
+      'delete' => 'Delete'
+    }.freeze
 
     PHAROS_EVENT_TYPES = {
-        'access_assignment' => 'access assignment',
-        'capture' => 'capture',
-        'compress' => 'compression',
-        'create' => 'creation',
-        'deaccess' => 'deaccession',
-        'decompress' => 'decompression',
-        'decrypt' => 'decryption',
-        'delete' => 'deletion',
-        'digest_calc' => 'message digest calculation',
-        'fixity' => 'fixity check',
-        'ident_assignment' => 'identifier assignment',
-        'ingest' => 'ingestion',
-        'migrate' => 'migration',
-        'normal' => 'normalization',
-        'replicate' => 'replication',
-        'sig_validate' => 'digital signature validation',
-        'validate' => 'validation',
-        'virus_check' => 'virus check'
-    }
+      'access_assignment' => 'access assignment',
+      'capture' => 'capture',
+      'compress' => 'compression',
+      'create' => 'creation',
+      'deaccess' => 'deaccession',
+      'decompress' => 'decompression',
+      'decrypt' => 'decryption',
+      'delete' => 'deletion',
+      'digest_calc' => 'message digest calculation',
+      'fixity' => 'fixity check',
+      'ident_assignment' => 'identifier assignment',
+      'ingest' => 'ingestion',
+      'migrate' => 'migration',
+      'normal' => 'normalization',
+      'replicate' => 'replication',
+      'sig_validate' => 'digital signature validation',
+      'validate' => 'validation',
+      'virus_check' => 'virus check'
+    }.freeze
 
-    PHAROS_STORAGE_OPTIONS = %w(Standard Glacier-OH Glacier-VA Glacier-OR Glacier-Deep-VA Glacier-Deep-OH Glacier-Deep-OR)
+    PHAROS_STORAGE_OPTIONS = %w(Standard Glacier-OH Glacier-VA Glacier-OR Glacier-Deep-VA Glacier-Deep-OH Glacier-Deep-OR).freeze
 
-    APTRUST_NAME = 'APTrust'
-    APTRUST_ID = 'aptrust.org'
+    APTRUST_NAME = 'APTrust'.freeze
+    APTRUST_ID = 'aptrust.org'.freeze
 
-    VALID_DOMAINS = %w(com edu org museum)
+    VALID_DOMAINS = %w(com edu org museum).freeze
 
     # What's this? List of all params allowed throughout entire app?
     # If so, it's an antipattern and a security risk.
@@ -195,15 +197,14 @@ module Pharos
       :uri,
       :utf8,
       :v2
-    ]
+    ].freeze
 
     if Rails.env.production?
-      NSQ_BASE_URL = 'http://prod-services.aptrust.org:4151'
+      NSQ_BASE_URL = 'http://prod-services.aptrust.org:4151'.freeze
     elsif Rails.env.demo?
-      NSQ_BASE_URL = 'http://demo-services.aptrust.org:4151'
+      NSQ_BASE_URL = 'http://demo-services.aptrust.org:4151'.freeze
     elsif Rails.env.development?
-      NSQ_BASE_URL = 'http://localhost:4151'
+      NSQ_BASE_URL = 'http://localhost:4151'.freeze
     end
-
   end
 end

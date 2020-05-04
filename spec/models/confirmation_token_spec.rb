@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe ConfirmationToken, :type => :model do
+RSpec.describe ConfirmationToken, type: :model do
   after(:all) do
     IntellectualObject.delete_all
     ConfirmationToken.delete_all
@@ -18,11 +18,9 @@ RSpec.describe ConfirmationToken, :type => :model do
   end
 
   describe 'An instance' do
-
     it 'should properly set a token' do
       subject.token = '1234-5678'
       subject.token.should == '1234-5678'
     end
   end
-
 end

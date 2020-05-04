@@ -3,30 +3,30 @@ class UsersController < ApplicationController
   inherit_resources
   before_action :authenticate_user!
   before_action :set_user, only: [
-                  :admin_password_reset,
-                  :change_authy_phone_number,
-                  :confirm_account,
-                  :deactivate,
-                  :destroy,
-                  :disable_otp,
-                  :edit,
-                  :email_confirmation,
-                  :enable_otp,
-                  :forced_password_update,
-                  :generate_api_key,
-                  :generate_backup_codes,
-                  :indiv_confirmation_email,
-                  :reactivate,
-                  :register_authy_user,
-                  :show,
-                  :update,
-                  :update_phone_number,
-                  :vacuum,
-                  :verify_email,
-                  :verify_twofa
-                ]
-  after_action :verify_authorized, :except => :index
-  after_action :verify_policy_scoped, :only => :index
+    :admin_password_reset,
+    :change_authy_phone_number,
+    :confirm_account,
+    :deactivate,
+    :destroy,
+    :disable_otp,
+    :edit,
+    :email_confirmation,
+    :enable_otp,
+    :forced_password_update,
+    :generate_api_key,
+    :generate_backup_codes,
+    :indiv_confirmation_email,
+    :reactivate,
+    :register_authy_user,
+    :show,
+    :update,
+    :update_phone_number,
+    :vacuum,
+    :verify_email,
+    :verify_twofa
+  ]
+  after_action :verify_authorized, except: :index
+  after_action :verify_policy_scoped, only: :index
 
   def index
     @users = policy_scope(User)
@@ -65,12 +65,12 @@ class UsersController < ApplicationController
     authorize @user
     old_num = @user.phone_number
     update!
-    if @user.authy_id.present? && !(@user.phone_number == old_num)
+    if @user.authy_id.present? && @user.phone_number != old_num
       response = Authy::API.delete_user(id: @user.authy_id)
       if response.ok?
         @user.update(authy_id: nil)
         second_response = generate_authy_account(@user)
-        if second_response.ok? && (second_response['errors'].nil? || second_response['errors'].empty?)
+        if second_response.ok? && second_response['errors'].blank?
           message = ' The phone number for both this Pharos account and Authy account has been successfully updated.'
           flash[:notice] ? flash[:notice] += message : flash[:notice] = message
         else
@@ -88,7 +88,7 @@ class UsersController < ApplicationController
 
   def destroy
     authorize @user
-    destroy!(notice: "User #{@user.to_s} was deleted.")
+    destroy!(notice: "User #{@user} was deleted.")
   end
 
   def edit_password
@@ -136,7 +136,7 @@ class UsersController < ApplicationController
       @user.phone_number = params[:phone_number]
       @user.save!
       unless Rails.env.test?
-        authy = generate_authy_account(@user) if (@user.authy_id.blank?)
+        authy = generate_authy_account(@user) if @user.authy_id.blank?
       end
       if authy && !authy['errors'].nil? && !authy['errors'].empty?
         logger.info "Testing Authy Errors hash: #{authy.errors.inspect}"
@@ -144,14 +144,14 @@ class UsersController < ApplicationController
         flash[:error] = msg
       else
         @codes = update_enable_otp_attributes(@user)
-        (current_user == @user) ? usr = ' for your account' : usr = " for #{@user.name}"
+        usr = current_user == @user ? ' for your account' : " for #{@user.name}"
         msg = "Two Factor Authentication has been enabled#{usr}. Authy ID is #{@user.authy_id}."
         flash[:notice] = msg
       end
     end
     respond_to do |format|
-      @codes ? format.json { render json: {user: @user, codes: @codes, message: msg} } : format.json { render json: {user: @user, message: msg} }
-      format.html {
+      @codes ? format.json { render json: { user: @user, codes: @codes, message: msg } } : format.json { render json: { user: @user, message: msg } }
+      format.html do
         if params[:redirect_loc] && params[:redirect_loc] == 'index'
           @users = policy_scope(User)
           if msg.include?('Authy ID is')
@@ -162,7 +162,7 @@ class UsersController < ApplicationController
         else
           render 'show'
         end
-      }
+      end
     end
   end
 
@@ -170,7 +170,7 @@ class UsersController < ApplicationController
     authorize @user
     if current_user_is_an_admin
       if current_user == @user || user_is_an_admin(@user)
-        (current_user == @user) ? msg_opt = 'you based on your role as an administrator' : msg_opt = "#{@user.name} based on their role as an administrator"
+        msg_opt = current_user == @user ? 'you based on your role as an administrator' : "#{@user.name} based on their role as an administrator"
         msg = "Two Factor Authentication cannot be disabled at this time because it is required for #{msg_opt}."
         flash[:alert] = msg
       elsif user_inst_requires_twofa(@user)
@@ -193,7 +193,7 @@ class UsersController < ApplicationController
     end
     respond_to do |format|
       format.json { render json: { user: @user, message: msg } }
-      format.html { (params[:redirect_loc] && params[:redirect_loc] == 'index') ? (redirect_to users_path) : (render 'show') }
+      format.html { params[:redirect_loc] && params[:redirect_loc] == 'index' ? (redirect_to users_path) : (render 'show') }
     end
   end
 
@@ -234,7 +234,7 @@ class UsersController < ApplicationController
       if response.ok?
         @user.update(authy_id: nil)
         second_response = generate_authy_account(@user)
-        if !second_response['errors'].nil? && !second_response['errors'].empty?
+        if second_response['errors'].present?
           logger.info "Re-Generate Authy Account Errors: #{second_response.errors.inspect}"
           message = 'The Authy account was unable to be updated at this time, you will not be able to use Authy push notifications until it has been properly updated. If you now see a "Register with Authy" button, please try using that.'
           flash[:error] = message
@@ -268,7 +268,7 @@ class UsersController < ApplicationController
     authorize @user
     if params[:verification_option] == 'push'
       one_touch = generate_one_touch('Request to Verify Phone Number for APTrust Repository Website')
-      if !one_touch['errors'].nil? && !one_touch['errors'].empty?
+      if one_touch['errors'].present?
         logger.info "Checking one touch contents: #{one_touch.inspect}"
         respond_to do |format|
           format.json { render json: { error: 'Create Push Error', message: one_touch.inspect }, status: :internal_server_error }
@@ -289,10 +289,10 @@ class UsersController < ApplicationController
     NotificationMailer.email_verification(@user, token).deliver!
     respond_to do |format|
       format.json { render json: { user: @user, message: 'Instructions on verifying email address have been sent.' } }
-      format.html {
+      format.html do
         render 'show'
         flash[:notice] = 'Instructions on verifying email address have been sent.'
-      }
+      end
     end
   end
 
@@ -342,7 +342,7 @@ class UsersController < ApplicationController
   def deactivate
     authorize current_user
     @user.soft_delete
-    (@user == current_user) ? sign_out(@user) : redirect_to(@user)
+    @user == current_user ? sign_out(@user) : redirect_to(@user)
     flash[:notice] = "#{@user.name}'s account has been deactivated."
   end
 
@@ -360,18 +360,18 @@ class UsersController < ApplicationController
       ActiveRecord::Base.connection.exec_query(query)
       vacuum_associated_tables(params[:vacuum_target]) if params[:vacuum_target] == 'emails' || params[:vacuum_target] == 'roles'
       respond_to do |format|
-        if params[:vacuum_target] == 'entire_database'
-          msg = 'The whole database'
-        else
-          msg = "#{params[:vacuum_target].gsub('_', ' ').capitalize.chop!} table"
-        end
-        format.json { render json: { status: 'success', message: "#{msg} has been vacuumed."  } }
+        msg = if params[:vacuum_target] == 'entire_database'
+                'The whole database'
+              else
+                "#{params[:vacuum_target].gsub('_', ' ').capitalize.chop!} table"
+              end
+        format.json { render json: { status: 'success', message: "#{msg} has been vacuumed." } }
         format.html { flash[:notice] = "#{msg} has been vacuumed." }
       end
     else
       respond_to do |format|
-        format.json { }
-        format.html { }
+        format.json {}
+        format.html {}
       end
     end
   end
@@ -379,18 +379,18 @@ class UsersController < ApplicationController
   def account_confirmations
     authorize current_user
     User.all.each do |user|
-      unless user.admin?
-        update_account_attributes(user)
-        token = create_user_confirmation_token(user)
-        NotificationMailer.account_confirmation(user, token).deliver!
-      end
+      next if user.admin?
+
+      update_account_attributes(user)
+      token = create_user_confirmation_token(user)
+      NotificationMailer.account_confirmation(user, token).deliver!
     end
     respond_to do |format|
       format.json { render json: { status: 'success', message: 'All users except admins have been sent their yearly account confirmation email.' }, status: :ok }
-      format.html {
+      format.html do
         flash[:notice] = 'All users except admins have been sent their yearly account confirmation email.'
         redirect_back fallback_location: root_path
-      }
+      end
     end
   end
 
@@ -435,9 +435,9 @@ class UsersController < ApplicationController
     flash[:notice] = msg
     respond_to do |format|
       format.json { render json: { status: 'success', message: msg }, status: :ok }
-      format.html {
-        request.env['HTTP_REFERER'].nil? ? (redirect_to root_path) : (redirect_to(request.env['HTTP_REFERER']))
-      }
+      format.html do
+        request.env['HTTP_REFERER'].nil? ? (redirect_to root_path) : redirect_to(request.env['HTTP_REFERER'])
+      end
     end
   end
 
@@ -450,8 +450,8 @@ class UsersController < ApplicationController
 
   def build_resource_params
     [params.fetch(:user, {}).permit(:name, :email, :phone_number, :password, :password_confirmation, :institution_id, :two_factor_enabled).tap do |p|
-       p[:institution_id] = build_institution_id if params[:user][:institution_id] unless params[:user].nil?
-       p[:role_ids] = build_role_ids if params[:user][:role_ids] unless params[:user].nil?
+       p[:institution_id] = build_institution_id unless params[:user].nil? || !params[:user][:institution_id]
+       p[:role_ids] = build_role_ids unless params[:user].nil? || !params[:user][:role_ids]
      end]
   end
 
@@ -499,55 +499,55 @@ class UsersController < ApplicationController
 
   def set_query(target)
     case target
-      when 'checksums'
-        query = 'VACUUM (VERBOSE, ANALYZE) checksums'
-      when 'confirmation_tokens'
-        query = 'VACUUM (VERBOSE, ANALYZE) confirmation_tokens'
-      when 'emails'
-        query = 'VACUUM (VERBOSE, ANALYZE) emails'
-      when 'generic_files'
-        query = 'VACUUM (VERBOSE, ANALYZE) generic_files'
-      when 'institutions'
-        query = 'VACUUM (VERBOSE, ANALYZE) institutions'
-      when 'intellectual_objects'
-        query = 'VACUUM (VERBOSE, ANALYZE) intellectual_objects'
-      when 'premis_events'
-        query = 'VACUUM (VERBOSE, ANALYZE) premis_events'
-      when 'roles'
-        query = 'VACUUM (VERBOSE, ANALYZE) roles'
-      when 'snapshots'
-        query = 'VACUUM (VERBOSE, ANALYZE) snapshots'
-      when 'usage_samples'
-        query = 'VACUUM (VERBOSE, ANALYZE) usage_samples'
-      when 'users'
-        query = 'VACUUM (VERBOSE, ANALYZE) users'
-      when 'work_items'
-        query = 'VACUUM (VERBOSE, ANALYZE) work_items'
-      when 'work_item_states'
-        query = 'VACUUM (VERBOSE, ANALYZE) work_item_states'
-      when 'entire_database'
-        query = 'VACUUM (VERBOSE, ANALYZE)'
+    when 'checksums'
+      query = 'VACUUM (VERBOSE, ANALYZE) checksums'
+    when 'confirmation_tokens'
+      query = 'VACUUM (VERBOSE, ANALYZE) confirmation_tokens'
+    when 'emails'
+      query = 'VACUUM (VERBOSE, ANALYZE) emails'
+    when 'generic_files'
+      query = 'VACUUM (VERBOSE, ANALYZE) generic_files'
+    when 'institutions'
+      query = 'VACUUM (VERBOSE, ANALYZE) institutions'
+    when 'intellectual_objects'
+      query = 'VACUUM (VERBOSE, ANALYZE) intellectual_objects'
+    when 'premis_events'
+      query = 'VACUUM (VERBOSE, ANALYZE) premis_events'
+    when 'roles'
+      query = 'VACUUM (VERBOSE, ANALYZE) roles'
+    when 'snapshots'
+      query = 'VACUUM (VERBOSE, ANALYZE) snapshots'
+    when 'usage_samples'
+      query = 'VACUUM (VERBOSE, ANALYZE) usage_samples'
+    when 'users'
+      query = 'VACUUM (VERBOSE, ANALYZE) users'
+    when 'work_items'
+      query = 'VACUUM (VERBOSE, ANALYZE) work_items'
+    when 'work_item_states'
+      query = 'VACUUM (VERBOSE, ANALYZE) work_item_states'
+    when 'entire_database'
+      query = 'VACUUM (VERBOSE, ANALYZE)'
     end
     query
   end
 
   def vacuum_associated_tables(target)
     case target
-      when 'emails'
-        query = 'VACUUM (VERBOSE, ANALYZE) emails_premis_events'
-        ActiveRecord::Base.connection.exec_query(query)
-        query = 'VACUUM (VERBOSE, ANALYZE) emails_work_items'
-        ActiveRecord::Base.connection.exec_query(query)
-      when 'roles'
-        query = 'VACUUM (VERBOSE, ANALYZE) roles_users'
-        ActiveRecord::Base.connection.exec_query(query)
+    when 'emails'
+      query = 'VACUUM (VERBOSE, ANALYZE) emails_premis_events'
+      ActiveRecord::Base.connection.exec_query(query)
+      query = 'VACUUM (VERBOSE, ANALYZE) emails_work_items'
+      ActiveRecord::Base.connection.exec_query(query)
+    when 'roles'
+      query = 'VACUUM (VERBOSE, ANALYZE) roles_users'
+      ActiveRecord::Base.connection.exec_query(query)
     end
   end
 
   def one_touch_status_for_users
     @user = current_user
-    status = Authy::OneTouch.approval_request_status({uuid: session[:uuid]})
-    if !status['errors'].nil? && !status['errors'].empty?
+    status = Authy::OneTouch.approval_request_status({ uuid: session[:uuid] })
+    if status['errors'].present?
       logger.info "Checking one touch contents: #{status.inspect}"
       msg = "There was a problem verifying your push notification. Please try again. If the problem persists, please contact your administrator or an APTrust administrator for help, and let them know that the error message was: #{status['errors']['message']}."
       flash[:error] = msg

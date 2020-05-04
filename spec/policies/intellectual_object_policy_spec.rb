@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 describe IntellectualObjectPolicy do
-
   subject (:intellectual_object_policy) { IntellectualObjectPolicy.new(user, intellectual_object) }
   let(:institution) { FactoryBot.create(:member_institution) }
 
@@ -20,8 +19,10 @@ describe IntellectualObjectPolicy do
   end
 
   context 'for an institutional admin user' do
-    let(:user) { FactoryBot.create(:user, :institutional_admin,
-                                    institution_id: institution.id) }
+    let(:user) do
+      FactoryBot.create(:user, :institutional_admin,
+                        institution_id: institution.id)
+    end
     describe 'when the object is' do
       describe 'in my institution' do
         let(:intellectual_object) { FactoryBot.create(:intellectual_object, institution: institution) }
@@ -67,13 +68,17 @@ describe IntellectualObjectPolicy do
   end
 
   context 'for an institutional user' do
-    let(:user) { FactoryBot.create(:user, :institutional_user,
-                                    institution_id: institution.id) }
+    let(:user) do
+      FactoryBot.create(:user, :institutional_user,
+                        institution_id: institution.id)
+    end
     describe 'when the object is' do
       describe 'in my institution' do
         describe 'and is consortial accessible' do
-          let(:intellectual_object) { FactoryBot.create(:consortial_intellectual_object,
-                                                         institution: institution) }
+          let(:intellectual_object) do
+            FactoryBot.create(:consortial_intellectual_object,
+                              institution: institution)
+          end
           it do
             should_not permit(:update)
             should_not permit(:edit)
@@ -85,13 +90,17 @@ describe IntellectualObjectPolicy do
           end
         end
         describe 'and is institutional accessible' do
-          let(:intellectual_object) { FactoryBot.create(:institutional_intellectual_object,
-                                                         institution: institution) }
+          let(:intellectual_object) do
+            FactoryBot.create(:institutional_intellectual_object,
+                              institution: institution)
+          end
           it { should permit(:show) }
         end
         describe 'and is restricted accessible' do
-          let(:intellectual_object) { FactoryBot.create(:restricted_intellectual_object,
-                                                         institution: institution) }
+          let(:intellectual_object) do
+            FactoryBot.create(:restricted_intellectual_object,
+                              institution: institution)
+          end
           it { should_not permit(:show) }
         end
       end

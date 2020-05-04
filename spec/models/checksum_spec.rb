@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-RSpec.describe Checksum, :type => :model do
-  it { should validate_presence_of (:digest) }
-  it { should validate_presence_of (:datetime) }
-  it { should validate_presence_of (:algorithm) }
+RSpec.describe Checksum, type: :model do
+  it { should validate_presence_of :digest }
+  it { should validate_presence_of :datetime }
+  it { should validate_presence_of :algorithm }
 
   it 'should properly set a digest' do
     subject.digest = '5d43a9a5fc377fa21fa9c0204b8dc61e'

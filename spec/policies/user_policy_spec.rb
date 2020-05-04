@@ -35,7 +35,7 @@ describe UserPolicy do
   end
 
   context 'for an institutional admin user' do
-    let(:user) { FactoryBot.create(:user, :institutional_admin, institution_id: institution.id ) }
+    let(:user) { FactoryBot.create(:user, :institutional_admin, institution_id: institution.id) }
     describe 'when the user is any other user ' do
       describe 'in my institution' do
         let(:other_user) { FactoryBot.create(:user, institution_id: institution.id) }

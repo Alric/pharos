@@ -11,22 +11,29 @@ RSpec.describe PremisEventsController, type: :controller do
 
   let(:object) { FactoryBot.create(:intellectual_object, institution: user.institution, access: 'institution') }
   let(:file) { FactoryBot.create(:generic_file, intellectual_object: object) }
-  let(:event_attrs) { FactoryBot.attributes_for(:premis_event_fixity_generation,
-                                                 intellectual_object_id: object.id,
-                                                 intellectual_object_identifier: object.identifier,
-                                                 generic_file_id: file.id,
-                                                 generic_file_identifier: file.identifier) }
+  let(:event_attrs) do
+    FactoryBot.attributes_for(:premis_event_fixity_generation,
+                              intellectual_object_id: object.id,
+                              intellectual_object_identifier: object.identifier,
+                              generic_file_id: file.id,
+                              generic_file_identifier: file.identifier)
+  end
   # An object and a file from a different institution:
-  let(:someone_elses_object) { FactoryBot.create(:intellectual_object, access: 'institution',
-                                                 identifier: 'miami.edu/miami.archiveit5161_us_cuba_policy_masters_archiveit_5161_us_cuba_policy_md5sums_txt?c=5161') }
-  let(:someone_elses_file) { FactoryBot.create(:generic_file, intellectual_object: someone_elses_object,
-                                                 identifier: 'miami.edu/miami.archiveit5161_us_cuba_policy_masters_archiveit_5161_us_cuba_policy_md5sums_txt?c=5161/data/md5sums.txt?c=5161') }
-  let(:other_event_attrs) { FactoryBot.attributes_for(:premis_event_fixity_generation,
-                                                 intellectual_object_id: someone_elses_object.id,
-                                                 intellectual_object_identifier: someone_elses_object.identifier,
-                                                 generic_file_id: someone_elses_file.id,
-                                                 generic_file_identifier: someone_elses_file.identifier) }
-
+  let(:someone_elses_object) do
+    FactoryBot.create(:intellectual_object, access: 'institution',
+                                            identifier: 'miami.edu/miami.archiveit5161_us_cuba_policy_masters_archiveit_5161_us_cuba_policy_md5sums_txt?c=5161')
+  end
+  let(:someone_elses_file) do
+    FactoryBot.create(:generic_file, intellectual_object: someone_elses_object,
+                                     identifier: 'miami.edu/miami.archiveit5161_us_cuba_policy_masters_archiveit_5161_us_cuba_policy_md5sums_txt?c=5161/data/md5sums.txt?c=5161')
+  end
+  let(:other_event_attrs) do
+    FactoryBot.attributes_for(:premis_event_fixity_generation,
+                              intellectual_object_id: someone_elses_object.id,
+                              intellectual_object_identifier: someone_elses_object.identifier,
+                              generic_file_id: someone_elses_file.id,
+                              generic_file_identifier: someone_elses_file.identifier)
+  end
 
   describe 'signed in as admin user' do
     let(:user) { FactoryBot.create(:user, :admin) }
@@ -63,11 +70,9 @@ RSpec.describe PremisEventsController, type: :controller do
         assigns(:premis_events).length.should == 1
         assigns(:premis_events).map(&:identifier).should == [@someone_elses_event.identifier]
       end
-
     end
 
     describe 'POST create' do
-
       it 'creates an event for the generic file using generic file identifier (API)' do
         file.premis_events.count.should == 0
         post :create, body: event_attrs.to_json, format: :json
@@ -103,11 +108,11 @@ RSpec.describe PremisEventsController, type: :controller do
     describe 'GET notify_of_failed_fixity' do
       it 'creates an email log of the notification email containing the failed fixity checks' do
         fixity_fail = FactoryBot.create(:premis_event_fixity_check_fail,
-                                         intellectual_object_id: object.id,
-                                         intellectual_object_identifier: object.identifier,
-                                         generic_file_id: file.id,
-                                         generic_file_identifier: file.identifier,
-                                         identifier: '1234-5678-9012-3456')
+                                        intellectual_object_id: object.id,
+                                        intellectual_object_identifier: object.identifier,
+                                        generic_file_id: file.id,
+                                        generic_file_identifier: file.identifier,
+                                        identifier: '1234-5678-9012-3456')
         expect { get :notify_of_failed_fixity, format: :json }.to change(Email, :count).by(1)
         expect(response.status).to eq(200)
         email = ActionMailer::Base.deliveries.last
@@ -140,7 +145,6 @@ RSpec.describe PremisEventsController, type: :controller do
         expect(response.status).to eq(403)
       end
     end
-
   end
 
   describe 'signed in as institutional user' do

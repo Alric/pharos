@@ -1,5 +1,4 @@
 class RolePolicy < ApplicationPolicy
-
   def add_user?
     if user.admin?
       true
@@ -9,5 +8,4 @@ class RolePolicy < ApplicationPolicy
       false
     end
   end
-
 end

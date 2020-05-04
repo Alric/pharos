@@ -28,7 +28,7 @@ describe User do
   end
 
   it 'should set a proper grace period' do
-    time = Time.now.change(sec: 0)
+    time = Time.zone.now.change(sec: 0)
     user.grace_period.change(sec: 0).should == time
   end
 
@@ -39,12 +39,12 @@ describe User do
 
   describe 'as an institutional admin' do
     subject { FactoryBot.create(:user, :institutional_admin) }
-    its(:groups) { should match_array ['registered', 'institutional_admin', "Admin_At_#{inst_id}"]}
+    its(:groups) { should match_array ['registered', 'institutional_admin', "Admin_At_#{inst_id}"] }
   end
 
   describe 'as an institutional user' do
     subject { FactoryBot.create(:user, :institutional_user) }
-    its(:groups) { should match_array ['registered', 'institutional_user', "User_At_#{inst_id}"]}
+    its(:groups) { should match_array ['registered', 'institutional_user', "User_At_#{inst_id}"] }
   end
 
   describe '#api_secret_key=' do
@@ -165,5 +165,4 @@ describe User do
       users[1].should eq stale_user
     end
   end
-
 end

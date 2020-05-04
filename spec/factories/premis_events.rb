@@ -1,9 +1,8 @@
 FactoryBot.define do
-
   factory :premis_event_ingest, class: 'PremisEvent' do
     identifier { SecureRandom.hex(16) }
     event_type { Pharos::Application::PHAROS_EVENT_TYPES['ingest'] }
-    date_time { "#{Time.now}" }
+    date_time { Time.zone.now.to_s }
     detail { 'Completed copy to S3 storage' }
     outcome { 'Success' }
     outcome_detail { "MD5:#{SecureRandom.hex(16)}" }
@@ -14,13 +13,12 @@ FactoryBot.define do
       detail { 'Error copying to S3' }
       outcome { 'Failure' }
     end
-
   end
 
   factory :premis_event_validation, class: 'PremisEvent' do
     identifier { SecureRandom.hex(16) }
     event_type { Pharos::Application::PHAROS_EVENT_TYPES['validate'] }
-    date_time { "#{Time.now}" }
+    date_time { Time.zone.now.to_s }
     detail { 'Check against bag manifest checksum' }
     outcome { 'Success' }
     outcome_detail { '"MD5:#{SecureRandom.hex(16)}"' }
@@ -31,7 +29,7 @@ FactoryBot.define do
   factory :premis_event_deletion, class: 'PremisEvent' do
     identifier { SecureRandom.hex(16) }
     event_type { Pharos::Application::PHAROS_EVENT_TYPES['delete'] }
-    date_time { "#{Time.now}" }
+    date_time { Time.zone.now.to_s }
     detail { 'Marked object or file for deletion' }
     outcome { 'Success' }
     outcome_detail { '"MD5:#{SecureRandom.hex(16)}"' }
@@ -42,12 +40,12 @@ FactoryBot.define do
   factory :premis_event_fixity_generation, class: 'PremisEvent' do
     identifier { SecureRandom.hex(16) }
     event_type { Pharos::Application::PHAROS_EVENT_TYPES['digest_calc'] }
-    date_time { "#{Time.now}" }
+    date_time { Time.zone.now.to_s }
     detail { 'Calculated new fixity value' }
     outcome { 'Success' }
     outcome_detail { "sha256:#{SecureRandom.hex(64)}" }
     object { 'Go language cryptohash' }
-    agent {'http://golang.org'}
+    agent { 'http://golang.org' }
     factory :premis_event_fixity_generation_fail, class: 'PremisEvent' do
       outcome { 'Failure' }
       detail { 'Error reading file' }
@@ -58,7 +56,7 @@ FactoryBot.define do
   factory :premis_event_fixity_check, class: 'PremisEvent' do
     identifier { SecureRandom.hex(16) }
     event_type { Pharos::Application::PHAROS_EVENT_TYPES['fixity'] }
-    date_time { "#{Time.now}" }
+    date_time { Time.zone.now.to_s }
     detail { 'Fixity check against registered hash' }
     outcome { 'Success' }
     outcome_detail { "SHA256:#{SecureRandom.hex(64)}" }
@@ -75,19 +73,18 @@ FactoryBot.define do
   factory :premis_event_identifier, class: 'PremisEvent' do
     identifier { SecureRandom.hex(16) }
     event_type { Pharos::Application::PHAROS_EVENT_TYPES['ident_assignment'] }
-    date_time { "#{Time.now}" }
+    date_time { Time.zone.now.to_s }
     detail { 'S3 key generated for file' }
     outcome { 'Success' }
-    outcome_detail { "#{SecureRandom.uuid()}" }
+    outcome_detail { SecureRandom.uuid.to_s }
     outcome_information { 'Generated with ruby SecureRandom.uuid()' }
     object { 'Ruby 2.0.1' }
     agent { 'http://www.ruby-doc.org/' }
     factory :premis_event_identifier_fail, class: 'PremisEvent' do
       outcome { 'Failure' }
-      detail {'Error generating S3 key'}
+      detail { 'Error generating S3 key' }
       outcome_detail { 'Identifier not set' }
       outcome_information { 'File not found' }
     end
   end
-
 end

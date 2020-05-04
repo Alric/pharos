@@ -46,7 +46,7 @@ RSpec.describe BulkDeleteJobsController, type: :controller do
         get :index, format: :json
         expect(response).to be_successful
         expect(assigns(:bulk_delete_jobs).size).to eq 2
-        expect(assigns(:bulk_delete_jobs).map &:id).to match_array [bulk_job_one.id, bulk_job_two.id]
+        expect(assigns(:bulk_delete_jobs).map(&:id)).to match_array [bulk_job_one.id, bulk_job_two.id]
       end
     end
   end
@@ -59,13 +59,13 @@ RSpec.describe BulkDeleteJobsController, type: :controller do
       end
 
       it 'returns successfully a snapshot from own institution' do
-        get :show, params: {id: bulk_job_three.id }, format: :json
+        get :show, params: { id: bulk_job_three.id }, format: :json
         expect(response).to be_successful
         expect(assigns(:bulk_job).id).to eq bulk_job_three.id
       end
 
       it 'returns successfully a snapshot from other institution' do
-        get :show, params: {id: bulk_job_one.id }, format: :json
+        get :show, params: { id: bulk_job_one.id }, format: :json
         expect(response).to be_successful
         expect(assigns(:bulk_job).id).to eq bulk_job_one.id
       end
@@ -78,17 +78,16 @@ RSpec.describe BulkDeleteJobsController, type: :controller do
       end
 
       it 'returns successfully a snapshot from own institution' do
-        get :show, params: {id: bulk_job_one.id }, format: :json
+        get :show, params: { id: bulk_job_one.id }, format: :json
         expect(response).to be_successful
         expect(assigns(:bulk_job).id).to eq bulk_job_one.id
       end
 
       it 'shows unauthorized when requesting a snapshot from other institution' do
-        get :show, params: {id: bulk_job_three.id }
+        get :show, params: { id: bulk_job_three.id }
         expect(response).to redirect_to root_path
         expect(flash[:alert]).to eq 'You are not authorized to access this page.'
       end
     end
   end
-
 end

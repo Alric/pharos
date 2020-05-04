@@ -8,7 +8,7 @@ class SnapshotsController < ApplicationController
   def index
     authorize @snapshots
     respond_to do |format|
-      format.json { render json: {results: @snapshots.map{ |shot| shot.serializable_hash }} }
+      format.json { render json: { results: @snapshots.map(&:serializable_hash) } }
       format.html { render 'index' }
     end
   end
@@ -28,16 +28,14 @@ class SnapshotsController < ApplicationController
   end
 
   def set_snapshots
-    if current_user.admin?
-      @snapshots = Snapshot.all
-    else
-      @snapshots = @institution.snapshots
-    end
+    @snapshots = if current_user.admin?
+                   Snapshot.all
+                 else
+                   @institution.snapshots
+                 end
   end
 
   def find_snapshot
     @snapshot = Snapshot.readable(current_user).find(params[:id])
   end
-
-
 end

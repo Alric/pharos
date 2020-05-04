@@ -1,6 +1,5 @@
 module WorkItemsHelper
-
-  def requeue_link(object, content = nil, options={})
+  def requeue_link(object, content = nil, options = {})
     content ||= '<i class="glyphicon glyphicon-repeat"></i> Requeue'
     options[:class] = 'btn doc-action-btn btn-normal requeue-link'
     options[:method] = :get if options[:method].nil?
@@ -9,7 +8,7 @@ module WorkItemsHelper
   end
 
   def stages_for_select
-   ['Requested', 'Receive', 'Fetch', 'Unpack', 'Validate', 'Store', 'Record', 'Cleanup', 'Resolve', 'Package', 'Restoring', 'Available in S3']
+    ['Requested', 'Receive', 'Fetch', 'Unpack', 'Validate', 'Store', 'Record', 'Cleanup', 'Resolve', 'Package', 'Restoring', 'Available in S3']
   end
 
   def statuses_for_select
@@ -19,5 +18,4 @@ module WorkItemsHelper
   def boolean_for_select
     %w(true false)
   end
-
 end

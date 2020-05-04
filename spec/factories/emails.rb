@@ -1,5 +1,5 @@
 FactoryBot.define do
-  factory :fixity_email, class: 'Email'  do
+  factory :fixity_email, class: 'Email' do
     email_type { 'fixity' }
     event_identifier { SecureRandom.hex(16) }
     item_id { nil }
@@ -9,7 +9,7 @@ FactoryBot.define do
     institution_id { nil }
   end
 
-  factory :restoration_email, class: 'Email'  do
+  factory :restoration_email, class: 'Email' do
     email_type { 'restoration' }
     event_identifier { nil }
     intellectual_object_id { nil }
@@ -21,7 +21,7 @@ FactoryBot.define do
 
   factory :multiple_fixity_email, class: 'Email' do
     email_type { 'multiple_fixity' }
-    premis_events {  }
+    premis_events {}
     event_identifier { nil }
     intellectual_object_id { nil }
     generic_file_id { nil }
@@ -32,7 +32,7 @@ FactoryBot.define do
 
   factory :multiple_restoration_email, class: 'Email' do
     email_type { 'multiple_restoration' }
-    work_items {  }
+    work_items {}
     event_identifier { nil }
     item_id { nil }
     intellectual_object_id { nil }
@@ -120,6 +120,4 @@ FactoryBot.define do
     item_id { nil }
     email_text { 'This is the text of the email to be sent.' }
   end
-
-
 end

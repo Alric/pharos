@@ -45,8 +45,7 @@ FactoryBot.define do
     status { Pharos::Application::PHAROS_STATUSES.values.sample }
     outcome { Faker::Lorem.sentence }
     node { Faker::Internet.ip_v4_address }
-    pid { Random::rand(5000) }
+    pid { Random.rand(5000) }
     object_identifier { FactoryBot.create(:intellectual_object).identifier }
   end
-
 end

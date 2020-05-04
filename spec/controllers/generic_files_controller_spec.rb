@@ -3,8 +3,8 @@ require 'spec_helper'
 RSpec.describe GenericFilesController, type: :controller do
   let(:user) { FactoryBot.create(:user, :admin, institution_id: @institution.id) }
   let(:file) { FactoryBot.create(:generic_file) }
-  let(:inst_user) { FactoryBot.create(:user, :institutional_admin, institution_id: @institution.id)}
-  let(:basic_user) { FactoryBot.create(:user, :institutional_user, institution_id: @institution.id)}
+  let(:inst_user) { FactoryBot.create(:user, :institutional_admin, institution_id: @institution.id) }
+  let(:basic_user) { FactoryBot.create(:user, :institutional_user, institution_id: @institution.id) }
   let(:obj) { FactoryBot.create(:consortial_intellectual_object, institution_id: @institution.id) }
   let(:crazy_file) { FactoryBot.create(:generic_file, identifier: 'uc.edu/cin.scholar.2016-03-03/data/fedora_backup/data/datastreamStore/45/info%3Afedora%2Fsufia%3Ar781wg21b%2Fcontent%2Fcontent.0', intellectual_object_id: obj.id) }
   let(:question_file) { FactoryBot.create(:generic_file, identifier: 'miami.edu/miami.archiveit5161_us_cuba_policy_masters_archiveit_5161_us_cuba_policy_md5sums_txt?c=5161/data/md5sums.txt?c=5161', intellectual_object_id: obj.id) }
@@ -65,7 +65,6 @@ RSpec.describe GenericFilesController, type: :controller do
       expect(response_data['count']).to eq 1
       expect(response_data['results'][0]['state']).to eq 'A'
     end
-
   end
 
   describe 'GET #file_summary' do
@@ -84,8 +83,8 @@ RSpec.describe GenericFilesController, type: :controller do
     end
 
     it 'returns only active files with uri, size and identifier attributes' do
-      FactoryBot.create(:generic_file, intellectual_object: @intellectual_object, uri:'https://one', identifier: 'file_one', state: 'A')
-      FactoryBot.create(:generic_file, intellectual_object: @intellectual_object, uri:'https://two', identifier: 'file_two', state: 'D')
+      FactoryBot.create(:generic_file, intellectual_object: @intellectual_object, uri: 'https://one', identifier: 'file_one', state: 'A')
+      FactoryBot.create(:generic_file, intellectual_object: @intellectual_object, uri: 'https://two', identifier: 'file_two', state: 'D')
       get :index, params: { alt_action: 'file_summary', intellectual_object_identifier: CGI.escape(@intellectual_object.identifier) }, format: :json
       expect(response).to be_successful
 
@@ -153,14 +152,13 @@ RSpec.describe GenericFilesController, type: :controller do
       get :show, params: { generic_file_identifier: parens_file.identifier }
       expect(assigns(:generic_file)).to eq parens_file
     end
-
   end
 
   describe 'POST #create' do
     describe 'when not signed in' do
       let(:obj1) { @intellectual_object }
       it 'should redirect to login' do
-        post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: {uri: 'Foo' }, format: :html }
+        post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: { uri: 'Foo' }, format: :html }
         expect(response).to redirect_to root_url + 'users/sign_in'
         expect(flash[:alert]).to eq 'You need to sign in or sign up before continuing.'
       end
@@ -174,12 +172,12 @@ RSpec.describe GenericFilesController, type: :controller do
         session[:verified] = true
       end
 
-      describe "should be forbidden" do
+      describe 'should be forbidden' do
         let(:obj1) { FactoryBot.create(:consortial_intellectual_object) }
         it 'should be forbidden' do
-          post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: {uri: 'path/within/bag', size: 12314121, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', checksums: [{digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z'}]} }, format: 'json'
+          post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: { uri: 'path/within/bag', size: 12_314_121, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', checksums: [{ digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z' }] } }, format: 'json'
           expect(response.code).to eq '403' # forbidden
-          expect(JSON.parse(response.body)).to eq({'status'=>'error','message'=>'You are not authorized to access this page.'})
+          expect(JSON.parse(response.body)).to eq({ 'status' => 'error', 'message' => 'You are not authorized to access this page.' })
         end
       end
     end
@@ -192,12 +190,12 @@ RSpec.describe GenericFilesController, type: :controller do
         session[:verified] = true
       end
 
-      describe "should be forbidden" do
+      describe 'should be forbidden' do
         let(:obj1) { FactoryBot.create(:consortial_intellectual_object) }
         it 'should be forbidden' do
-          post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: {uri: 'path/within/bag', size: 12314121, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', checksums: [{digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z'}]} }, format: 'json'
+          post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: { uri: 'path/within/bag', size: 12_314_121, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', checksums: [{ digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z' }] } }, format: 'json'
           expect(response.code).to eq '403' # forbidden
-          expect(JSON.parse(response.body)).to eq({'status'=>'error','message'=>'You are not authorized to access this page.'})
+          expect(JSON.parse(response.body)).to eq({ 'status' => 'error', 'message' => 'You are not authorized to access this page.' })
         end
       end
     end
@@ -211,19 +209,20 @@ RSpec.describe GenericFilesController, type: :controller do
       end
 
       it 'should show errors' do
-        post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: {uri: 'bar'} }, format: 'json'
-        expect(response.code).to eq '422' #Unprocessable Entity
-        expect(JSON.parse(response.body)).to eq( {
-                                                     'file_format' => ["can't be blank"],
-                                                     'identifier' => ["can't be blank"],
-                                                     'size' => ["can't be blank"]})
+        post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: { uri: 'bar' } }, format: 'json'
+        expect(response.code).to eq '422' # Unprocessable Entity
+        expect(JSON.parse(response.body)).to eq({
+                                                  'file_format' => ["can't be blank"],
+                                                  'identifier' => ["can't be blank"],
+                                                  'size' => ["can't be blank"]
+                                                })
         # NOTE: while storage_option is a required field it should NOT be included in this error message because it should be set to 'standard' by default
       end
 
       it 'should update fields' do
         obj1.storage_option = 'Glacier-VA'
         obj1.save!
-        post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: {uri: 'http://s3-eu-west-1.amazonaws.com/mybucket/puppy.jpg', size: 12314121, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', storage_option: 'Glacier-VA', identifier: 'test.edu/12345678/data/mybucket/puppy.jpg', ingest_state: '{[A]}', checksums_attributes: [{digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z'}]} }, format: 'json'
+        post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: { uri: 'http://s3-eu-west-1.amazonaws.com/mybucket/puppy.jpg', size: 12_314_121, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', storage_option: 'Glacier-VA', identifier: 'test.edu/12345678/data/mybucket/puppy.jpg', ingest_state: '{[A]}', checksums_attributes: [{ digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z' }] } }, format: 'json'
         expect(response.code).to eq '201'
         assigns(:generic_file).tap do |file|
           expect(file.uri).to eq 'http://s3-eu-west-1.amazonaws.com/mybucket/puppy.jpg'
@@ -233,7 +232,7 @@ RSpec.describe GenericFilesController, type: :controller do
       end
 
       it "should match the parent object's storage_type" do
-        post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: {uri: 'http://s3-eu-west-1.amazonaws.com/mybucket/puppy.jpg', size: 12314121, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', storage_option: 'something-else', identifier: 'test.edu/12345678/data/mybucket/puppy.jpg', ingest_state: '{[A]}', checksums_attributes: [{digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z'}]} }, format: 'json'
+        post :create, params: { intellectual_object_identifier: obj1.identifier, generic_file: { uri: 'http://s3-eu-west-1.amazonaws.com/mybucket/puppy.jpg', size: 12_314_121, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', storage_option: 'something-else', identifier: 'test.edu/12345678/data/mybucket/puppy.jpg', ingest_state: '{[A]}', checksums_attributes: [{ digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z' }] } }, format: 'json'
         expect(response.code).to eq '201'
         assigns(:generic_file).tap do |file|
           expect(file.storage_option).to eq 'Standard'
@@ -242,7 +241,7 @@ RSpec.describe GenericFilesController, type: :controller do
 
       it 'should add generic file using API identifier' do
         identifier = URI.escape(obj1.identifier)
-        post :create, params: { intellectual_object_identifier: identifier, generic_file: {uri: 'http://s3-eu-west-1.amazonaws.com/mybucket/cat.jpg', size: 12314121, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', identifier: 'test.edu/12345678/data/mybucket/cat.jpg', checksums_attributes: [{digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z'}]} }, format: 'json'
+        post :create, params: { intellectual_object_identifier: identifier, generic_file: { uri: 'http://s3-eu-west-1.amazonaws.com/mybucket/cat.jpg', size: 12_314_121, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', identifier: 'test.edu/12345678/data/mybucket/cat.jpg', checksums_attributes: [{ digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z' }] } }, format: 'json'
         expect(response.code).to eq '201'
         assigns(:generic_file).tap do |file|
           expect(file.uri).to eq 'http://s3-eu-west-1.amazonaws.com/mybucket/cat.jpg'
@@ -252,7 +251,7 @@ RSpec.describe GenericFilesController, type: :controller do
 
       it 'should create generic files larger than 2GB' do
         identifier = URI.escape(obj1.identifier)
-        post :create, params: { intellectual_object_identifier: identifier, generic_file: {uri: 'http://s3-eu-west-1.amazonaws.com/mybucket/dog.jpg', size: 300000000000, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', identifier: 'test.edu/12345678/data/mybucket/dog.jpg', checksums_attributes: [{digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z'}]} }, format: 'json'
+        post :create, params: { intellectual_object_identifier: identifier, generic_file: { uri: 'http://s3-eu-west-1.amazonaws.com/mybucket/dog.jpg', size: 300_000_000_000, created_at: '2001-12-31', updated_at: '2003-03-13', file_format: 'text/html', identifier: 'test.edu/12345678/data/mybucket/dog.jpg', checksums_attributes: [{ digest: '123ab13df23', algorithm: 'MD6', datetime: '2003-03-13T12:12:12Z' }] } }, format: 'json'
         expect(response.code).to eq '201'
         assigns(:generic_file).tap do |file|
           expect(file.uri).to eq 'http://s3-eu-west-1.amazonaws.com/mybucket/dog.jpg'
@@ -267,7 +266,7 @@ RSpec.describe GenericFilesController, type: :controller do
       let(:obj1) { @intellectual_object }
       it 'should show unauthorized' do
         post(:create_batch, params: { intellectual_object_id: obj1.id, generic_files: [] },
-             format: 'json')
+                            format: 'json')
         expect(response.code).to eq '401'
       end
     end
@@ -282,7 +281,7 @@ RSpec.describe GenericFilesController, type: :controller do
       end
       it 'should show unauthorized' do
         post(:create_batch, params: { intellectual_object_id: obj1.id, generic_files: [] },
-             format: 'json')
+                            format: 'json')
         expect(response.code).to eq '403'
       end
     end
@@ -297,7 +296,7 @@ RSpec.describe GenericFilesController, type: :controller do
       end
       it 'should show unauthorized' do
         post(:create_batch, params: { intellectual_object_id: obj1.id, generic_files: [] },
-             format: 'json')
+                            format: 'json')
         expect(response.code).to eq '403'
       end
     end
@@ -351,8 +350,8 @@ RSpec.describe GenericFilesController, type: :controller do
       it 'should redirect to login' do
         patch :update, params: { intellectual_object_identifier: file.intellectual_object, generic_file_identifier: file, trailing_slash: true }
         expect(response.code).to eq '401'
-        #expect(response).to redirect_to root_url + 'users/sign_in'
-        #expect(flash[:alert]).to eq 'You need to sign in or sign up before continuing.'
+        # expect(response).to redirect_to root_url + 'users/sign_in'
+        # expect(flash[:alert]).to eq 'You need to sign in or sign up before continuing.'
       end
     end
 
@@ -364,9 +363,9 @@ RSpec.describe GenericFilesController, type: :controller do
       describe "and updating a file you don't have access to" do
         let(:user) { FactoryBot.create(:user, :institutional_admin, institution_id: @another_institution.id) }
         it 'should be forbidden' do
-          patch :update, params: { intellectual_object_identifier: file.intellectual_object.identifier, generic_file_identifier: file.identifier, generic_file: {size: 99}, format: 'json', trailing_slash: true }
+          patch :update, params: { intellectual_object_identifier: file.intellectual_object.identifier, generic_file_identifier: file.identifier, generic_file: { size: 99 }, format: 'json', trailing_slash: true }
           expect(response.code).to eq '403' # forbidden
-          expect(JSON.parse(response.body)).to eq({'status'=>'error','message'=>'You are not authorized to access this page.'})
+          expect(JSON.parse(response.body)).to eq({ 'status' => 'error', 'message' => 'You are not authorized to access this page.' })
         end
       end
 
@@ -374,7 +373,7 @@ RSpec.describe GenericFilesController, type: :controller do
         let(:new_checksum) { FactoryBot.create(:checksum, generic_file: file) }
         let(:new_event) { FactoryBot.create(:premis_event_validation, generic_file: file) }
         it 'should update the file' do
-          patch :update, params: { intellectual_object_identifier: file.intellectual_object.identifier, generic_file_identifier: file, generic_file: {size: 99, ingest_state: '{[D]}', storage_option: 'Glacier-OH'}, format: 'json', trailing_slash: true }
+          patch :update, params: { intellectual_object_identifier: file.intellectual_object.identifier, generic_file_identifier: file, generic_file: { size: 99, ingest_state: '{[D]}', storage_option: 'Glacier-OH' }, format: 'json', trailing_slash: true }
           expect(assigns[:generic_file].size).to eq 99
           expect(assigns[:generic_file].ingest_state).to eq '{[D]}'
           expect(assigns[:generic_file].storage_option).to eq 'Glacier-OH'
@@ -386,7 +385,7 @@ RSpec.describe GenericFilesController, type: :controller do
           premis_event_count = file.premis_events.count
           file.checksums << new_checksum
           file.premis_events << new_event
-          patch :update, params: { generic_file_identifier: URI.escape(file.identifier), id: file.id, generic_file: {size: 99}, format: 'json', trailing_slash: true }
+          patch :update, params: { generic_file_identifier: URI.escape(file.identifier), id: file.id, generic_file: { size: 99 }, format: 'json', trailing_slash: true }
           expect(assigns[:generic_file].size).to eq 99
           expect(response.code).to eq '200'
           file.reload
@@ -398,26 +397,26 @@ RSpec.describe GenericFilesController, type: :controller do
   end
 
   describe 'DELETE #destroy' do
-    before(:all) {
+    before(:all) do
       @file = FactoryBot.create(:generic_file, intellectual_object_id: @intellectual_object.id)
       @parent_work_item = FactoryBot.create(:work_item,
-                                                  object_identifier: @intellectual_object.identifier,
-                                                  action: Pharos::Application::PHAROS_ACTIONS['ingest'],
-                                                  stage: Pharos::Application::PHAROS_STAGES['record'],
-                                                  status: Pharos::Application::PHAROS_STATUSES['success'])
-    }
+                                            object_identifier: @intellectual_object.identifier,
+                                            action: Pharos::Application::PHAROS_ACTIONS['ingest'],
+                                            stage: Pharos::Application::PHAROS_STAGES['record'],
+                                            status: Pharos::Application::PHAROS_STATUSES['success'])
+    end
     let(:file) { @file }
 
-    after(:all) {
+    after(:all) do
       @parent_work_item.delete
-    }
+    end
 
     describe 'when not signed in' do
       it 'should redirect to login' do
         delete :destroy, params: { generic_file_identifier: file }
         expect(response.code).to eq '401'
-        #expect(response).to redirect_to root_url + 'users/sign_in'
-        #expect(flash[:alert]).to eq 'You need to sign in or sign up before continuing.'
+        # expect(response).to redirect_to root_url + 'users/sign_in'
+        # expect(flash[:alert]).to eq 'You need to sign in or sign up before continuing.'
       end
     end
 
@@ -431,7 +430,7 @@ RSpec.describe GenericFilesController, type: :controller do
         it 'should be forbidden' do
           delete :destroy, params: { generic_file_identifier: file }, format: 'json'
           expect(response.code).to eq '403' # forbidden
-          expect(JSON.parse(response.body)).to eq({'status'=>'error','message'=>'You are not authorized to access this page.'})
+          expect(JSON.parse(response.body)).to eq({ 'status' => 'error', 'message' => 'You are not authorized to access this page.' })
         end
       end
 
@@ -459,26 +458,26 @@ RSpec.describe GenericFilesController, type: :controller do
   end
 
   describe 'DELETE #confirm_destroy' do
-    before(:all) {
+    before(:all) do
       @file = FactoryBot.create(:generic_file, intellectual_object_id: @intellectual_object.id)
       @parent_work_item = FactoryBot.create(:work_item,
                                             object_identifier: @intellectual_object.identifier,
                                             action: Pharos::Application::PHAROS_ACTIONS['ingest'],
                                             stage: Pharos::Application::PHAROS_STAGES['record'],
                                             status: Pharos::Application::PHAROS_STATUSES['success'])
-    }
+    end
     let(:file) { @file }
 
-    after(:all) {
+    after(:all) do
       @parent_work_item.delete
-    }
+    end
 
     describe 'when not signed in' do
       it 'should redirect to login' do
         delete :confirm_destroy, params: { generic_file_identifier: file }
         expect(response.code).to eq '401'
-        #expect(response).to redirect_to root_url + 'users/sign_in'
-        #expect(flash[:alert]).to eq 'You need to sign in or sign up before continuing.'
+        # expect(response).to redirect_to root_url + 'users/sign_in'
+        # expect(flash[:alert]).to eq 'You need to sign in or sign up before continuing.'
       end
     end
 
@@ -492,7 +491,7 @@ RSpec.describe GenericFilesController, type: :controller do
         it 'should be forbidden' do
           delete :confirm_destroy, params: { generic_file_identifier: file }, format: 'json'
           expect(response.code).to eq '403' # forbidden
-          expect(JSON.parse(response.body)).to eq({'status'=>'error','message'=>'You are not authorized to access this page.'})
+          expect(JSON.parse(response.body)).to eq({ 'status' => 'error', 'message' => 'You are not authorized to access this page.' })
         end
       end
 
@@ -550,19 +549,19 @@ RSpec.describe GenericFilesController, type: :controller do
   end
 
   describe 'GET #finished_destroy' do
-    before(:all) {
+    before(:all) do
       @file = FactoryBot.create(:generic_file, intellectual_object_id: @intellectual_object.id)
       @parent_work_item = FactoryBot.create(:work_item,
                                             object_identifier: @intellectual_object.identifier,
                                             action: Pharos::Application::PHAROS_ACTIONS['ingest'],
                                             stage: Pharos::Application::PHAROS_STAGES['record'],
                                             status: Pharos::Application::PHAROS_STATUSES['success'])
-    }
+    end
     let(:file) { @file }
 
-    after(:all) {
+    after(:all) do
       @parent_work_item.delete
-    }
+    end
 
     describe 'when not signed in' do
       it 'should redirect to login' do
@@ -581,7 +580,7 @@ RSpec.describe GenericFilesController, type: :controller do
         it 'should be forbidden' do
           get :finished_destroy, params: { generic_file_identifier: file }, format: 'json'
           expect(response.code).to eq '403' # forbidden
-          expect(JSON.parse(response.body)).to eq({'status'=>'error','message'=>'You are not authorized to access this page.'})
+          expect(JSON.parse(response.body)).to eq({ 'status' => 'error', 'message' => 'You are not authorized to access this page.' })
         end
       end
 
@@ -598,9 +597,9 @@ RSpec.describe GenericFilesController, type: :controller do
         end
 
         it 'should raise an exception if there is no PREMIS deletion event' do
-          expect {
+          expect do
             get :finished_destroy, params: { generic_file_identifier: file, requesting_user_id: user.id, inst_approver_id: inst_user.id }, format: 'json'
-          }.to raise_error("File cannot be marked deleted without first creating a deletion PREMIS event.")
+          end.to raise_error('File cannot be marked deleted without first creating a deletion PREMIS event.')
         end
 
         it 'delete the file with html response' do
@@ -662,7 +661,6 @@ RSpec.describe GenericFilesController, type: :controller do
         expect(data['next']).to include('not_checked_since=2099-12-31')
         expect(data['previous']).to include('not_checked_since=2099-12-31')
       end
-
     end
   end
 
@@ -670,7 +668,7 @@ RSpec.describe GenericFilesController, type: :controller do
     let!(:restore_parent) { FactoryBot.create(:institutional_intellectual_object, institution: @institution, state: 'A', identifier: 'college.edu/for_restore') }
     let!(:file_for_restore) { FactoryBot.create(:generic_file, intellectual_object_id: restore_parent.id, state: 'A', identifier: 'college.edu/for_restore/data/test.pdf') }
     let!(:deleted_parent) { FactoryBot.create(:institutional_intellectual_object, institution: @institution, state: 'D', identifier: 'college.edu/deleted') }
-    let!(:deleted_file)  { FactoryBot.create(:generic_file, intellectual_object_id: deleted_parent.id, state: 'D', identifier: 'college.edu/deleted/data/test.pdf') }
+    let!(:deleted_file) { FactoryBot.create(:generic_file, intellectual_object_id: deleted_parent.id, state: 'D', identifier: 'college.edu/deleted/data/test.pdf') }
     let!(:pending_parent) { FactoryBot.create(:institutional_intellectual_object, institution: @institution, state: 'A', identifier: 'college.edu/pending') }
     let!(:pending_file) { FactoryBot.create(:generic_file, intellectual_object_id: pending_parent.id, state: 'A', identifier: 'college.edu/pending/data/test.pdf') }
     let!(:ingest) { FactoryBot.create(:work_item, object_identifier: 'college.edu/for_restore', action: 'Ingest', stage: 'Cleanup', status: 'Success') }
@@ -780,6 +778,5 @@ RSpec.describe GenericFilesController, type: :controller do
         expect(data['work_item_id']).to eq 0
       end
     end
-
   end
 end

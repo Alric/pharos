@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'mimemagic'
 
-RSpec.describe MemberInstitution, :type => :model do
+RSpec.describe MemberInstitution, type: :model do
   before(:all) do
     User.delete_all
     Institution.delete_all
@@ -42,8 +42,8 @@ RSpec.describe MemberInstitution, :type => :model do
   describe '#set_bucket_names' do
     it 'should set the bucket attributes accordint to identifier' do
       one = FactoryBot.build(:member_institution, identifier: 'colorado.edu',
-                                      receiving_bucket: nil,
-                                      restore_bucket: nil)
+                                                  receiving_bucket: nil,
+                                                  restore_bucket: nil)
 
       one.save!
       one.receiving_bucket.should eq "#{Pharos::Application.config.pharos_receiving_bucket_prefix}colorado.edu"
@@ -55,9 +55,9 @@ RSpec.describe MemberInstitution, :type => :model do
     it 'should validate uniqueness of the identifier' do
       one = FactoryBot.create(:member_institution, identifier: 'test.edu')
       two = FactoryBot.create(:member_institution, identifier: 'kollege.edu')
-      Institution.find_by_identifier('test.edu').should eq one
-      Institution.find_by_identifier('kollege.edu').should eq two
-      Institution.find_by_identifier('idontexist.edu').should be nil
+      Institution.find_by(identifier: 'test.edu').should eq one
+      Institution.find_by(identifier: 'kollege.edu').should eq two
+      Institution.find_by(identifier: 'idontexist.edu').should be nil
     end
   end
 
@@ -72,25 +72,25 @@ RSpec.describe MemberInstitution, :type => :model do
 
     describe 'bytes_by_format' do
       it 'should return a hash' do
-        expect(subject.bytes_by_format).to eq({'all'=>0})
+        expect(subject.bytes_by_format).to eq({ 'all' => 0 })
       end
       describe 'with attached files' do
         before do
           subject.save!
         end
         let(:intellectual_object) { FactoryBot.create(:intellectual_object, institution: subject) }
-        let!(:generic_file1) { FactoryBot.create(:generic_file, intellectual_object: intellectual_object, size: 166311750, identifier: 'test.edu/123/data/file.xml') }
-        let!(:generic_file2) { FactoryBot.create(:generic_file, intellectual_object: intellectual_object, file_format: 'audio/wav', size: 143732461, identifier: 'test.edu/123/data/file.wav') }
+        let!(:generic_file1) { FactoryBot.create(:generic_file, intellectual_object: intellectual_object, size: 166_311_750, identifier: 'test.edu/123/data/file.xml') }
+        let!(:generic_file2) { FactoryBot.create(:generic_file, intellectual_object: intellectual_object, file_format: 'audio/wav', size: 143_732_461, identifier: 'test.edu/123/data/file.wav') }
         it 'should return a hash' do
-          expect(subject.bytes_by_format).to eq({"all"=>310044211,
-                                                 'application/xml' => 166311750,
-                                                 'audio/wav' => 143732461})
+          expect(subject.bytes_by_format).to eq({ 'all' => 310_044_211,
+                                                  'application/xml' => 166_311_750,
+                                                  'audio/wav' => 143_732_461 })
         end
       end
     end
 
     describe 'with an associated user' do
-      let!(:user) { FactoryBot.create(:user, name: 'Zeke', institution_id: subject.id)  }
+      let!(:user) { FactoryBot.create(:user, name: 'Zeke', institution_id: subject.id) }
       it 'should contain the appropriate User' do
         subject.users.should eq [user]
       end
@@ -110,32 +110,31 @@ RSpec.describe MemberInstitution, :type => :model do
       describe 'or several' do
         let!(:user2) { FactoryBot.create(:user, :institutional_admin, name: 'Andrew', institution_id: subject.id) }
         let!(:user3) { FactoryBot.create(:user, :institutional_admin, name: 'Kelly', institution_id: subject.id) }
-        let!(:apt) { FactoryBot.create(:aptrust)}
+        let!(:apt) { FactoryBot.create(:aptrust) }
         let!(:user4) { FactoryBot.create(:user, :admin, name: 'Christian', institution_id: apt.id) }
         let!(:user5) { FactoryBot.create(:user, :admin, name: 'Bradley', institution_id: apt.id) }
 
         it 'should provide a list of institutional admins' do
           subject.admin_users.count.should eq 2
-          expect(subject.admin_users.map &:id).to match_array [user2.id, user3.id]
+          expect(subject.admin_users.map(&:id)).to match_array [user2.id, user3.id]
         end
 
         it 'should provide a list of aptrust admins' do
           subject.apt_users.count.should eq 2
-          expect(subject.apt_users.map &:id).to match_array [user4.id, user5.id]
+          expect(subject.apt_users.map(&:id)).to match_array [user4.id, user5.id]
         end
 
         it 'should provide a list of inst admins that are not the requesting user for a deletion request' do
           subject.deletion_admin_user(user2).count.should eq 1
-          expect(subject.deletion_admin_user(user2).map &:id).to match_array [user3.id]
+          expect(subject.deletion_admin_user(user2).map(&:id)).to match_array [user3.id]
         end
 
         it 'should provide a list of apt admins that are not the requesting user for a bulk deletion' do
           subject.bulk_deletion_users(user4).count.should eq 1
-          expect(subject.bulk_deletion_users(user4).map &:id).to match_array [user5.id]
+          expect(subject.bulk_deletion_users(user4).map(&:id)).to match_array [user5.id]
         end
-
       end
-      
+
       describe '#deactivate' do
         it 'should deactivate the institution and all users belonging to it' do
           subject.deactivate
@@ -191,7 +190,7 @@ RSpec.describe MemberInstitution, :type => :model do
         item_one = FactoryBot.create(:work_item, action: 'Delete', status: 'Success', stage: 'Resolve', generic_file: file_one, institution_id: subject.id)
         item_two = FactoryBot.create(:work_item, action: 'Delete', status: 'Success', stage: 'Resolve', generic_file: file_two, institution_id: subject.id)
         item_three = FactoryBot.create(:work_item, action: 'Delete', status: 'Success', stage: 'Resolve', generic_file: file_three, institution_id: subject.id)
-        item_three.created_at = Time.now - 2.month
+        item_three.created_at = Time.zone.now - 2.months
         item_three.save!
         items = subject.new_deletion_items
         items.count.should eq(2)
@@ -205,8 +204,8 @@ RSpec.describe MemberInstitution, :type => :model do
         item_two = FactoryBot.create(:work_item, action: 'Delete', status: 'Success', stage: 'Resolve', generic_file: file_two, generic_file_identifier: file_two.identifier, institution_id: subject.id)
         subject.generate_deletion_csv([item_one, item_two])
         inst_name = subject.name.split(' ').join('_')
-        csv = File.open("./tmp/deletions_test/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}/#{inst_name}/#{inst_name}.csv", 'r')
-        File.dirname("./tmp/deletions_test/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}/#{inst_name}/#{inst_name}.csv").should eq "./tmp/deletions_test/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}/#{inst_name}"
+        csv = File.open("./tmp/deletions_test/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}/#{inst_name}/#{inst_name}.csv", 'r')
+        File.dirname("./tmp/deletions_test/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}/#{inst_name}/#{inst_name}.csv").should eq "./tmp/deletions_test/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}/#{inst_name}"
         # MimeMagic doesn't recognize text files and puts out nil instead, other ruby file mimetype matching gem is no longer maintained
         # mimetype = MimeMagic.by_magic(csv)
         # mimetype.should eq ('text/csv')
@@ -215,8 +214,8 @@ RSpec.describe MemberInstitution, :type => :model do
         line_three = false
         csv.each do |line|
           line_one = true if line.include?('Generic File Identifier,Date Deleted,Requested By,Approved By,APTrust Approver')
-          line_two = true if line.include?("#{item_one.generic_file_identifier},#{item_one.date.to_s},#{item_one.user},NA,NA")
-          line_three = true if line.include?("#{item_two.generic_file_identifier},#{item_two.date.to_s},#{item_two.user},NA,NA")
+          line_two = true if line.include?("#{item_one.generic_file_identifier},#{item_one.date},#{item_one.user},NA,NA")
+          line_three = true if line.include?("#{item_two.generic_file_identifier},#{item_two.date},#{item_two.user},NA,NA")
         end
         expect(line_one).to eq true
         expect(line_two).to eq true
@@ -228,10 +227,10 @@ RSpec.describe MemberInstitution, :type => :model do
         item_two = FactoryBot.create(:work_item, action: 'Delete', status: 'Success', stage: 'Resolve', generic_file: file_two, generic_file_identifier: file_two.identifier, institution_id: subject.id)
         subject.generate_deletion_zipped_csv([item_one, item_two])
         inst_name = subject.name.split(' ').join('_')
-        zip = File.open("./tmp/deletions_test/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}/#{inst_name}/#{inst_name}.zip")
-        File.dirname("./tmp/deletions_test/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}/#{inst_name}/#{inst_name}.zip").should eq "./tmp/deletions_test/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}/#{inst_name}"
+        zip = File.open("./tmp/deletions_test/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}/#{inst_name}/#{inst_name}.zip")
+        File.dirname("./tmp/deletions_test/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}/#{inst_name}/#{inst_name}.zip").should eq "./tmp/deletions_test/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}/#{inst_name}"
         mimetype = MimeMagic.by_magic(zip)
-        mimetype.should eq ('application/zip')
+        mimetype.should eq 'application/zip'
       end
     end
 
@@ -296,7 +295,7 @@ RSpec.describe MemberInstitution, :type => :model do
         snapshot_array[0].apt_bytes.should == 0
         snapshot_array[0].institution_id.should == sub_inst.id
 
-        #snapshot_array[1].cost.should == (file.size * 0.000000000381988).round(2) # sometimes fails because of finicky rounding / storage
+        # snapshot_array[1].cost.should == (file.size * 0.000000000381988).round(2) # sometimes fails because of finicky rounding / storage
         snapshot_array[1].snapshot_type.should == 'Individual'
         snapshot_array[1].apt_bytes.should == file.size
         snapshot_array[1].institution_id.should == subject.id
@@ -305,7 +304,6 @@ RSpec.describe MemberInstitution, :type => :model do
         snapshot_array[2].snapshot_type.should == 'Subscribers Included'
         snapshot_array[2].apt_bytes.should == file.size
         snapshot_array[2].institution_id.should == subject.id
-
       end
     end
   end

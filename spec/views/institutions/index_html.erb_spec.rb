@@ -11,9 +11,9 @@ describe 'institutions/index.html.erb' do
     assign(:sizes, sizes)
     assign(:institution, institution)
     assign(:institutions, [
-                            stub_model(Institution, name: 'APTrust', identifier: 'apt.org'),
-                            stub_model(Institution, name: 'University of Virginia', identifier: 'virginia.edu')
-                        ])
+             stub_model(Institution, name: 'APTrust', identifier: 'apt.org'),
+             stub_model(Institution, name: 'University of Virginia', identifier: 'virginia.edu')
+           ])
     controller.stub(:current_user).and_return user
     controller.stub(:sizes).and_return sizes
   end

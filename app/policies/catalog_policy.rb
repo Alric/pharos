@@ -1,5 +1,4 @@
 class CatalogPolicy < ApplicationPolicy
-
   def search?
     true
   end
@@ -7,5 +6,4 @@ class CatalogPolicy < ApplicationPolicy
   def feed?
     true
   end
-
 end

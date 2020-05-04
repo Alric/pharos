@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 RSpec.describe Email, type: :model do
-  it { should validate_presence_of (:email_type) }
+  it { should validate_presence_of :email_type }
 
   it 'should properly set an email type' do
     subject.email_type = 'fixity'
@@ -40,7 +40,6 @@ RSpec.describe Email, type: :model do
     subject.errors[:item_id].should include('must be left blank for a failed fixity check email')
     subject.errors[:intellectual_object_id].should include('must be left blank for a failed fixity check email')
     subject.errors[:generic_file_id].should include('must be left blank for a failed fixity check email')
-
   end
 
   it 'validates that a restoration email has an item id and nil event identifier and object id' do
@@ -50,7 +49,6 @@ RSpec.describe Email, type: :model do
     subject.errors[:event_identifier].should include('must be left blank for a restoration notification email')
     subject.errors[:intellectual_object_id].should include('must be left blank for a restoration notification email')
     subject.errors[:generic_file_id].should include('must be left blank for a restoration notification email')
-
   end
 
   it 'validates that a multiple fixity email has events and not items or an object' do

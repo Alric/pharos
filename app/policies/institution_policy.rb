@@ -1,8 +1,7 @@
 class InstitutionPolicy < ApplicationPolicy
-
   def add_user?
     user.admin? ||
-        (user.institutional_admin? && user.institution_id == record.id)
+      (user.institutional_admin? && user.institution_id == record.id)
   end
 
   def create?
@@ -14,7 +13,7 @@ class InstitutionPolicy < ApplicationPolicy
   end
 
   def index?
-    user.admin? ||  (user.institution_id == record.id)
+    user.admin? || (user.institution_id == record.id)
   end
 
   def overview?
@@ -26,7 +25,7 @@ class InstitutionPolicy < ApplicationPolicy
   end
 
   def show?
-    user.admin? ||  (user.institution_id == record.id)
+    user.admin? || (user.institution_id == record.id)
   end
 
   def edit?
@@ -35,7 +34,7 @@ class InstitutionPolicy < ApplicationPolicy
 
   def update?
     user.admin? ||
-        (user.institutional_admin? && (user.institution_id == record.id))
+      (user.institutional_admin? && (user.institution_id == record.id))
   end
 
   def destroy?
@@ -106,5 +105,4 @@ class InstitutionPolicy < ApplicationPolicy
       end
     end
   end
-
 end

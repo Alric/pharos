@@ -7,17 +7,17 @@ RSpec.describe AlertsController, type: :controller do
     User.delete_all
     Institution.delete_all
 
-    @institution_one =  FactoryBot.create(:member_institution, identifier: 'aptrust.org')
+    @institution_one = FactoryBot.create(:member_institution, identifier: 'aptrust.org')
     @institution_two = FactoryBot.create(:subscription_institution)
     @admin_user = FactoryBot.create(:user, :admin, institution: @institution_one)
     @institutional_admin = FactoryBot.create(:user, :institutional_admin, institution: @institution_two)
     @institutional_user = FactoryBot.create(:user, :institutional_user, institution: @institution_two)
     @failed_fixity = FactoryBot.create(:premis_event_fixity_check_fail, institution: @institution_two)
-    @failed_fixity_two = FactoryBot.create(:premis_event_fixity_check_fail, created_at: (Time.now - 36.hours))
+    @failed_fixity_two = FactoryBot.create(:premis_event_fixity_check_fail, created_at: (Time.zone.now - 36.hours))
     @ingest_fail = FactoryBot.create(:work_item, action: Pharos::Application::PHAROS_ACTIONS['ingest'], status: Pharos::Application::PHAROS_STATUSES['fail'])
     @restore_fail = FactoryBot.create(:work_item, action: Pharos::Application::PHAROS_ACTIONS['restore'], status: Pharos::Application::PHAROS_STATUSES['fail'])
     @delete_fail = FactoryBot.create(:work_item, action: Pharos::Application::PHAROS_ACTIONS['delete'], status: Pharos::Application::PHAROS_STATUSES['fail'])
-    @stalled = FactoryBot.create(:work_item, queued_at: Time.now - 13.hours, status: Pharos::Application::PHAROS_STATUSES['pend'])
+    @stalled = FactoryBot.create(:work_item, queued_at: Time.zone.now - 13.hours, status: Pharos::Application::PHAROS_STATUSES['pend'])
   end
 
   after :all do
@@ -53,7 +53,7 @@ RSpec.describe AlertsController, type: :controller do
       end
 
       it 'filters by the since parameter when supplied' do
-        get :index, params: { since: (Time.now - 48.hours) }
+        get :index, params: { since: (Time.zone.now - 48.hours) }
         expect(response).to be_successful
         assigns(:alerts_list)[:failed_fixity_checks].count.should eq 2
       end
@@ -66,7 +66,7 @@ RSpec.describe AlertsController, type: :controller do
       end
 
       it 'allows access only to alerts on their content (html)' do
-        get :index, params: { since: (Time.now - 48.hours) }
+        get :index, params: { since: (Time.zone.now - 48.hours) }
         expect(response).to be_successful
         assigns(:alerts_list)[:failed_fixity_checks].first.should eq(@failed_fixity)
         assigns(:alerts_list)[:failed_fixity_checks].count.should eq 1
@@ -120,7 +120,7 @@ RSpec.describe AlertsController, type: :controller do
       end
 
       it 'filters by the since parameter when supplied' do
-        get :summary, params: { since: (Time.now - 48.hours) }
+        get :summary, params: { since: (Time.zone.now - 48.hours) }
         assigns(:alerts_summary)[:failed_fixity_count].should eq 2
       end
     end
@@ -154,6 +154,4 @@ RSpec.describe AlertsController, type: :controller do
       end
     end
   end
-
-
 end

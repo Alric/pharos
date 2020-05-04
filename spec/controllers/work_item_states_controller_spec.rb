@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe WorkItemStatesController, type: :controller do
-
   after do
     User.delete_all
     IntellectualObject.delete_all
@@ -75,5 +74,4 @@ RSpec.describe WorkItemStatesController, type: :controller do
       end
     end
   end
-
 end

@@ -1,31 +1,29 @@
 desc 'Run specs'
-RSpec::Core::RakeTask.new(:rspec => 'test:prepare') { |t| t.rspec_opts = ['--colour', '--profile 20'] }
+RSpec::Core::RakeTask.new(rspec: 'test:prepare') { |t| t.rspec_opts = ['--colour', '--profile 20'] }
 
 namespace :pharos do
-
   partner_list = [
-      ['APTrust', 'apt', 'aptrust.org'],
-      ['Columbia University', 'cul', 'columbia.edu'],
-      ['Indiana University Bloomington', 'iub', 'indiana.edu'],
-      ['Johns Hopkins University', 'jhu', 'jhu.edu'],
-      ['North Carolina State University', 'ncsu', 'ncsu.edu'],
-      ['Pennsylvania State University', 'pst', 'psu.edu'],
-      ['Syracuse University', 'syr', 'syr.edu'],
-      ['Test University','test', 'test.edu'],
-      ['University of Chicago', 'uchi', 'uchicago.edu'],
-      ['University of Cincinnati', 'ucin', 'uc.edu'],
-      ['University of Connecticut', 'uconn', 'uconn.edu'],
-      ['University of Maryland', 'mdu', 'umd.edu'],
-      ['University of Miami', 'um', 'miami.edu'],
-      ['University of Michigan', 'umich', 'umich.edu'],
-      ['University of North Carolina at Chapel Hill', 'unc', 'unc.edu'],
-      ['University of Notre Dame', 'und', 'nd.edu'],
-      ['University of Virginia','uva', 'virginia.edu'],
-      ['Virginia Tech','vatech', 'vt.edu']
+    ['APTrust', 'apt', 'aptrust.org'],
+    ['Columbia University', 'cul', 'columbia.edu'],
+    ['Indiana University Bloomington', 'iub', 'indiana.edu'],
+    ['Johns Hopkins University', 'jhu', 'jhu.edu'],
+    ['North Carolina State University', 'ncsu', 'ncsu.edu'],
+    ['Pennsylvania State University', 'pst', 'psu.edu'],
+    ['Syracuse University', 'syr', 'syr.edu'],
+    ['Test University', 'test', 'test.edu'],
+    ['University of Chicago', 'uchi', 'uchicago.edu'],
+    ['University of Cincinnati', 'ucin', 'uc.edu'],
+    ['University of Connecticut', 'uconn', 'uconn.edu'],
+    ['University of Maryland', 'mdu', 'umd.edu'],
+    ['University of Miami', 'um', 'miami.edu'],
+    ['University of Michigan', 'umich', 'umich.edu'],
+    ['University of North Carolina at Chapel Hill', 'unc', 'unc.edu'],
+    ['University of Notre Dame', 'und', 'nd.edu'],
+    ['University of Virginia', 'uva', 'virginia.edu'],
+    ['Virginia Tech', 'vatech', 'vt.edu']
   ]
 
   roles = %w(admin institutional_admin institutional_user)
-
 
   desc 'Setup Pharos'
   task setup: :environment do
@@ -33,7 +31,7 @@ namespace :pharos do
     if admintest.nil?
       create_institutions(partner_list)
       create_roles(roles)
-      create_users()
+      create_users
     else
       puts 'Nothing to do: Institution, groups, and admin user already exist.'
     end
@@ -42,7 +40,7 @@ namespace :pharos do
 
   desc 'Set up user API key'
   task :set_user_api_key, [:user_email, :hex_length] => :environment do |_, args|
-    args.with_defaults(:hex_length => 20)
+    args.with_defaults(hex_length: 20)
     email = args[:user_email].to_s
     length = args[:hex_length].to_i
     user = User.where(email: email).first
@@ -89,7 +87,7 @@ namespace :pharos do
   end
 
   desc 'Deactivate user'
-  task :deactivate_user, [:email] => [:environment] do |t, args|
+  task :deactivate_user, [:email] => [:environment] do |_t, args|
     user_email = args[:email]
     user = User.where(email: user_email).first
     user.soft_delete
@@ -97,15 +95,15 @@ namespace :pharos do
   end
 
   desc 'Reactivate user'
-  task :reactivate_user, [:email] => [:environment] do |t, args|
+  task :reactivate_user, [:email] => [:environment] do |_t, args|
     user_email = args[:email]
     user = User.where(email: user_email).first
     user.reactivate
-    puts "User with email #{user_email} has been reactivated at #{Time.now}."
+    puts "User with email #{user_email} has been reactivated at #{Time.zone.now}."
   end
 
   desc 'Deactivate all users at an institution'
-  task :deactivate_institutions_users, [:identifier] => [:environment] do |t, args|
+  task :deactivate_institutions_users, [:identifier] => [:environment] do |_t, args|
     inst_identifier = args[:identifier]
     institution = Institution.where(identifier: inst_identifier).first
     institution.deactivate
@@ -113,7 +111,7 @@ namespace :pharos do
   end
 
   desc 'Reactivate all users at an institution'
-  task :reactivate_institutions_users, [:identifier] => [:environment] do |t, args|
+  task :reactivate_institutions_users, [:identifier] => [:environment] do |_t, args|
     inst_identifier = args[:identifier]
     institution = Institution.where(identifier: inst_identifier).first
     institution.reactivate
@@ -126,12 +124,12 @@ namespace :pharos do
   #
   # rake pharos:print_storage_summary['2018-07-31']
   desc 'Print storage summary'
-  task :print_storage_summary, [:end_date] => [:environment] do |t, args|
+  task :print_storage_summary, [:end_date] => [:environment] do |_t, args|
     print_storage_report(args[:end_date])
   end
 
   desc 'Two Factor Passwords'
-  task :two_factor_passwords => :environment do
+  task two_factor_passwords: :environment do
     User.all.each do |usr|
       usr.initial_password_updated = true
       usr.save!
@@ -140,7 +138,7 @@ namespace :pharos do
   end
 
   desc 'Two Factor Emails'
-  task :two_factor_emails => :environment do
+  task two_factor_emails: :environment do
     User.all.each do |usr|
       usr.email_verified = true
       usr.save!
@@ -149,7 +147,7 @@ namespace :pharos do
   end
 
   desc 'Two Factor Account Confirmations'
-  task :two_factor_account_confirmations => :environment do
+  task two_factor_account_confirmations: :environment do
     User.all.each do |usr|
       usr.account_confirmed = true
       usr.save!
@@ -158,7 +156,7 @@ namespace :pharos do
   end
 
   desc 'Test User Grace Period'
-  task :test_user_grace_period, [:user_email] => [:environment] do |t, args|
+  task :test_user_grace_period, [:user_email] => [:environment] do |_t, args|
     email = args[:user_email]
     user = User.where(email: email).first
     user.grace_period = DateTime.now + 11.months
@@ -167,7 +165,7 @@ namespace :pharos do
   end
 
   desc 'Update Grace Period'
-  task :update_grace_period, [:user_email] => [:environment] do |t, args|
+  task :update_grace_period, [:user_email] => [:environment] do |_t, args|
     email = args[:user_email]
     user = User.where(email: email).first
     user.grace_period = DateTime.now
@@ -176,7 +174,7 @@ namespace :pharos do
   end
 
   desc 'Pre Date Grace Periods'
-  task :pre_date_user_grace_periods => :environment do
+  task pre_date_user_grace_periods: :environment do
     User.all.each do |usr|
       usr.grace_period = DateTime.now - 30.days
       usr.save!
@@ -185,7 +183,7 @@ namespace :pharos do
   end
 
   desc 'Set Production Grace Periods'
-  task :production_grace_periods => :environment do
+  task production_grace_periods: :environment do
     User.all.each do |usr|
       usr.grace_period = DateTime.now
       usr.save!
@@ -194,7 +192,7 @@ namespace :pharos do
   end
 
   desc 'Deactivate Unused Accounts'
-  task :deactive_unused_accounts => :environment do
+  task deactive_unused_accounts: :environment do
     User.all.each do |usr|
       unless usr.account_confirmed
         usr.soft_delete
@@ -204,18 +202,18 @@ namespace :pharos do
   end
 
   desc 'Set SMS Defaults'
-  task :set_sms_defaults => :environment do
+  task set_sms_defaults: :environment do
     sms = Aws::SNS::Client.new
     response = sms.set_sms_attributes({
-        attributes: {
-          'DefaultSenderID' => 'APTrust',
-          'DefaultSMSType' => 'Transactional',
-        },
-    })
+                                        attributes: {
+                                          'DefaultSenderID' => 'APTrust',
+                                          'DefaultSMSType' => 'Transactional'
+                                        }
+                                      })
   end
 
   desc 'Set Bucket Attributes'
-  task :set_bucket_attributes => :environment do
+  task set_bucket_attributes: :environment do
     Institution.all.each do |inst|
       inst.receiving_bucket = "#{Pharos::Application.config.pharos_receiving_bucket_prefix}#{inst.identifier}"
       inst.restore_bucket = "#{Pharos::Application.config.pharos_restore_bucket_prefix}#{inst.identifier}"
@@ -229,18 +227,18 @@ namespace :pharos do
   # inst_storage_summary('2018-07-31')
   #
   def inst_storage_summary(end_date)
-    gb = 1073741824.0
+    gb = 1_073_741_824.0
     # tb = 1099511627776.0
     report = {
       'end_date' => end_date,
       'institutions' => {}
     }
     Institution.all.each do |inst|
-      byte_count = inst.active_files.where("created_at <= ?", end_date).sum(:size)
+      byte_count = inst.active_files.where('created_at <= ?', end_date).sum(:size)
       gigabytes = (byte_count / gb).round(2)
       report['institutions'][inst.name] = gigabytes.to_f
     end
-    return report
+    report
   end
 
   def print_storage_report(end_date)
@@ -249,7 +247,7 @@ namespace :pharos do
     report['institutions'].each do |name, gb|
       printf("%-50s %16.2f\n", name, gb)
     end
-    return ''
+    ''
   end
 
   def create_institutions(partner_list)
@@ -267,49 +265,46 @@ namespace :pharos do
   end
 
   def create_roles(roles)
-      puts "Creating roles 'admin', 'institutional_admin', and 'institutional_user'"
-      roles.each do |role|
-        Role.create!(name: role)
-      end
+    puts "Creating roles 'admin', 'institutional_admin', and 'institutional_user'"
+    roles.each do |role|
+      Role.create!(name: role)
+    end
   end
 
   def create_users
     puts 'Create an initial Super-User for APTrust...'
-    aptrust = Institution.where(identifier: "aptrust.org").first
+    aptrust = Institution.where(identifier: 'aptrust.org').first
     admin_role = Role.where(name: 'admin').first
-    name = "APTrustAdmin"
-    email = "ops@aptrust.org"
-    phone_number ="4341234567"
-    password ="password123"
+    name = 'APTrustAdmin'
+    email = 'ops@aptrust.org'
+    phone_number = '4341234567'
+    password = 'password123'
     grace_period = '2099-12-31 23:59:59'
     User.create!(name: name, email: email, password: password,
                  phone_number: phone_number, institution_id: aptrust.id,
                  roles: [admin_role], grace_period: grace_period)
-    puts "Created admin user"
+    puts 'Created admin user'
 
     puts 'Creating system user for API use'
-    name = "APTrust System"
-    email = "system@aptrust.org"
-    api_key = "75d35f5b6e324594a05045175661ba3785c02dde"
+    name = 'APTrust System'
+    email = 'system@aptrust.org'
+    api_key = '75d35f5b6e324594a05045175661ba3785c02dde'
     User.create!(name: name, email: email, password: password,
                  phone_number: phone_number, institution_id: aptrust.id,
                  roles: [admin_role], api_secret_key: api_key,
                  grace_period: grace_period)
-    puts "Created system (API) user"
-
+    puts 'Created system (API) user'
   end
 end
 
 namespace :db do
-  desc "Checks to see if the database exists"
+  desc 'Checks to see if the database exists'
   task :exists do
-    begin
-      Rake::Task['environment'].invoke
-      ActiveRecord::Base.connection
-    rescue
-      exit 1
-    else
-      exit 0
-    end
+    Rake::Task['environment'].invoke
+    ActiveRecord::Base.connection
+  rescue
+    exit 1
+  else
+    exit 0
   end
 end

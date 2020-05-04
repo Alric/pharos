@@ -1,10 +1,9 @@
 require 'spec_helper'
 
 describe ApplicationHelper do
-
   describe '#current_path' do
     it 'should return an updated path with new parameters' do
-      #helper.request.path = 'localhost:3000/itemresults'
+      # helper.request.path = 'localhost:3000/itemresults'
       @current = 'localhost:3000/itemresults'
       name = 'status'
       value = 'Success'
@@ -21,5 +20,4 @@ describe ApplicationHelper do
       expected_result = 'localhost:3000/?status=Success&search_field=Name&qq=34'
     end
   end
-
 end

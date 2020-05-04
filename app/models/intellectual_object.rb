@@ -33,7 +33,7 @@
 #  index_intellectual_objects_on_state                     (state)
 #  index_intellectual_objects_on_updated_at                (updated_at)
 #
-class IntellectualObject < ActiveRecord::Base
+class IntellectualObject < ApplicationRecord
   self.primary_key = 'id'
   belongs_to :institution
   has_many :generic_files
@@ -45,8 +45,8 @@ class IntellectualObject < ActiveRecord::Base
   accepts_nested_attributes_for :checksums, allow_destroy: true
 
   validates :title, :institution, :identifier, :access, :storage_option, presence: true
-  validates_inclusion_of :access, in: %w(consortia institution restricted), message: "#{:access} is not a valid access", if: :access
-  validates_uniqueness_of :identifier
+  validates :access, inclusion: { in: %w(consortia institution restricted), message: "#{:access} is not a valid access", if: :access }
+  validates :identifier, uniqueness: true
   validate :storage_option_is_allowed
 
   before_save :set_bag_name
@@ -54,43 +54,45 @@ class IntellectualObject < ActiveRecord::Base
   before_destroy :check_for_associations
 
   ### Scopes
-  scope :created_before, ->(param) { where('intellectual_objects.created_at < ?', param) unless param.blank? }
-  scope :created_after, ->(param) { where('intellectual_objects.created_at > ?', param) unless param.blank? }
-  scope :updated_before, ->(param) { where('intellectual_objects.updated_at < ?', param) unless param.blank? }
-  scope :updated_after, ->(param) { where('intellectual_objects.updated_at > ?', param) unless param.blank? }
-  scope :with_description, ->(param) { where(description: param) unless param.blank? }
+  scope :created_before, ->(param) { where('intellectual_objects.created_at < ?', param) if param.present? }
+  scope :created_after, ->(param) { where('intellectual_objects.created_at > ?', param) if param.present? }
+  scope :updated_before, ->(param) { where('intellectual_objects.updated_at < ?', param) if param.present? }
+  scope :updated_after, ->(param) { where('intellectual_objects.updated_at > ?', param) if param.present? }
+  scope :with_description, ->(param) { where(description: param) if param.present? }
   scope :with_description_like, ->(param) { where('intellectual_objects.description like ?', "%#{param}%") unless IntellectualObject.empty_param(param) }
-  scope :with_identifier, ->(param) { where(identifier: param) unless param.blank? }
+  scope :with_identifier, ->(param) { where(identifier: param) if param.present? }
   scope :with_identifier_like, ->(param) { where('intellectual_objects.identifier like ?', "%#{param}%") unless IntellectualObject.empty_param(param) }
-  scope :with_alt_identifier, ->(param) { where(alt_identifier: param) unless param.blank? }
+  scope :with_alt_identifier, ->(param) { where(alt_identifier: param) if param.present? }
   scope :with_alt_identifier_like, ->(param) { where('intellectual_objects.alt_identifier like ?', "%#{param}%") unless IntellectualObject.empty_param(param) }
-  scope :with_bag_group_identifier, ->(param) { where(bag_group_identifier: param) unless param.blank? }
+  scope :with_bag_group_identifier, ->(param) { where(bag_group_identifier: param) if param.present? }
   scope :with_bag_group_identifier_like, ->(param) { where('intellectual_objects.bag_group_identifier like ?', "%#{param}%") unless IntellectualObject.empty_param(param) }
-  scope :with_institution, ->(param) { where(institution: param) unless param.blank? }
-  scope :with_state, ->(param) { where(state: param) unless (param.blank? || param == 'all' || param == 'All') }
-  scope :with_bag_name, ->(param) { where(bag_name: param) unless param.blank? }
+  scope :with_institution, ->(param) { where(institution: param) if param.present? }
+  scope :with_state, ->(param) { where(state: param) unless param.blank? || param == 'all' || param == 'All' }
+  scope :with_bag_name, ->(param) { where(bag_name: param) if param.present? }
   scope :with_bag_name_like, ->(param) { where('intellectual_objects.bag_name like ?', "%#{param}%") unless IntellectualObject.empty_param(param) }
-  scope :with_etag, ->(param) { where(etag: param) unless param.blank? }
+  scope :with_etag, ->(param) { where(etag: param) if param.present? }
   scope :with_etag_like, ->(param) { where('intellectual_objects.etag like ?', "%#{param}%") unless IntellectualObject.empty_param(param) }
   scope :with_title_like, ->(param) { where('intellectual_objects.title like ?', "%#{param}%") unless IntellectualObject.empty_param(param) }
-  scope :with_access, ->(param) { where(access: param) unless param.blank? }
-  scope :with_storage_option, ->(param) { where(storage_option: param) unless param.blank? }
-  scope :with_source_organization, ->(param) { where(source_organization: param) unless param.blank? }
+  scope :with_access, ->(param) { where(access: param) if param.present? }
+  scope :with_storage_option, ->(param) { where(storage_option: param) if param.present? }
+  scope :with_source_organization, ->(param) { where(source_organization: param) if param.present? }
   scope :with_source_organization_like, ->(param) { where('intellectual_objects.source_organization like ?', "%#{param}%") unless IntellectualObject.empty_param(param) }
-  scope :with_internal_sender_identifier, ->(param) { where(internal_sender_identifier: param) unless param.blank? }
+  scope :with_internal_sender_identifier, ->(param) { where(internal_sender_identifier: param) if param.present? }
   scope :with_internal_sender_identifier_like, ->(param) { where('intellectual_objects.internal_sender_identifier like ?', "%#{param}%") unless IntellectualObject.empty_param(param) }
-  scope :with_internal_sender_description, ->(param) { where(internal_sender_description: param) unless param.blank? }
+  scope :with_internal_sender_description, ->(param) { where(internal_sender_description: param) if param.present? }
   scope :with_internal_sender_description_like, ->(param) { where('intellectual_objects.internal_sender_description like ?', "%#{param}%") unless IntellectualObject.empty_param(param) }
-  scope :with_file_format, ->(param) {
-    joins(:generic_files)
-        .where('generic_files.file_format = ?', param) unless param.blank?
+  scope :with_file_format, lambda { |param|
+    if param.present?
+      joins(:generic_files)
+        .where('generic_files.file_format = ?', param)
+    end
   }
-  scope :discoverable, ->(current_user) {
+  scope :discoverable, lambda { |current_user|
     # Any user can discover any item at their institution,
     # along with 'consortia' items from any institution.
     where("(intellectual_objects.access = 'consortia' or intellectual_objects.institution_id = ?)", current_user.institution.id) unless current_user.admin?
   }
-  scope :readable, ->(current_user) {
+  scope :readable, lambda { |current_user|
     # Inst admin can read anything at their institution.
     # Inst user can read read any unrestricted item at their institution.
     # Admin can read anything.
@@ -100,13 +102,14 @@ class IntellectualObject < ActiveRecord::Base
       where("(intellectual_objects.access != 'restricted' and intellectual_objects.institution_id = ?)", current_user.institution.id)
     end
   }
-  scope :writable, ->(current_user) {
+  scope :writable, lambda { |current_user|
     # Only admin has write privileges for now.
     where('(1 = 0)') unless current_user.admin?
   }
 
   def self.find_by_identifier(identifier)
     return nil if identifier.blank?
+
     unescaped_identifier = identifier.gsub(/%2F/i, '/')
     IntellectualObject.where(identifier: unescaped_identifier).first
   end
@@ -116,7 +119,7 @@ class IntellectualObject < ActiveRecord::Base
   end
 
   def self.empty_param(param)
-    (param.blank? || param.nil? || param == '*' || param == '' || param == '%') ? true : false
+    param.blank? || param.nil? || param == '*' || param == '' || param == '%' ? true : false
   end
 
   def bytes_by_format
@@ -126,7 +129,7 @@ class IntellectualObject < ActiveRecord::Base
       cross_tab['all'] = stats
       cross_tab
     else
-      {'all' => 0}
+      { 'all' => 0 }
     end
   end
 
@@ -138,17 +141,18 @@ class IntellectualObject < ActiveRecord::Base
   end
 
   def active_file_count
-    #force Generic Files to use object id / state index
+    # force Generic Files to use object id / state index
     GenericFile.where(intellectual_object_id: self.id).where(state: 'A').count
   end
 
   def mark_deleted(attributes)
     if self.active_file_count > 0
-      raise 'Object cannot be marked deleted until all of its files have been marked deleted.'
+      fail 'Object cannot be marked deleted until all of its files have been marked deleted.'
     end
     if self.state == 'D'
-      return  # Object has already been marked deleted
+      return # Object has already been marked deleted
     end
+
     # Create deletion event only if one doesn't already exist.
     last_ingest = self.premis_events.where(event_type: 'ingestion', outcome: 'Success', generic_file_identifier: '').order(date_time: :desc).limit(1).first
     last_deletion = self.premis_events.where(event_type: 'deletion', outcome: 'Success', generic_file_identifier: '').order(date_time: :desc).limit(1).first
@@ -167,11 +171,12 @@ class IntellectualObject < ActiveRecord::Base
     if !last_ingest.nil? && !last_deletion.nil? && last_deletion.date_time > last_ingest.date_time
       return true
     end
-    return false
+
+    false
   end
 
   def glacier_only?
-    (self.storage_option == 'Standard') ? glacier_only = false : glacier_only = true
+    glacier_only = self.storage_option != 'Standard'
     glacier_only
   end
 
@@ -197,22 +202,23 @@ class IntellectualObject < ActiveRecord::Base
 
   def object_report
     data = {
-        active_files: self.active_files.count,
-        processing_files: self.processing_files.count,
-        deleted_files: self.deleted_files.count,
-        bytes_by_format: self.bytes_by_format
+      active_files: self.active_files.count,
+      processing_files: self.processing_files.count,
+      deleted_files: self.deleted_files.count,
+      bytes_by_format: self.bytes_by_format
     }
   end
 
   def all_files_deleted?
     return false if generic_files.count == 0
-    (generic_files.count == generic_files.where(state: 'D').count) ? true : false
+
+    generic_files.count == generic_files.where(state: 'D').count
   end
 
-  def serializable_hash (options={})
+  def serializable_hash(options = {})
     data = super(options)
     data.delete('ingest_state')
-    if options.has_key?(:include) && options[:include].include?(:ingest_state)
+    if options.key?(:include) && options[:include].include?(:ingest_state)
       if self.ingest_state.nil?
         data['ingest_state'] = 'null'
       else
@@ -221,9 +227,9 @@ class IntellectualObject < ActiveRecord::Base
       end
     end
     data.merge(
-        file_count: gf_count,
-        file_size: gf_size,
-        institution: self.institution.identifier
+      file_count: gf_count,
+      file_size: gf_size,
+      institution: self.institution.identifier
     )
   end
 
@@ -244,50 +250,49 @@ class IntellectualObject < ActiveRecord::Base
   # Is the user allowed to discover this object?
   def can_discover?(user)
     case access
-      when 'consortia'
-        true
-      when 'institution'
-        user.admin? || user.institution_id == institution_id
-      when 'restricted'
-        user.admin? || (user.institional_admin? && user.institution_id == institution_id)
+    when 'consortia'
+      true
+    when 'institution'
+      user.admin? || user.institution_id == institution_id
+    when 'restricted'
+      user.admin? || (user.institional_admin? && user.institution_id == institution_id)
     end
   end
 
   # Is the user allowed to read this object?
   def can_read?(user)
     case access
-      when 'consortia'
-        true
-      when 'institution'
-        user.admin? || user.institution_id == institution_id
-      when 'restricted'
-        user.admin? || (user.institional_admin? && user.institution_id == institution_id)
+    when 'consortia'
+      true
+    when 'institution'
+      user.admin? || user.institution_id == institution_id
+    when 'restricted'
+      user.admin? || (user.institional_admin? && user.institution_id == institution_id)
     end
   end
 
   # Is the user allowed to edit this object?
   def can_edit?(user)
     case access
-      when 'consortia'
-        user.admin? || user.institution_id == institution_id
-      when 'institution'
-        user.admin? || (user.institional_admin? && user.institution_id == institution_id)
-      when 'restricted'
-        user.admin? || (user.institional_admin? && user.institution_id == institution_id)
+    when 'consortia'
+      user.admin? || user.institution_id == institution_id
+    when 'institution'
+      user.admin? || (user.institional_admin? && user.institution_id == institution_id)
+    when 'restricted'
+      user.admin? || (user.institional_admin? && user.institution_id == institution_id)
     end
   end
-
 
   private
 
   def has_right_number_of_checksums(checksum_list)
     checksums_okay = true
-    if (checksum_list.nil? || checksum_list.length == 0)
+    if checksum_list.blank?
       checksums_okay = false
     else
-      algorithms = Array.new
+      algorithms = []
       checksum_list.each do |cs|
-        if (algorithms.include? cs)
+        if algorithms.include? cs
           checksums_okay = false
         else
           algorithms.push(cs)
@@ -311,12 +316,13 @@ class IntellectualObject < ActiveRecord::Base
 
   def set_bag_name
     return if self.identifier.nil?
+
     if self.bag_name.nil? || self.bag_name == ''
       pieces = self.identifier.split('/')
       i = 1
-      while i < pieces.count do
-        (i == 1) ? name = pieces[1] : name = "#{name}/#{pieces[i]}"
-        i = i+1
+      while i < pieces.count
+        name = i == 1 ? pieces[1] : "#{name}/#{pieces[i]}"
+        i += 1
       end
       self.bag_name = name
     end
@@ -329,7 +335,6 @@ class IntellectualObject < ActiveRecord::Base
   end
 
   def freeze_storage_option
-    errors.add(:storage_option, 'cannot be changed') if self.storage_option_changed? unless self.storage_option.nil?
+    errors.add(:storage_option, 'cannot be changed') unless self.storage_option.nil? || !self.storage_option_changed?
   end
-
 end

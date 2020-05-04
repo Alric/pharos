@@ -1,3 +1,2 @@
 class MemberInstitutionPolicy < InstitutionPolicy
-
 end

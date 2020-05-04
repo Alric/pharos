@@ -9,7 +9,7 @@
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
 #
-class WorkItemState < ActiveRecord::Base
+class WorkItemState < ApplicationRecord
   self.primary_key = 'id'
   require 'zlib'
 
@@ -23,7 +23,7 @@ class WorkItemState < ActiveRecord::Base
     id
   end
 
-  def serializable_hash (options={})
+  def serializable_hash(_options = {})
     {
       id: id,
       work_item_id: work_item_id,
@@ -58,9 +58,8 @@ class WorkItemState < ActiveRecord::Base
 
   # Compress the state field, if it's not already compressed
   def compress_state
-    if !state.blank? && state_looks_like_plaintext
+    if state.present? && state_looks_like_plaintext
       self.state = Zlib::Deflate.deflate(state)
     end
   end
-
 end

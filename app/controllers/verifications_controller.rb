@@ -2,11 +2,9 @@ class VerificationsController < ApplicationController
   skip_before_action :verify_user!
 
   def login
-
   end
 
   def edit
-
   end
 
   def update
@@ -31,7 +29,6 @@ class VerificationsController < ApplicationController
   end
 
   def enter_backup
-
   end
 
   def check_backup
@@ -44,5 +41,4 @@ class VerificationsController < ApplicationController
       redirect_to enter_backup_verification_path(id: params[:id]), flash: { error: 'This backup code is either incorrect or has been used previously.' }
     end
   end
-
 end

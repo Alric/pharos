@@ -1,5 +1,4 @@
 FactoryBot.define do
-
   factory :intellectual_object, class: IntellectualObject do
     institution { FactoryBot.create(:member_institution) }
     title { Faker::Lorem.sentence }

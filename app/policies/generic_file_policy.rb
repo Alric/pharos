@@ -1,5 +1,4 @@
 class GenericFilePolicy < ApplicationPolicy
-
   def index?
     if user.admin?
       true
@@ -58,7 +57,7 @@ class GenericFilePolicy < ApplicationPolicy
   # creates deletion events as part of the process of deletion
   def soft_delete?
     user.admin? ||
-        (user.institutional_admin? && user.institution_id == record.intellectual_object.institution.id)
+      (user.institutional_admin? && user.institution_id == record.intellectual_object.institution.id)
   end
 
   def restore?
@@ -77,7 +76,7 @@ class GenericFilePolicy < ApplicationPolicy
       if user.admin?
         scope.all
       else
-        scope.where(:intellectual_object => { :institution_id => user.institution_id })
+        scope.where(intellectual_object: { institution_id: user.institution_id })
       end
     end
   end

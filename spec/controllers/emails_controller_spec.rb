@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe EmailsController, type: :controller do
-
   before :all do
     Email.delete_all
     User.delete_all
@@ -44,7 +43,6 @@ RSpec.describe EmailsController, type: :controller do
         expect(response.status).to eq(403)
       end
     end
-
   end
 
   describe '#GET show' do
@@ -72,7 +70,5 @@ RSpec.describe EmailsController, type: :controller do
         expect(response.status).to eq(403)
       end
     end
-
   end
-
 end

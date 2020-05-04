@@ -7,7 +7,7 @@
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
 #
-class Role < ActiveRecord::Base
+class Role < ApplicationRecord
   self.primary_key = 'id'
   validates :name, presence: true
 end

@@ -1,15 +1,14 @@
 require 'spec_helper'
 
-RSpec.describe PremisEvent, :type => :model do
-
+RSpec.describe PremisEvent, type: :model do
   it { should validate_presence_of(:identifier) }
   it { should validate_presence_of(:event_type) }
   it { should validate_presence_of(:date_time) }
-  it { should validate_presence_of(:detail)}
+  it { should validate_presence_of(:detail) }
   it { should validate_presence_of(:outcome) }
   it { should validate_presence_of(:outcome_detail) }
   it { should validate_presence_of(:object) }
-  it { should validate_presence_of(:agent)}
+  it { should validate_presence_of(:agent) }
 
   it 'has view partials in the events directory' do
     subject.to_partial_path.should == 'premis_events/premis_event'
@@ -31,7 +30,7 @@ RSpec.describe PremisEvent, :type => :model do
     end
 
     it 'should properly set a date_time' do
-      date = Time.now.to_s
+      date = Time.zone.now.to_s
       subject.date_time = date
       subject.date_time.should == date
     end
@@ -83,15 +82,15 @@ RSpec.describe PremisEvent, :type => :model do
 
     it 'should set the state to deleted and index the object state' do
       h1 = subject.serializable_hash
-      expect(h1.has_key?('identifier')).to be true
-      expect(h1.has_key?('event_type')).to be true
-      expect(h1.has_key?('date_time')).to be true
-      expect(h1.has_key?('detail')).to be true
-      expect(h1.has_key?('outcome')).to be true
-      expect(h1.has_key?('outcome_detail')).to be true
-      expect(h1.has_key?('outcome_information')).to be true
-      expect(h1.has_key?('object')).to be true
-      expect(h1.has_key?('agent')).to be true
+      expect(h1.key?('identifier')).to be true
+      expect(h1.key?('event_type')).to be true
+      expect(h1.key?('date_time')).to be true
+      expect(h1.key?('detail')).to be true
+      expect(h1.key?('outcome')).to be true
+      expect(h1.key?('outcome_detail')).to be true
+      expect(h1.key?('outcome_information')).to be true
+      expect(h1.key?('object')).to be true
+      expect(h1.key?('agent')).to be true
     end
   end
 
@@ -107,14 +106,13 @@ RSpec.describe PremisEvent, :type => :model do
       event = FactoryBot.create(:premis_event_ingest, generic_file: file)
       expect(file.last_fixity_check).to eq '2000-01-01'
     end
-
   end
 
   describe 'failed_fixity_checks' do
     it 'should return the events with a failed outcome and a fixity check type' do
       user = FactoryBot.create(:user, :admin)
       event = FactoryBot.create(:premis_event_fixity_check_fail)
-      events = PremisEvent.failed_fixity_checks(Time.now - 24.hours, user)
+      events = PremisEvent.failed_fixity_checks(Time.zone.now - 24.hours, user)
       expect(events.first).to eq event
     end
   end
@@ -123,7 +121,7 @@ RSpec.describe PremisEvent, :type => :model do
     it 'should return a count of the number of failed fixity check events' do
       user = FactoryBot.create(:user, :admin)
       event = FactoryBot.create(:premis_event_fixity_check_fail)
-      count = PremisEvent.failed_fixity_check_count(Time.now - 24.hours, user)
+      count = PremisEvent.failed_fixity_check_count(Time.zone.now - 24.hours, user)
       expect(count).to eq 1
     end
   end

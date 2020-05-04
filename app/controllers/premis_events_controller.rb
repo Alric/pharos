@@ -5,7 +5,7 @@ class PremisEventsController < ApplicationController
   before_action :load_and_authorize_parent_object, only: [:create]
   before_action :load_event, only: [:show]
   before_action :set_format
-  #after_action :check_for_failed_fixity, only: :create
+  # after_action :check_for_failed_fixity, only: :create
   after_action :verify_authorized, only: [:index, :create]
 
   def index
@@ -39,8 +39,8 @@ class PremisEventsController < ApplicationController
       filter_count_and_sort
       page_results(@premis_events)
       respond_to do |format|
-        format.json { render json: { count: @count, next: @next, previous: @previous, results: @paged_results.map { |event| event.serializable_hash } } }
-        format.html { }
+        format.json { render json: { count: @count, next: @next, previous: @previous, results: @paged_results.map(&:serializable_hash) } }
+        format.html {}
       end
     end
   end
@@ -52,13 +52,13 @@ class PremisEventsController < ApplicationController
     authorize @parent, :add_event?
     @event = @parent.add_event(@json_params)
     respond_to do |format|
-      format.json {
+      format.json do
         if @parent.save
           render json: @event.serializable_hash, status: :created
         else
           render json: @event.errors, status: :unprocessable_entity
         end
-      }
+      end
     end
   end
 
@@ -67,7 +67,7 @@ class PremisEventsController < ApplicationController
       authorize @event
       respond_to do |format|
         format.json { render json: @event.serializable_hash }
-        format.html { }
+        format.html {}
       end
     else
       authorize current_user, :nil_event?
@@ -90,17 +90,17 @@ class PremisEventsController < ApplicationController
       institution = Institution.find(inst)
       log = Email.log_multiple_fixity_fail(inst_events)
       NotificationMailer.multiple_failed_fixity_notification(@events, log, institution).deliver!
-      number_of_emails = number_of_emails + 1
+      number_of_emails += 1
       inst_list.push(institution.name)
     end
     if number_of_emails == 0
       respond_to do |format|
-        format.json { render json: { message: 'No new failed fixity checks, no emails sent.' }, status: 204 }
+        format.json { render json: { message: 'No new failed fixity checks, no emails sent.' }, status: :no_content }
       end
     else
       inst_pretty = inst_list.join(', ')
       respond_to do |format|
-        format.json { render json: { message: "#{number_of_emails} sent. Institutions that received a failed fixity notification: #{inst_pretty}." }, status: 200 }
+        format.json { render json: { message: "#{number_of_emails} sent. Institutions that received a failed fixity notification: #{inst_pretty}." }, status: :ok }
       end
     end
   end
@@ -110,7 +110,7 @@ class PremisEventsController < ApplicationController
   def load_intellectual_object
     # Param names should be consistent!
     identifier_param = params[:object_identifier]
-    if identifier_param.blank? && !params[:intellectual_object_identifier].blank?
+    if identifier_param.blank? && params[:intellectual_object_identifier].present?
       identifier_param = params[:intellectual_object_identifier]
     end
     identifier = identifier_param.gsub(/%2F/i, '/').gsub(/%3F/i, '?')
@@ -147,9 +147,9 @@ class PremisEventsController < ApplicationController
   def load_and_authorize_parent_object
     @json_params = JSON.parse(request.body.read)
     if @parent.nil?
-      if !@json_params['generic_file_identifier'].blank?
+      if @json_params['generic_file_identifier'].present?
         @parent = GenericFile.where(identifier: @json_params['generic_file_identifier']).first
-      elsif !@json_params['intellectual_object_identifier'].blank?
+      elsif @json_params['intellectual_object_identifier'].present?
         @parent = IntellectualObject.where(identifier: @json_params['intellectual_object_identifier']).first
       end
     end
@@ -157,12 +157,12 @@ class PremisEventsController < ApplicationController
   end
 
   def load_event
-    @event = PremisEvent.readable(current_user).find_by_identifier(params[:identifier])
+    @event = PremisEvent.readable(current_user).find_by(identifier: params[:identifier])
   end
 
   def for_selected_institution
     unless @parent.nil?
-      (current_user.admin? && @parent.identifier == Pharos::Application::APTRUST_ID) ? @premis_events = PremisEvent.all : @premis_events = @premis_events.with_institution(@parent.id)
+      @premis_events = current_user.admin? && @parent.identifier == Pharos::Application::APTRUST_ID ? PremisEvent.all : @premis_events.with_institution(@parent.id)
     end
   end
 
@@ -176,17 +176,17 @@ class PremisEventsController < ApplicationController
 
   def filter_count_and_sort
     @premis_events = @premis_events
-                       .with_institution(params[:institution])
-                       .with_type(params[:event_type])
-                       .with_outcome(params[:outcome])
-                       .with_create_date(params[:created_at])
-                       .created_before(params[:created_before])
-                       .created_after(params[:created_after])
-                       .with_event_identifier(params[:event_identifier])
+                     .with_institution(params[:institution])
+                     .with_type(params[:event_type])
+                     .with_outcome(params[:outcome])
+                     .with_create_date(params[:created_at])
+                     .created_before(params[:created_before])
+                     .created_after(params[:created_after])
+                     .with_event_identifier(params[:event_identifier])
     if @parent.is_a?(Institution)
       @premis_events = @premis_events
-                         .with_object_identifier(params[:object_identifier])
-                         .with_file_identifier(params[:file_identifier])
+                       .with_object_identifier(params[:object_identifier])
+                       .with_file_identifier(params[:file_identifier])
     end
     @premis_events = @premis_events.with_file_identifier(params[:file_identifier]) if @parent.is_a?(IntellectualObject)
 
@@ -195,7 +195,7 @@ class PremisEventsController < ApplicationController
     @selected = {}
 
     # Don't run counts for API requests.
-    if !api_request?
+    unless api_request?
       get_event_institution_counts(@premis_events)
       get_event_type_counts(@premis_events)
       get_outcome_counts(@premis_events)
@@ -205,12 +205,12 @@ class PremisEventsController < ApplicationController
     set_page_counts(count)
     params[:sort] = 'date' if params[:sort].nil?
     case params[:sort]
-      when 'date'
-        @premis_events = @premis_events.order('date_time DESC')
-      when 'name'
-        @premis_events = @premis_events.order('identifier').reverse_order
-      when 'institution'
-        @premis_events = @premis_events.joins(:institution).order('institutions.name')
+    when 'date'
+      @premis_events = @premis_events.order('date_time DESC')
+    when 'name'
+      @premis_events = @premis_events.order('identifier').reverse_order
+    when 'institution'
+      @premis_events = @premis_events.joins(:institution).order('institutions.name')
     end
   end
 
@@ -229,11 +229,11 @@ class PremisEventsController < ApplicationController
   # https://wiki.postgresql.org/wiki/Count_estimate
   def get_event_count
     if @premis_events.to_sql =~ / WHERE /
-      return @premis_events.count
+      @premis_events.count
     else
       query = "SELECT reltuples::bigint as row_count FROM pg_catalog.pg_class WHERE relname = 'premis_events'"
       result = ActiveRecord::Base.connection.exec_query(query)
-      return result[0]['row_count']
+      result[0]['row_count']
     end
   end
 
@@ -247,9 +247,6 @@ class PremisEventsController < ApplicationController
     if @event.event_type == Pharos::Application::PHAROS_EVENT_TYPES['fixity'] && @event.outcome == 'Failure'
       log = Email.log_fixity_fail(@event.identifier)
       NotificationMailer.failed_fixity_notification(@event, log).deliver!
-    else
-      return
     end
   end
-
 end

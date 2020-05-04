@@ -19,7 +19,7 @@
 #
 #  index_institutions_on_name  (name)
 #
-class SubscriptionInstitution  < Institution
+class SubscriptionInstitution < Institution
   belongs_to :member_institution
 
   validate :has_associated_member_institution
@@ -63,7 +63,7 @@ class SubscriptionInstitution  < Institution
     cost = apt_bytes * 0.000000000381988
     rounded_cost = cost.round(2)
     rounded_cost = 0.00 if rounded_cost == 0.0
-    snapshot = Snapshot.create(institution_id: self.id, audit_date: Time.now, apt_bytes: apt_bytes, cs_bytes: cs_bytes, go_bytes: go_bytes, cost: rounded_cost, snapshot_type: 'Individual')
+    snapshot = Snapshot.create(institution_id: self.id, audit_date: Time.zone.now, apt_bytes: apt_bytes, cs_bytes: cs_bytes, go_bytes: go_bytes, cost: rounded_cost, snapshot_type: 'Individual')
     snapshot.save!
     snapshot
   end
@@ -73,5 +73,4 @@ class SubscriptionInstitution  < Institution
   def has_associated_member_institution
     errors.add(:member_institution_id, 'cannot be nil') if self.member_institution_id.nil?
   end
-
 end

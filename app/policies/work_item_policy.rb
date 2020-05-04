@@ -1,5 +1,4 @@
 class WorkItemPolicy < ApplicationPolicy
-
   def create?
     user.admin?
   end
@@ -9,7 +8,7 @@ class WorkItemPolicy < ApplicationPolicy
   end
 
   def index?
-    user.admin? ||  (user.institution.id == record.first.institution_id)
+    user.admin? || (user.institution.id == record.first.institution_id)
   end
 
   def admin_api?

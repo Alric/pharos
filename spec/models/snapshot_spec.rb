@@ -11,7 +11,6 @@ RSpec.describe Snapshot, type: :model do
   it { should validate_presence_of(:apt_bytes) }
 
   describe 'An instance' do
-
     it 'should properly set an institution_id' do
       subject.institution_id = 5
       subject.institution_id.should == 5
@@ -23,8 +22,8 @@ RSpec.describe Snapshot, type: :model do
     end
 
     it 'should properly set apt_bytes' do
-      subject.apt_bytes = 200000000
-      subject.apt_bytes.should == 200000000
+      subject.apt_bytes = 200_000_000
+      subject.apt_bytes.should == 200_000_000
     end
 
     it 'should properly set a cost' do

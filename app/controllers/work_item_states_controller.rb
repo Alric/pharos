@@ -17,7 +17,7 @@ class WorkItemStatesController < ApplicationController
   end
 
   def update
-    @state_item.update(params_for_update) if @state_item
+    @state_item&.update(params_for_update)
     authorize @state_item
     respond_to do |format|
       if @state_item.save
@@ -32,7 +32,7 @@ class WorkItemStatesController < ApplicationController
     if @state_item.nil?
       authorize current_user, :state_show?
       respond_to do |format|
-        format.json { render body: nil, status: :not_found and return }
+        format.json { render(body: nil, status: :not_found) && return }
         format.html { redirect_to root_url, alert: 'That Work Item State could not be found.' }
       end
     else

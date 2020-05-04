@@ -53,8 +53,7 @@
 #
 require 'bcrypt'
 
-class User < ActiveRecord::Base
-
+class User < ApplicationRecord
   self.primary_key = 'id'
   belongs_to :institution, foreign_key: :institution_id
   has_and_belongs_to_many :roles
@@ -66,22 +65,22 @@ class User < ActiveRecord::Base
   # :lockable, :timeoutable and :omniauthable
   devise :recoverable, :rememberable, :trackable, :password_archivable,
          :timeoutable, :validatable, :two_factor_authenticatable,
-         :two_factor_backupable, otp_backup_code_length: 10, :otp_secret_encryption_key => ENV['TWO_FACTOR_KEY']
+         :two_factor_backupable, otp_backup_code_length: 10, otp_secret_encryption_key: ENV['TWO_FACTOR_KEY']
 
   validates :email, presence: true, uniqueness: true
   validate :email_is_valid
   # validates :phone_number, presence: true
-  validates_presence_of :phone_number, on: :enable_otp
+  validates :phone_number, presence: { on: :enable_otp }
   validates :role_ids, presence: true
   validates :institution_id, presence: true
   validate :institution_id_points_at_institution
   validates :name, presence: true
-  phony_normalize :phone_number, :default_country_code => 'US'
+  phony_normalize :phone_number, default_country_code: 'US'
   validates_plausible_phone :phone_number
   validate :init_grace_period, on: :create
 
   # We want this to always be true so that authorization happens in the user policy, preventing incorrect 404 errors.
-  scope :readable, ->(current_user) { where('(1=1)') }
+  scope :readable, ->(_current_user) { where('(1=1)') }
 
   # This method assigns permission groups
   # Don't think these are necessary anymore, we use Pundit/Roles
@@ -145,7 +144,7 @@ class User < ActiveRecord::Base
   def self.stale_users
     users = User.where('created_at <= ? AND created_at >= ?',
                        DateTime.now - (ENV['PHAROS_2FA_GRACE_PERIOD'].to_i - 3).days,
-                       DateTime.now - (ENV['PHAROS_2FA_GRACE_PERIOD'].to_i + 7).days, )
+                       DateTime.now - (ENV['PHAROS_2FA_GRACE_PERIOD'].to_i + 7).days)
     stale_users = []
     users.each do |usr|
       items = WorkItem.where(user: usr.email)
@@ -155,11 +154,11 @@ class User < ActiveRecord::Base
   end
 
   def role_id
-    if(admin?)
+    if admin?
       Role.where(name: 'admin').first_or_create.id
-    elsif(institutional_admin?)
+    elsif institutional_admin?
       Role.where(name: 'institutional_admin').first_or_create.id
-    elsif(institutional_user?)
+    elsif institutional_user?
       Role.where(name: 'institutional_user').first_or_create.id
     end
   end
@@ -179,7 +178,7 @@ class User < ActiveRecord::Base
   end
 
   def deactivated?
-    return !self.deactivated_at.nil?
+    !self.deactivated_at.nil?
   end
 
   # ensure user account is active
@@ -211,7 +210,8 @@ class User < ActiveRecord::Base
   # Verifies whether an API key (from sign in) matches the user's API key.
   def valid_api_key?(input_key)
     return false if encrypted_api_secret_key.blank?
-    bcrypt  = ::BCrypt::Password.new(encrypted_api_secret_key)
+
+    bcrypt = ::BCrypt::Password.new(encrypted_api_secret_key)
     key = ::BCrypt::Engine.hash_secret("#{input_key}#{User.pepper}", bcrypt.salt)
     Devise.secure_compare(key, encrypted_api_secret_key)
   end
@@ -242,7 +242,7 @@ class User < ActiveRecord::Base
   end
 
   def email_is_valid
-    errors.add(:email, 'is invalid') if !EmailValidator.valid?(email)
+    errors.add(:email, 'is invalid') unless EmailValidator.valid?(email)
   end
 
   def phone_number_length
@@ -254,7 +254,5 @@ class User < ActiveRecord::Base
   end
 
   def self.phone_number_is_valid
-
   end
-
 end

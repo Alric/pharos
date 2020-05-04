@@ -29,5 +29,4 @@ module DeviseHelper
   def devise_error_messages?
     @user.errors.empty? ? false : true
   end
-
 end

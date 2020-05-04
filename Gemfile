@@ -65,6 +65,7 @@ group :development do
   gem 'spring'
   gem 'rb-readline'
   gem 'annotate'
+  gem 'rubocop-rails', '~> 2.2.1', require: false
 end
 
 group :test, :development do

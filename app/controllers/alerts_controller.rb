@@ -7,15 +7,15 @@ class AlertsController < ApplicationController
     params[:since] = (DateTime.now - 24.hours) unless params[:since]
     params[:type] = 'all' unless params[:type]
     respond_to do |format|
-      format.json {
+      format.json do
         get_index_lists(params[:since])
         render json: @alerts_list.to_json
-      }
-      format.html {
+      end
+      format.html do
         params[:type] = 'all'
         get_index_lists(params[:since])
         render 'index'
-      }
+      end
     end
   end
 
@@ -25,7 +25,7 @@ class AlertsController < ApplicationController
     get_summary_counts(params[:since])
     respond_to do |format|
       format.json { render json: @alerts_summary.to_json }
-      format.html { }
+      format.html {}
     end
   end
 
@@ -34,22 +34,22 @@ class AlertsController < ApplicationController
   def get_index_lists(datetime)
     @alerts_list = {}
     case params[:type]
-      when 'fixity'
-        @alerts_list[:failed_fixity_checks] = PremisEvent.failed_fixity_checks(datetime, current_user)
-      when 'ingest'
-        @alerts_list[:failed_ingests] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['ingest'], current_user)
-      when 'restore'
-        @alerts_list[:failed_restorations] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['restore'], current_user)
-      when 'delete'
-        @alerts_list[:failed_deletions] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['delete'], current_user)
-      when 'stalled_wi'
-        @alerts_list[:stalled_work_items] = WorkItem.stalled_items(current_user)
-      when 'all'
-        @alerts_list[:failed_fixity_checks] = PremisEvent.failed_fixity_checks(datetime, current_user)
-        @alerts_list[:failed_ingests] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['ingest'], current_user)
-        @alerts_list[:failed_restorations] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['restore'], current_user)
-        @alerts_list[:failed_deletions] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['delete'], current_user)
-        @alerts_list[:stalled_work_items] = WorkItem.stalled_items(current_user)
+    when 'fixity'
+      @alerts_list[:failed_fixity_checks] = PremisEvent.failed_fixity_checks(datetime, current_user)
+    when 'ingest'
+      @alerts_list[:failed_ingests] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['ingest'], current_user)
+    when 'restore'
+      @alerts_list[:failed_restorations] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['restore'], current_user)
+    when 'delete'
+      @alerts_list[:failed_deletions] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['delete'], current_user)
+    when 'stalled_wi'
+      @alerts_list[:stalled_work_items] = WorkItem.stalled_items(current_user)
+    when 'all'
+      @alerts_list[:failed_fixity_checks] = PremisEvent.failed_fixity_checks(datetime, current_user)
+      @alerts_list[:failed_ingests] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['ingest'], current_user)
+      @alerts_list[:failed_restorations] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['restore'], current_user)
+      @alerts_list[:failed_deletions] = WorkItem.failed_action(datetime, Pharos::Application::PHAROS_ACTIONS['delete'], current_user)
+      @alerts_list[:stalled_work_items] = WorkItem.stalled_items(current_user)
     end
   end
 
@@ -61,5 +61,4 @@ class AlertsController < ApplicationController
     @alerts_summary[:failed_deletion_count] = WorkItem.failed_action_count(datetime, Pharos::Application::PHAROS_ACTIONS['delete'], current_user)
     @alerts_summary[:stalled_work_item_count] = WorkItem.stalled_items_count(current_user)
   end
-
 end

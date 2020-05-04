@@ -1,11 +1,10 @@
 module ReportsHelper
-
   def cost_analysis_member(size)
     price = ''
-    if size < 10995116277760 #10 TB
+    if size < 10_995_116_277_760 # 10 TB
       price = 0.00
     else
-      excess = size - 10995116277760
+      excess = size - 10_995_116_277_760
       price = cost_analysis_subscriber(excess)
     end
     price
@@ -35,26 +34,26 @@ module ReportsHelper
     @mimetype_report.each do |mimetype, count|
       base_type = mimetype.split('/')[0]
       case base_type
-        when 'application'
-          @application_report[mimetype] = count
-          application_total += count
-        when 'audio'
-          @audio_report[mimetype] = count
-          audio_total += count
-        when 'video'
-          @video_report[mimetype] = count
-          video_total += count
-        when 'image'
-          @image_report[mimetype] = count
-          image_total += count
-        when 'text'
-          @text_report[mimetype] = count
-          text_total += count
-        else
-          unless base_type == 'all'
-            @other_report[mimetype] = count
-            other_total += count
-          end
+      when 'application'
+        @application_report[mimetype] = count
+        application_total += count
+      when 'audio'
+        @audio_report[mimetype] = count
+        audio_total += count
+      when 'video'
+        @video_report[mimetype] = count
+        video_total += count
+      when 'image'
+        @image_report[mimetype] = count
+        image_total += count
+      when 'text'
+        @text_report[mimetype] = count
+        text_total += count
+      else
+        unless base_type == 'all'
+          @other_report[mimetype] = count
+          other_total += count
+        end
       end
     end
     @base_report['Applications'] = application_total
@@ -67,9 +66,8 @@ module ReportsHelper
   end
 
   def readable_bytes(data_point)
-    gb = data_point / 1073741824
+    gb = data_point / 1_073_741_824
     gb = gb.round(2)
     gb
   end
-
 end

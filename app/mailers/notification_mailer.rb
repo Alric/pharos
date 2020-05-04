@@ -13,7 +13,7 @@ class NotificationMailer < ApplicationMailer
     email_log.email_text = "Admin Users at #{@event_institution.name}, This email notification is to inform you that one of your files failed a fixity check. The failed fixity check can be found at the following link: #{premis_event_url(id: @event.id)}. Please contact the APTrust team by replying to this email if you have any questions."
     email_log.save!
     prefix = "[APTrust #{Rails.env.capitalize}] - "
-    mail(to: emails, subject:"#{prefix}Failed fixity check on one of your files")
+    mail(to: emails, subject: "#{prefix}Failed fixity check on one of your files")
   end
 
   def restoration_notification(work_item, email_log)
@@ -241,7 +241,7 @@ class NotificationMailer < ApplicationMailer
     emails = []
     users.each { |user| emails.push(user.email) }
     inst_name = @subject.name.split(' ').join('_')
-    directory = "./tmp/deletions_#{Rails.env}/#{Time.now.month}-#{Time.now.day}-#{Time.now.year}/#{inst_name}"
+    directory = "./tmp/deletions_#{Rails.env}/#{Time.zone.now.month}-#{Time.zone.now.day}-#{Time.zone.now.year}/#{inst_name}"
     zip = File.read("#{directory}/#{inst_name}.zip")
     attachments['deletions.zip'] = { mime_type: 'application/zip', content: zip }
     prefix = "[APTrust #{Rails.env.capitalize}] - "
@@ -284,5 +284,4 @@ class NotificationMailer < ApplicationMailer
     prefix = "[APTrust #{Rails.env.capitalize}] - "
     mail(to: 'team@aptrust.org', subject: "#{prefix}Stale Users")
   end
-
 end

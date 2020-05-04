@@ -1,7 +1,6 @@
 FactoryBot.define do
-
   sequence(:name) { |n| "#{Faker::Company.name} #{n}" }
-  sequence(:identifier) { |n| "#{n}#{Faker::Internet.domain_word}.#{Pharos::Application::VALID_DOMAINS.sample}"}
+  sequence(:identifier) { |n| "#{n}#{Faker::Internet.domain_word}.#{Pharos::Application::VALID_DOMAINS.sample}" }
 
   factory :member_institution do
     name

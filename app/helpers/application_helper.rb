@@ -1,11 +1,11 @@
 module ApplicationHelper
-  def show_link(object, content = nil, options={})
+  def show_link(object, content = nil, options = {})
     content ||= '<i class="glyphicon glyphicon-eye-open"></i> View'
     options[:class] = 'btn doc-action-btn btn-normal btn-sm' if options[:class].nil?
     link_to(content.html_safe, object, options) if policy(object).show?
   end
 
-  def edit_link(object, content = nil, options={})
+  def edit_link(object, content = nil, options = {})
     content ||= '<i class="glyphicon glyphicon-edit"></i> Edit'
     options[:class] = 'btn doc-action-btn btn-normal btn-sm' if options[:class].nil?
     if object.is_a?(Institution)
@@ -17,7 +17,7 @@ module ApplicationHelper
     end
   end
 
-  def deactivate_link(object, content = nil, options={})
+  def deactivate_link(object, content = nil, options = {})
     content ||= '<i class="glyphicon glyphicon-minus-sign"></i> Deactivate'
     options[:class] = 'btn doc-action-btn btn-warning btn-sm' if options[:class].nil?
     options[:method] = :get if options[:method].nil?
@@ -30,7 +30,7 @@ module ApplicationHelper
     end
   end
 
-  def reactivate_link(object, content = nil, options={})
+  def reactivate_link(object, content = nil, options = {})
     content ||= '<i class="glyphicon glyphicon-plus-sign"></i> Reactivate'
     options[:class] = 'btn doc-action-btn btn-success btn-sm' if options[:class].nil?
     options[:method] = :get if options[:method].nil?
@@ -43,7 +43,7 @@ module ApplicationHelper
     end
   end
 
-  def enable_otp_link(object, content = nil, options={})
+  def enable_otp_link(object, content = nil, options = {})
     options[:class] = 'btn doc-action-btn btn-success btn-sm' if options[:class].nil?
     options[:method] = :get if options[:method].nil?
     if object.is_a?(Institution)
@@ -57,7 +57,7 @@ module ApplicationHelper
     end
   end
 
-  def disable_otp_link(object, content = nil, options={})
+  def disable_otp_link(object, content = nil, options = {})
     options[:class] = 'btn doc-action-btn btn-warning btn-sm' if options[:class].nil?
     options[:method] = :get if options[:method].nil?
     if object.is_a?(Institution)
@@ -71,7 +71,7 @@ module ApplicationHelper
     end
   end
 
-  def destroy_link(object, content = nil, options={})
+  def destroy_link(object, content = nil, options = {})
     content ||= '<i class="glyphicon glyphicon-trash"></i> Delete'
     options[:class] = 'btn doc-action-btn btn-danger btn-sm' if options[:class].nil?
     options[:method] = :delete if options[:method].nil?
@@ -83,19 +83,19 @@ module ApplicationHelper
     end
   end
 
-  def admin_password_link(object, content = nil, options={})
+  def admin_password_link(object, content = nil, options = {})
     content ||= '<i class="glyphicon glyphicon-warning-sign"></i> Reset User Password'
     options[:class] = 'btn doc-action-btn btn-danger btn-sm' if options[:class].nil?
     options[:method] = :get if options[:method].nil?
-    options[:data] = { confirm: "Are you sure you want to reset this user's password?" }if options[:confirm].nil?
+    options[:data] = { confirm: "Are you sure you want to reset this user's password?" } if options[:confirm].nil?
     link_to(content.html_safe, [:admin_password_reset, object], options) if policy(object).admin_password_reset?
   end
 
-  def create_link(object, content = nil, options={})
+  def create_link(object, content = nil, options = {})
     content ||= '<i class="glyphicon glyphicon-plus"></i> Create'
     options[:class] = 'btn doc-action-btn btn-success btn-sm' if options[:class].nil?
     if policy(object).create?
-      object_class = (object.kind_of?(Class) ? object : object.class)
+      object_class = (object.is_a?(Class) ? object : object.class)
       link_to(content.html_safe, [:new, object_class.name.underscore.to_sym], options)
     end
   end
@@ -109,19 +109,18 @@ module ApplicationHelper
   end
 
   def get_institution_for_tabs
-    if @institution && !@institution.id.nil?
-      @inst = @institution
-    else
-      @inst = current_user.institution
-    end
-
+    @inst = if @institution && !@institution.id.nil?
+              @institution
+            else
+              current_user.institution
+            end
   end
 
   def format_boolean_as_yes_no(boolean)
     if boolean == 'true'
-      return 'Yes'
+      'Yes'
     else
-      return 'No'
+      'No'
     end
   end
 
@@ -130,7 +129,8 @@ module ApplicationHelper
     release_version = ENV['PHAROS_RELEASE']
     release_branch = ENV['PHAROS_BRANCH']
     return "| Pharos #{app_version} Release #{release_version}" if Rails.env.production?
-    return "| Pharos #{app_version} Release #{release_version} #{release_branch} | Rails #{Rails.version} | Ruby #{RUBY_VERSION}"
+
+    "| Pharos #{app_version} Release #{release_version} #{release_branch} | Rails #{Rails.version} | Ruby #{RUBY_VERSION}"
   end
 
   def current_path(param, value)
@@ -138,7 +138,7 @@ module ApplicationHelper
     old_path = url_for(only_path: false, params: (params.permit(Pharos::Application::PARAMS_HASH).except param)) if old_path.include? param
     old_path = url_for(only_path: false, params: (params.permit(Pharos::Application::PARAMS_HASH).except :page)) if old_path.include? 'page'
     value = '' if value.nil?
-    if value.kind_of?(Integer)
+    if value.is_a?(Integer)
       encoded_val = value
     elsif value.include?('+')
       pieces = value.split('+')
@@ -146,49 +146,49 @@ module ApplicationHelper
     else
       encoded_val = URI.escape(value)
     end
-    if old_path.include? '?'
-      new_path = "#{old_path}&#{param}=#{encoded_val}"
-    else
-      new_path = "#{old_path}?#{param}=#{encoded_val}"
-    end
+    new_path = if old_path.include? '?'
+                 "#{old_path}&#{param}=#{encoded_val}"
+               else
+                 "#{old_path}?#{param}=#{encoded_val}"
+               end
     new_path
   end
 
   def start_over_link(controller)
     case controller
-      when 'catalog'
-        url = url_for(params.permit(Pharos::Application::PARAMS_HASH).except(:page, :sort, :item_action, :institution, :stage,
-                                                                             :status, :access, :file_format, :object_association,
-                                                                             :file_association, :type, :state, :event_type, :outcome,
-                                                                             :queued, :retry, :remote_node))
-      when 'intellectual_objects'
-        url = url_for(params.permit(Pharos::Application::PARAMS_HASH).except(:page, :sort, :institution, :access, :file_format,
-                                                                             :state, :description, :description_like, :identifier,
-                                                                             :identifier_like, :bag_group_identifier,
-                                                                             :bag_group_identifier_like, :alt_identifier,
-                                                                             :alt_identifier_like, :bag_name, :bag_name_like, :etag,
-                                                                             :etag_like, :created_before, :created_after, :updated_before,
-                                                                             :updated_after))
-      when 'generic_files'
-        url = url_for(params.permit(Pharos::Application::PARAMS_HASH).except(:page, :sort, :institution, :access, :file_format,
-                                                                             :object_association, :state, :identifier, :identifier_like,
-                                                                             :uri, :created_before, :created_after, :updated_before,
-                                                                             :updated_after))
-      when 'premis_events'
-        url = url_for(params.permit(Pharos::Application::PARAMS_HASH).except(:page, :sort, :institution, :access, :object_association,
-                                                                             :file_association, :state, :event_type, :outcome, :created_at,
-                                                                             :created_before, :created_after, :event_identifier,
-                                                                             :object_identifier, :object_identifier_like, :file_identifier,
-                                                                             :file_identifier_like))
-      when 'work_items'
-        url = url_for(params.permit(Pharos::Application::PARAMS_HASH).except(:page, :sort, :item_action, :institution, :stage,
-                                                                             :status, :access, :object_association, :file_association,
-                                                                             :state, :created_before, :created_after, :updated_before,
-                                                                             :updated_after, :updated_since, :bag_date, :name, :name_exact,
-                                                                             :name_contains, :etag, :etag_contains, :object_identifier,
-                                                                             :object_identifier_contains, :file_identifier,
-                                                                             :file_identifier_contains, :queued, :node, :pid, :node_not_empty,
-                                                                             :node_empty, :retry, :pid_empty, :pid_not_empty))
+    when 'catalog'
+      url = url_for(params.permit(Pharos::Application::PARAMS_HASH).except(:page, :sort, :item_action, :institution, :stage,
+                                                                           :status, :access, :file_format, :object_association,
+                                                                           :file_association, :type, :state, :event_type, :outcome,
+                                                                           :queued, :retry, :remote_node))
+    when 'intellectual_objects'
+      url = url_for(params.permit(Pharos::Application::PARAMS_HASH).except(:page, :sort, :institution, :access, :file_format,
+                                                                           :state, :description, :description_like, :identifier,
+                                                                           :identifier_like, :bag_group_identifier,
+                                                                           :bag_group_identifier_like, :alt_identifier,
+                                                                           :alt_identifier_like, :bag_name, :bag_name_like, :etag,
+                                                                           :etag_like, :created_before, :created_after, :updated_before,
+                                                                           :updated_after))
+    when 'generic_files'
+      url = url_for(params.permit(Pharos::Application::PARAMS_HASH).except(:page, :sort, :institution, :access, :file_format,
+                                                                           :object_association, :state, :identifier, :identifier_like,
+                                                                           :uri, :created_before, :created_after, :updated_before,
+                                                                           :updated_after))
+    when 'premis_events'
+      url = url_for(params.permit(Pharos::Application::PARAMS_HASH).except(:page, :sort, :institution, :access, :object_association,
+                                                                           :file_association, :state, :event_type, :outcome, :created_at,
+                                                                           :created_before, :created_after, :event_identifier,
+                                                                           :object_identifier, :object_identifier_like, :file_identifier,
+                                                                           :file_identifier_like))
+    when 'work_items'
+      url = url_for(params.permit(Pharos::Application::PARAMS_HASH).except(:page, :sort, :item_action, :institution, :stage,
+                                                                           :status, :access, :object_association, :file_association,
+                                                                           :state, :created_before, :created_after, :updated_before,
+                                                                           :updated_after, :updated_since, :bag_date, :name, :name_exact,
+                                                                           :name_contains, :etag, :etag_contains, :object_identifier,
+                                                                           :object_identifier_contains, :file_identifier,
+                                                                           :file_identifier_contains, :queued, :node, :pid, :node_not_empty,
+                                                                           :node_empty, :retry, :pid_empty, :pid_not_empty))
     end
     url
   end
@@ -203,9 +203,8 @@ module ApplicationHelper
   def pretty_date(date)
     unless date.nil? || date == ''
       zoned_date = date.in_time_zone(Time.zone)
-      pretty_date = zoned_date.strftime('%Y-%m-%dT%H:%M:%S %Z') #ISO Format
+      pretty_date = zoned_date.strftime('%Y-%m-%dT%H:%M:%S %Z') # ISO Format
       pretty_date
     end
   end
-
 end

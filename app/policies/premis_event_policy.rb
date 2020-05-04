@@ -1,7 +1,6 @@
 class PremisEventPolicy < ApplicationPolicy
-
   def index?
-    user.admin? ||  (user.institution_id == record.id)
+    user.admin? || (user.institution_id == record.id)
   end
 
   def create?
@@ -11,5 +10,4 @@ class PremisEventPolicy < ApplicationPolicy
   def show?
     user.admin? || user.institution_id == record.id
   end
-
 end

@@ -22,14 +22,14 @@ describe InstitutionPolicy do
         should_not permit(:partial_confirmation_bulk_delete)
         should permit(:final_confirmation_bulk_delete)
         should permit(:finished_bulk_delete)
-        #should permit(:destroy) #only turn this line on and above line off when deleting an institution. Otherwise, deletion should be OFF.
+        # should permit(:destroy) #only turn this line on and above line off when deleting an institution. Otherwise, deletion should be OFF.
       end
     end
 
     describe "access an intellectual object's institution" do
       let(:intellectual_object) { FactoryBot.create(:intellectual_object) }
-      let(:institution) { intellectual_object.institution}
-      it { should permit(:add_user)}
+      let(:institution) { intellectual_object.institution }
+      it { should permit(:add_user) }
     end
   end
 
@@ -78,8 +78,10 @@ describe InstitutionPolicy do
   context 'for an institutional user' do
     describe 'when the institution is' do
       describe 'in my institution' do
-        let(:user) { FactoryBot.create(:user, :institutional_user,
-                                        institution_id: institution.id) }
+        let(:user) do
+          FactoryBot.create(:user, :institutional_user,
+                            institution_id: institution.id)
+        end
         it do
           should permit(:show)
           should_not permit(:create)
@@ -98,8 +100,10 @@ describe InstitutionPolicy do
       end
 
       describe 'not in my institution' do
-        let(:user) { FactoryBot.create(:user, :institutional_user,
-                                        institution_id: other_institution.id) }
+        let(:user) do
+          FactoryBot.create(:user, :institutional_user,
+                            institution_id: other_institution.id)
+        end
         it do
           should_not permit(:create)
           should_not permit(:new)
