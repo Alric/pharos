@@ -3,40 +3,41 @@
 # Table name: users
 #
 #  id                        :integer          not null, primary key
-#  name                      :string
-#  email                     :string
-#  phone_number              :string
-#  created_at                :datetime         not null
-#  updated_at                :datetime         not null
-#  encrypted_password        :string           default(""), not null
-#  reset_password_token      :string
-#  reset_password_sent_at    :datetime
-#  remember_created_at       :datetime
-#  sign_in_count             :integer          default("0"), not null
+#  account_confirmed         :boolean          default("true")
+#  authy_status              :string
+#  confirmed_two_factor      :boolean          default("false")
+#  consumed_timestep         :integer
 #  current_sign_in_at        :datetime
-#  last_sign_in_at           :datetime
 #  current_sign_in_ip        :string
-#  last_sign_in_ip           :string
-#  institution_id            :integer
-#  encrypted_api_secret_key  :text
 #  deactivated_at            :datetime
-#  password_changed_at       :datetime
+#  email                     :string
+#  email_verified            :boolean          default("false")
+#  enabled_two_factor        :boolean          default("false")
+#  encrypted_api_secret_key  :text
 #  encrypted_otp_secret      :string
 #  encrypted_otp_secret_iv   :string
 #  encrypted_otp_secret_salt :string
-#  consumed_timestep         :integer
-#  otp_required_for_login    :boolean
-#  enabled_two_factor        :boolean          default("false")
-#  confirmed_two_factor      :boolean          default("false")
-#  otp_backup_codes          :string           is an Array
-#  authy_id                  :string
-#  last_sign_in_with_authy   :datetime
-#  authy_status              :string
-#  email_verified            :boolean          default("false")
-#  initial_password_updated  :boolean          default("false")
+#  encrypted_password        :string           default(""), not null
 #  force_password_update     :boolean          default("false")
-#  account_confirmed         :boolean          default("true")
 #  grace_period              :datetime
+#  initial_password_updated  :boolean          default("false")
+#  institution_pid           :string
+#  last_sign_in_at           :datetime
+#  last_sign_in_ip           :string
+#  last_sign_in_with_authy   :datetime
+#  name                      :string
+#  otp_backup_codes          :string           is an Array
+#  otp_required_for_login    :boolean
+#  password_changed_at       :datetime
+#  phone_number              :string
+#  remember_created_at       :datetime
+#  reset_password_sent_at    :datetime
+#  reset_password_token      :string
+#  sign_in_count             :integer          default("0"), not null
+#  created_at                :datetime         not null
+#  updated_at                :datetime         not null
+#  authy_id                  :string
+#  institution_id            :integer
 #
 # Indexes
 #
@@ -45,6 +46,10 @@
 #  index_users_on_institution_id        (institution_id)
 #  index_users_on_password_changed_at   (password_changed_at)
 #  index_users_on_reset_password_token  (reset_password_token) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (institution_id => institutions.id)
 #
 require 'bcrypt'
 

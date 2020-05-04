@@ -4,15 +4,19 @@
 #
 #  id              :integer          not null, primary key
 #  algorithm       :string
-#  datetime        :string
+#  datetime        :datetime
 #  digest          :string
-#  generic_file_id :integer
 #  created_at      :datetime         not null
 #  updated_at      :datetime         not null
+#  generic_file_id :integer
 #
 # Indexes
 #
 #  index_checksums_on_generic_file_id  (generic_file_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (generic_file_id => generic_files.id)
 #
 class Checksum < ActiveRecord::Base
   self.primary_key = 'id'
