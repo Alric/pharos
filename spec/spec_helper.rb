@@ -1,7 +1,12 @@
+# Start simplecov before *any* covered code is loaded.
+require 'simplecov'
+SimpleCov.start 'rails'
+
 # This file is copied to spec/ when you run 'rails generate rspec:install'
 ENV['RAILS_ENV'] ||= 'test'
 require File.expand_path('../../config/environment', __FILE__)
 abort('The Rails environment is running in production mode!') if (Rails.env.production? || Rails.env.demo?)
+
 require 'dotenv'
 Dotenv.load('.env.local', '.env.test','.env')
 require 'rspec/rails'
@@ -9,11 +14,9 @@ require 'shoulda/matchers'
 require 'capybara/rails'
 require 'capybara/rspec'
 require 'coveralls'
-require 'simplecov'
 
-# push test code to remote and produce locally.
-Coveralls.wear!
-SimpleCov.start 'rails'
+# Only call Coveralls to publish if in an applicable env, suppressing local report otherwise.
+Coveralls.wear! if Coveralls.will_run?
 
 # Requires supporting ruby files with custom matchers and macros, etc,
 # in spec/support/ and its subdirectories.
@@ -103,4 +106,6 @@ RSpec.configure do |config|
   config.include InjectSession, type: :request
 
   # config.backtrace_exclusion_patterns = Array.new
+
+  config.example_status_persistence_file_path = 'spec/examples.txt'
 end

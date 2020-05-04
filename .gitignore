@@ -27,6 +27,7 @@ vendor/
 !/log/.keep
 /tmp
 /coverage
+/spec/examples.txt
 demo.log
 *~
 *.orig
